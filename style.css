@@ -5,7 +5,7 @@
 }
 
 body {
-    font-family: 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
     color: white;
     height: 100vh;
@@ -16,19 +16,21 @@ body {
 .screen {
     display: none;
     height: 100vh;
+    width: 100%;
 }
 
 .screen.active {
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 20px;
 }
 
 .login-box {
     background: rgba(25, 25, 40, 0.95);
-    padding: 40px;
+    padding: 30px;
     border-radius: 20px;
-    width: 90%;
+    width: 100%;
     max-width: 450px;
     text-align: center;
     backdrop-filter: blur(10px);
@@ -39,13 +41,14 @@ body {
 .neon-text {
     color: #00ffff;
     text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
-    font-size: 2.5em;
+    font-size: 2.2em;
     margin-bottom: 10px;
 }
 
 .subtitle {
     color: #a0a0ff;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
+    font-size: 1.1em;
 }
 
 .input-group {
@@ -86,7 +89,7 @@ body {
     background: linear-gradient(45deg, #00ffff, #0080ff);
     color: white;
     border: none;
-    padding: 15px 30px;
+    padding: 15px 25px;
     border-radius: 10px;
     font-size: 1.1em;
     cursor: pointer;
@@ -107,9 +110,10 @@ body {
 }
 
 .tips {
-    margin-top: 30px;
+    margin-top: 25px;
     text-align: left;
     color: #88aaff;
+    font-size: 0.95em;
 }
 
 .tips p {
@@ -121,22 +125,59 @@ body {
 .tips i {
     margin-right: 10px;
     color: #00ffff;
+    min-width: 20px;
 }
 
 /* Основной интерфейс чата */
 #chatScreen {
     display: flex;
     height: 100vh;
-    padding: 10px;
+    width: 100%;
     gap: 10px;
+    padding: 10px;
+    position: relative;
+}
+
+/* Мобильное меню */
+.mobile-menu {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(30, 30, 50, 0.95);
+    padding: 10px;
+    z-index: 1000;
+    border-top: 2px solid #00ffff;
+    backdrop-filter: blur(10px);
+}
+
+.mobile-btn {
+    flex: 1;
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid #00ffff;
+    color: white;
+    padding: 12px;
+    margin: 0 5px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.mobile-btn i {
+    font-size: 1.1em;
 }
 
 .neon-box {
     background: rgba(30, 30, 50, 0.7);
     border-radius: 15px;
-    padding: 20px;
+    padding: 15px;
     border: 1px solid rgba(0, 255, 255, 0.1);
-    margin-bottom: 15px;
+    margin-bottom: 10px;
 }
 
 /* Левая панель */
@@ -144,60 +185,65 @@ body {
     width: 250px;
     display: flex;
     flex-direction: column;
+    flex-shrink: 0;
 }
 
 .user-info {
     text-align: center;
+    padding: 15px;
 }
 
 .avatar {
-    width: 70px;
-    height: 70px;
+    width: 60px;
+    height: 60px;
     background: linear-gradient(45deg, #ff0080, #ff8c00);
     border-radius: 50%;
-    margin: 0 auto 15px;
+    margin: 0 auto 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2em;
+    font-size: 1.8em;
     border: 3px solid #00ffff;
 }
 
 .user-name {
-    font-size: 1.3em;
+    font-size: 1.2em;
     font-weight: bold;
     color: #00ffff;
     margin-bottom: 5px;
+    word-break: break-word;
 }
 
 .status {
     color: #00ff80;
     font-size: 0.9em;
-}
-
-.status i {
-    margin-right: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
 }
 
 .channels {
     flex: 1;
-    margin: 15px 0;
+    margin: 10px 0;
+    overflow-y: auto;
 }
 
 .channel {
-    padding: 15px;
-    margin: 8px 0;
+    padding: 12px 15px;
+    margin: 6px 0;
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.3s;
     color: #ccccff;
     display: flex;
     align-items: center;
+    gap: 10px;
 }
 
 .channel:hover {
     background: rgba(0, 255, 255, 0.1);
-    transform: translateX(5px);
+    transform: translateX(3px);
 }
 
 .channel.active {
@@ -208,8 +254,29 @@ body {
 }
 
 .channel i {
-    margin-right: 10px;
-    font-size: 1.2em;
+    font-size: 1.1em;
+    min-width: 20px;
+}
+
+.call-btn {
+    margin-top: 10px;
+    padding: 12px;
+    font-size: 1em;
+}
+
+.refresh-info {
+    text-align: center;
+    color: #88aaff;
+    font-size: 0.9em;
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.refresh-info i {
+    margin-right: 8px;
+    color: #00ffff;
 }
 
 /* Центральная часть */
@@ -218,46 +285,88 @@ body {
     display: flex;
     flex-direction: column;
     background: rgba(20, 20, 35, 0.8);
-    border-radius: 20px;
+    border-radius: 15px;
     overflow: hidden;
+    min-width: 0; /* Важно для адаптивности */
 }
 
 .chat-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 30px;
+    padding: 15px 20px;
     border-bottom: 2px solid rgba(0, 255, 255, 0.1);
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .chat-header h2 {
     color: #00ffff;
+    font-size: 1.3em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
 .online-count {
     color: #00ff80;
     font-weight: bold;
+    font-size: 0.95em;
+    white-space: nowrap;
+}
+
+.online-count i {
+    font-size: 0.8em;
+    margin-right: 5px;
+}
+
+.refresh-btn {
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid #00ffff;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.refresh-btn:hover {
+    background: rgba(0, 255, 255, 0.3);
+    transform: rotate(180deg);
 }
 
 .messages {
     flex: 1;
-    padding: 20px;
+    padding: 15px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
+    min-height: 0;
 }
 
 .message {
     background: rgba(40, 40, 60, 0.5);
-    padding: 15px;
-    border-radius: 15px;
-    max-width: 70%;
+    padding: 12px 15px;
+    border-radius: 12px;
+    max-width: 85%;
     animation: fadeIn 0.3s;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
@@ -270,82 +379,94 @@ body {
 .message-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     color: #00ffff;
     font-weight: bold;
+    font-size: 0.95em;
+    flex-wrap: wrap;
+    gap: 5px;
 }
 
 .message-time {
     color: #888;
-    font-size: 0.9em;
+    font-size: 0.85em;
+    white-space: nowrap;
 }
 
 .message-content {
     line-height: 1.5;
+    font-size: 1em;
 }
 
 .message-content img {
     max-width: 100%;
-    border-radius: 10px;
-    margin-top: 10px;
+    border-radius: 8px;
+    margin-top: 8px;
 }
 
 .input-area {
-    padding: 20px;
+    padding: 15px;
     border-top: 2px solid rgba(0, 255, 255, 0.1);
 }
 
 .input-box {
     display: flex;
     gap: 10px;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
 }
 
 .input-box input {
     flex: 1;
     background: rgba(0, 0, 0, 0.3);
     border: 2px solid #00ffff;
-    border-radius: 12px;
-    padding: 15px 20px;
+    border-radius: 10px;
+    padding: 12px 15px;
     color: white;
-    font-size: 1.1em;
+    font-size: 1em;
     outline: none;
     transition: all 0.3s;
+    min-width: 0;
 }
 
 .input-box input:focus {
-    box-shadow: 0 0 15px #00ffff;
+    box-shadow: 0 0 12px #00ffff;
 }
 
 .send-btn {
     background: linear-gradient(45deg, #00ffff, #0080ff);
     border: none;
-    width: 60px;
-    border-radius: 12px;
+    min-width: 50px;
+    border-radius: 10px;
     color: white;
     cursor: pointer;
-    font-size: 1.2em;
+    font-size: 1.1em;
     transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .send-btn:hover {
     transform: scale(1.05);
-    box-shadow: 0 0 15px #00ffff;
+    box-shadow: 0 0 12px #00ffff;
 }
 
 .actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .action-btn {
     background: rgba(0, 255, 255, 0.1);
     border: none;
     color: white;
-    padding: 10px 15px;
-    border-radius: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.3s;
+    font-size: 1.1em;
+    min-width: 40px;
 }
 
 .action-btn:hover {
@@ -355,25 +476,39 @@ body {
 
 /* Правая панель */
 .right-sidebar {
-    width: 280px;
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.right-sidebar h3 {
+    color: #00ffff;
+    margin-bottom: 15px;
+    font-size: 1.2em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .members-list {
     background: rgba(30, 30, 50, 0.7);
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 15px;
-    max-height: 300px;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 12px;
+    max-height: 250px;
     overflow-y: auto;
+    flex: 1;
 }
 
 .member {
     display: flex;
     align-items: center;
-    padding: 12px;
-    margin: 8px 0;
-    border-radius: 10px;
+    padding: 10px;
+    margin: 6px 0;
+    border-radius: 8px;
     transition: all 0.3s;
+    gap: 12px;
 }
 
 .member:hover {
@@ -381,41 +516,111 @@ body {
 }
 
 .member-avatar {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     background: linear-gradient(45deg, #ff0080, #ff8c00);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: 15px;
-    font-size: 1.2em;
+    font-size: 1.1em;
+    flex-shrink: 0;
 }
 
 .member-name {
     font-weight: bold;
+    font-size: 0.95em;
+    color: #00ffff;
 }
 
 .news-box {
     color: #ccccff;
 }
 
+.news-box h4 {
+    color: #00ffff;
+    margin-bottom: 12px;
+    font-size: 1.1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .news-item {
-    padding: 15px;
+    padding: 12px;
     background: rgba(0, 0, 0, 0.2);
-    border-radius: 10px;
-    margin-top: 15px;
+    border-radius: 8px;
+    margin-top: 10px;
 }
 
 .news-item strong {
     color: #00ffff;
     display: block;
     margin-bottom: 5px;
+    font-size: 1em;
+}
+
+.news-item p {
+    font-size: 0.9em;
+    line-height: 1.4;
+    margin-bottom: 5px;
+}
+
+.news-item small {
+    color: #888;
+    font-size: 0.8em;
+}
+
+.system-info {
+    margin-top: 15px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    font-size: 0.9em;
+    color: #88aaff;
+}
+
+.system-info p {
+    margin: 6px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.system-info i {
+    color: #00ffff;
+    margin-right: 8px;
+}
+
+/* Уведомление о новых сообщениях */
+#newMessagesAlert {
+    position: fixed;
+    bottom: 70px;
+    right: 15px;
+    background: linear-gradient(45deg, #00ffff, #0080ff);
+    color: white;
+    padding: 12px 18px;
+    border-radius: 20px;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
+    animation: pulse 2s infinite;
+    max-width: 250px;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3); }
+    50% { transform: scale(1.05); box-shadow: 0 5px 25px rgba(0, 255, 255, 0.5); }
+    100% { transform: scale(1); box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3); }
 }
 
 /* Прокрутка */
 ::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -430,4 +635,252 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #00cccc;
+}
+
+/* Медиа-запросы для адаптивности */
+
+/* Планшеты (768px и меньше) */
+@media (max-width: 768px) {
+    .sidebar,
+    .right-sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        background: rgba(20, 20, 35, 0.95);
+        z-index: 900;
+        backdrop-filter: blur(10px);
+        transition: transform 0.3s ease;
+        overflow-y: auto;
+    }
+    
+    .sidebar {
+        left: 0;
+        width: 280px;
+        transform: translateX(-100%);
+    }
+    
+    .sidebar.active {
+        transform: translateX(0);
+    }
+    
+    .right-sidebar {
+        right: 0;
+        width: 280px;
+        transform: translateX(100%);
+    }
+    
+    .right-sidebar.active {
+        transform: translateX(0);
+    }
+    
+    .main {
+        border-radius: 0;
+        margin: 0;
+        width: 100%;
+    }
+    
+    .mobile-menu {
+        display: flex;
+    }
+    
+    #chatScreen {
+        padding: 0;
+        gap: 0;
+    }
+    
+    .chat-header {
+        padding: 12px 15px;
+    }
+    
+    .messages {
+        padding: 12px;
+    }
+    
+    .message {
+        max-width: 90%;
+    }
+    
+    .mobile-hidden {
+        display: none;
+    }
+    
+    .mobile-hidden.active {
+        display: flex;
+    }
+}
+
+/* Большие телефоны (480px и меньше) */
+@media (max-width: 480px) {
+    .login-box {
+        padding: 25px;
+        margin: 10px;
+    }
+    
+    .neon-text {
+        font-size: 1.8em;
+    }
+    
+    .subtitle {
+        font-size: 1em;
+    }
+    
+    .input-group {
+        padding: 12px;
+    }
+    
+    .neon-btn {
+        padding: 12px 20px;
+        font-size: 1em;
+    }
+    
+    .tips {
+        font-size: 0.9em;
+    }
+    
+    .sidebar,
+    .right-sidebar {
+        width: 100%;
+    }
+    
+    .chat-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .header-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .message {
+        max-width: 95%;
+        padding: 10px 12px;
+    }
+    
+    .message-header {
+        font-size: 0.9em;
+    }
+    
+    .message-content {
+        font-size: 0.95em;
+    }
+    
+    .input-area {
+        padding: 12px;
+    }
+    
+    .input-box input {
+        padding: 10px 12px;
+        font-size: 0.95em;
+    }
+    
+    .action-btn {
+        padding: 6px 10px;
+        min-width: 36px;
+        font-size: 1em;
+    }
+    
+    .mobile-btn {
+        font-size: 0.85em;
+        padding: 10px;
+    }
+    
+    #newMessagesAlert {
+        bottom: 60px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        padding: 10px 15px;
+        font-size: 0.9em;
+    }
+}
+
+/* Очень маленькие экраны (360px и меньше) */
+@media (max-width: 360px) {
+    .login-box {
+        padding: 20px;
+    }
+    
+    .neon-text {
+        font-size: 1.6em;
+    }
+    
+    .avatar {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5em;
+    }
+    
+    .user-name {
+        font-size: 1.1em;
+    }
+    
+    .channel {
+        padding: 10px 12px;
+        font-size: 0.95em;
+    }
+    
+    .member {
+        padding: 8px;
+        font-size: 0.9em;
+    }
+    
+    .member-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 1em;
+    }
+    
+    .actions {
+        gap: 5px;
+    }
+    
+    .action-btn {
+        padding: 5px 8px;
+        min-width: 32px;
+        font-size: 0.9em;
+    }
+}
+
+/* Портретная ориентация на мобильных */
+@media (max-height: 600px) and (orientation: portrait) {
+    .login-box {
+        padding: 20px;
+        margin: 5px;
+    }
+    
+    .neon-text {
+        font-size: 1.8em;
+        margin-bottom: 5px;
+    }
+    
+    .subtitle {
+        margin-bottom: 15px;
+    }
+    
+    .tips {
+        margin-top: 15px;
+    }
+    
+    .tips p {
+        margin: 6px 0;
+    }
+    
+    .mobile-menu {
+        padding: 8px;
+    }
+    
+    .messages {
+        padding: 10px;
+        gap: 8px;
+    }
+    
+    .message {
+        padding: 10px;
+    }
+    
+    .input-area {
+        padding: 10px;
+    }
 }
