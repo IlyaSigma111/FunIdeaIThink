@@ -241,8 +241,10 @@ window.onload = function() {
     console.log('🚀 Запускаем NeonChat...');
     
     // Показываем загрузку
-    document.getElementById('loadingMessages').innerHTML = 
-        '<i class="fas fa-spinner fa-spin"></i> Инициализируем чат...';
+    const loadingEl = document.getElementById('loadingMessages');
+    if (loadingEl) {
+        loadingEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Инициализируем чат...';
+    }
     
     // Проверяем сохраненного пользователя
     const savedUser = localStorage.getItem('neonchat_user');
@@ -262,19 +264,30 @@ window.onload = function() {
                 document.getElementById('currentUserName').textContent = currentUser.name;
                 document.getElementById('userAvatar').textContent = currentUser.avatar || '👤';
                 
+                // РАЗБЛОКИРОВКА ПОЛЯ ВВОДА
+                const messageInput = document.getElementById('messageInput');
+                const sendBtn = document.querySelector('.send-btn');
+                if (messageInput) {
+                    messageInput.disabled = false;
+                    messageInput.placeholder = "Напиши сообщение...";
+                    messageInput.focus();
+                    console.log('✅ Поле ввода разблокировано');
+                }
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                }
+                
                 // Инициализируем Firebase через секунду
                 setTimeout(() => {
                     initFirebaseListeners();
                     
                     // Убираем загрузку
                     setTimeout(() => {
-                        const loadingEl = document.getElementById('loadingMessages');
                         if (loadingEl) loadingEl.remove();
                     }, 1500);
                 }, 500);
                 
                 // Добавляем обработчик Enter
-                const messageInput = document.getElementById('messageInput');
                 if (messageInput) {
                     messageInput.addEventListener('keydown', function(e) {
                         if (e.key === 'Enter' && !e.shiftKey) {
@@ -333,8 +346,6 @@ function enterChat() {
     // Показываем загрузку
     document.getElementById('loginScreen').classList.remove('active');
     document.getElementById('chatScreen').style.display = 'flex';
-    document.getElementById('loadingMessages').innerHTML = 
-        '<i class="fas fa-spinner fa-spin"></i> Создаем профиль...';
     
     // Создаем пользователя
     myUserId = generateUserId();
@@ -352,34 +363,40 @@ function enterChat() {
     document.getElementById('currentUserName').textContent = currentUser.name;
     document.getElementById('userAvatar').textContent = currentUser.avatar;
     
+    // РАЗБЛОКИРОВКА ПОЛЯ ВВОДА
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.querySelector('.send-btn');
+    if (messageInput) {
+        messageInput.disabled = false;
+        messageInput.placeholder = "Напиши сообщение...";
+        messageInput.focus();
+        console.log('✅ Поле ввода разблокировано после входа');
+    }
+    if (sendBtn) {
+        sendBtn.disabled = false;
+    }
+    
     // Инициализируем Firebase
     setTimeout(() => {
         initFirebaseListeners();
         
-        // Убираем загрузку
+        // Добавляем обработчик Enter
+        if (messageInput) {
+            messageInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        }
+        
+        // Добавляем системное сообщение
         setTimeout(() => {
-            const loadingEl = document.getElementById('loadingMessages');
-            if (loadingEl) loadingEl.remove();
-            
-            // Добавляем обработчик Enter
-            const messageInput = document.getElementById('messageInput');
-            if (messageInput) {
-                messageInput.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        sendMessage();
-                    }
-                });
-            }
-            
-            // Добавляем системное сообщение
-            setTimeout(() => {
-                addSystemMessage(`${username} вошел в чат! 👋`);
-            }, 1000);
-            
-            console.log('✅ Успешный вход:', username);
-            
+            addSystemMessage(`${username} вошел в чат! 👋`);
         }, 1000);
+        
+        console.log('✅ Успешный вход:', username);
+        
     }, 500);
     
     hideMobilePanels();
@@ -663,3 +680,36 @@ function exportChatData() {
     
     console.log('✅ Данные экспортированы');
 }
+
+// ==================== ДЕБАГ И МОНИТОРИНГ ====================
+function checkInputStatus() {
+    const input = document.getElementById('messageInput');
+    if (input && input.disabled) {
+        console.warn('ВНИМАНИЕ: Поле ввода заблокировано!');
+        // Автоматически разблокируем
+        input.disabled = false;
+        input.placeholder = "Напиши сообщение...";
+        input.focus();
+    }
+}
+
+// Проверяем каждые 2 секунды
+setInterval(checkInputStatus, 2000);
+
+// Принудительная разблокировка при клике
+document.addEventListener('click', function(e) {
+    const input = document.getElementById('messageInput');
+    if (input && input.disabled) {
+        input.disabled = false;
+        console.log('Поле ввода разблокировано принудительно при клике');
+    }
+});
+
+// Автоматическая разблокировка при загрузке
+setTimeout(function() {
+    const input = document.getElementById('messageInput');
+    if (input) {
+        input.disabled = false;
+        console.log('Автоматическая разблокировка поля ввода при загрузке');
+    }
+}, 1000);
