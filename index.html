@@ -16,7 +16,7 @@
             
             <div class="input-group">
                 <i class="fas fa-user"></i>
-                <input type="text" id="username" placeholder="Твой крутой ник..." maxlength="20">
+                <input type="text" id="username" placeholder="Твой крутой ник..." maxlength="20" autofocus>
             </div>
             
             <button onclick="enterChat()" class="neon-btn">
@@ -24,7 +24,7 @@
             </button>
             
             <div class="tips">
-                <p><i class="fas fa-info-circle"></i> Работает в браузере</p>
+                <p><i class="fas fa-sync-alt"></i> Чат обновляется автоматически</p>
                 <p><i class="fas fa-lock"></i> Данные хранятся только у тебя</p>
                 <p><i class="fas fa-users"></i> Поделись ссылкой с друзьями</p>
             </div>
@@ -33,12 +33,22 @@
     
     <!-- Основной интерфейс -->
     <div id="chatScreen" class="screen">
+        <!-- Кнопки мобильного меню -->
+        <div class="mobile-menu">
+            <button class="mobile-btn" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i> Меню
+            </button>
+            <button class="mobile-btn" onclick="toggleMembers()">
+                <i class="fas fa-users"></i> Участники
+            </button>
+        </div>
+        
         <!-- Левая панель -->
-        <div class="sidebar">
+        <div class="sidebar mobile-hidden">
             <div class="user-info neon-box">
                 <div class="avatar" id="userAvatar">🦊</div>
                 <div class="user-name" id="currentUserName"></div>
-                <div class="status online">Online</div>
+                <div class="status online"><i class="fas fa-circle"></i> Online</div>
             </div>
             
             <div class="channels">
@@ -59,6 +69,10 @@
             <button class="call-btn neon-btn" onclick="startCall()">
                 <i class="fas fa-phone-alt"></i> Созвать всех
             </button>
+            
+            <div class="refresh-info">
+                <i class="fas fa-sync-alt"></i> Автообновление: <span id="refreshStatus">ВКЛ</span>
+            </div>
         </div>
         
         <!-- Центральная часть -->
@@ -66,7 +80,12 @@
             <!-- Заголовок чата -->
             <div class="chat-header neon-box">
                 <h2><i class="fas fa-hashtag"></i> <span id="channelName">Основной чат</span></h2>
-                <div class="online-count"><i class="fas fa-circle"></i> <span id="onlineCount">1</span> онлайн</div>
+                <div class="header-controls">
+                    <div class="online-count"><i class="fas fa-circle"></i> <span id="onlineCount">1</span> онлайн</div>
+                    <button onclick="manualRefresh()" class="refresh-btn" title="Обновить чат">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
             </div>
             
             <!-- Сообщения -->
@@ -77,7 +96,8 @@
             <!-- Поле ввода -->
             <div class="input-area">
                 <div class="input-box">
-                    <input type="text" id="messageInput" placeholder="Напиши сообщение..." onkeypress="if(event.key=='Enter') sendMessage()">
+                    <input type="text" id="messageInput" placeholder="Напиши сообщение..." 
+                           onkeypress="if(event.key=='Enter') sendMessage()">
                     <button onclick="sendMessage()" class="send-btn">
                         <i class="fas fa-paper-plane"></i>
                     </button>
@@ -86,13 +106,14 @@
                     <button onclick="addEmoji('😂')" class="action-btn">😂</button>
                     <button onclick="addEmoji('🔥')" class="action-btn">🔥</button>
                     <button onclick="addEmoji('❤️')" class="action-btn">❤️</button>
-                    <button onclick="addImage()" class="action-btn"><i class="fas fa-image"></i></button>
+                    <button onclick="addEmoji('😎')" class="action-btn">😎</button>
+                    <button onclick="addEmoji('👍')" class="action-btn">👍</button>
                 </div>
             </div>
         </div>
         
         <!-- Правая панель -->
-        <div class="right-sidebar">
+        <div class="right-sidebar mobile-hidden">
             <h3><i class="fas fa-users"></i> Участники</h3>
             <div class="members-list" id="membersList">
                 <!-- Участники здесь -->
@@ -101,12 +122,21 @@
             <div class="news-box neon-box">
                 <h4><i class="fas fa-bullhorn"></i> Последние новости</h4>
                 <div class="news-item">
-                    <strong>Сайт запущен! 🎉</strong>
-                    <p>Добро пожаловать в наш уютный чатик!</p>
+                    <strong>Добро пожаловать! 🎉</strong>
+                    <p>Чат обновляется автоматически каждые 3 секунды</p>
+                    <small id="lastUpdate">Только что</small>
                 </div>
+            </div>
+            
+            <div class="system-info">
+                <p><i class="fas fa-wifi"></i> Онлайн: <span id="connectionStatus">✓</span></p>
+                <p><i class="fas fa-clock"></i> Обновлено: <span id="updateTime">сейчас</span></p>
             </div>
         </div>
     </div>
+    
+    <!-- Уведомление о новых сообщениях -->
+    <div id="newMessagesAlert" style="display: none;"></div>
     
     <script src="script.js"></script>
 </body>
