@@ -1,3 +1,6 @@
+/* ========== CSS ДЛЯ NEONCHAT - ОБНОВЛЕННАЯ ВЕРСИЯ ========== */
+/* С исправлениями для планшетов и всех мобильных устройств */
+
 * {
     margin: 0;
     padding: 0;
@@ -141,19 +144,17 @@ body {
     min-width: 20px;
 }
 
-/* Основной интерфейс чата */
+/* ========== ОСНОВНОЙ ИНТЕРФЕЙС ЧАТА ========== */
 #chatScreen {
     display: flex;
     height: 100vh;
     width: 100%;
-    gap: 10px;
-    padding: 10px;
     position: relative;
     /* Безопасные отступы */
-    padding-top: calc(10px + env(safe-area-inset-top));
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
-    padding-left: calc(10px + env(safe-area-inset-left));
-    padding-right: calc(10px + env(safe-area-inset-right));
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
 }
 
 /* Мобильное меню */
@@ -209,12 +210,13 @@ body {
     margin-bottom: 10px;
 }
 
-/* Левая панель */
-.sidebar {
+/* ========== БОКОВЫЕ ПАНЕЛИ ========== */
+.sidebar, .right-sidebar {
     width: 250px;
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
+    overflow: hidden;
 }
 
 .user-info {
@@ -257,6 +259,7 @@ body {
     flex: 1;
     margin: 10px 0;
     overflow-y: auto;
+    min-height: 0;
 }
 
 .channel {
@@ -269,6 +272,9 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .channel:hover {
@@ -304,6 +310,9 @@ body {
     padding: 10px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .refresh-info i {
@@ -311,7 +320,7 @@ body {
     color: #00ffff;
 }
 
-/* Центральная часть (чат) */
+/* ========== ЦЕНТРАЛЬНАЯ ЧАСТЬ (ЧАТ) ========== */
 .main {
     flex: 1;
     display: flex;
@@ -320,6 +329,8 @@ body {
     border-radius: 15px;
     overflow: hidden;
     min-width: 0;
+    margin: 0 10px;
+    max-height: 100vh;
 }
 
 /* Заголовок чата */
@@ -331,6 +342,8 @@ body {
     border-bottom: 2px solid rgba(0, 255, 255, 0.1);
     flex-wrap: wrap;
     gap: 10px;
+    flex-shrink: 0;
+    min-height: 70px;
 }
 
 .chat-header h2 {
@@ -339,12 +352,16 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .header-controls {
     display: flex;
     align-items: center;
     gap: 15px;
+    flex-shrink: 0;
 }
 
 .online-count {
@@ -372,6 +389,7 @@ body {
     align-items: center;
     justify-content: center;
     transition: all 0.3s;
+    flex-shrink: 0;
 }
 
 .refresh-btn:hover {
@@ -393,7 +411,7 @@ body {
     gap: 12px;
     min-height: 0;
     -webkit-overflow-scrolling: touch;
-    /* Прокрутка для iOS */
+    max-height: calc(100vh - 200px);
 }
 
 /* Сообщения */
@@ -406,6 +424,7 @@ body {
     word-wrap: break-word;
     overflow-wrap: break-word;
     word-break: break-word;
+    flex-shrink: 0;
 }
 
 @keyframes fadeIn {
@@ -451,6 +470,8 @@ body {
 .input-area {
     padding: 15px;
     border-top: 2px solid rgba(0, 255, 255, 0.1);
+    flex-shrink: 0;
+    min-height: 120px;
 }
 
 .input-box {
@@ -489,6 +510,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .send-btn:hover {
@@ -517,6 +539,7 @@ body {
     transition: all 0.3s;
     font-size: 1.1em;
     min-width: 40px;
+    flex-shrink: 0;
 }
 
 .action-btn:hover {
@@ -528,14 +551,7 @@ body {
     transform: scale(0.95);
 }
 
-/* Правая панель */
-.right-sidebar {
-    width: 250px;
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-}
-
+/* ========== ПРАВАЯ ПАНЕЛЬ ========== */
 .right-sidebar h3 {
     color: #00ffff;
     margin-bottom: 15px;
@@ -554,6 +570,7 @@ body {
     max-height: 250px;
     overflow-y: auto;
     flex: 1;
+    min-height: 0;
     -webkit-overflow-scrolling: touch;
 }
 
@@ -587,6 +604,9 @@ body {
     font-weight: bold;
     font-size: 0.95em;
     color: #00ffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Блок новостей */
@@ -643,6 +663,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    white-space: nowrap;
 }
 
 .system-info i {
@@ -650,128 +671,36 @@ body {
     margin-right: 8px;
 }
 
-/* Уведомление о новых сообщениях */
-#newMessagesAlert {
-    position: fixed;
-    bottom: 70px;
-    right: 15px;
-    background: linear-gradient(45deg, #00ffff, #0080ff);
-    color: white;
-    padding: 12px 18px;
-    border-radius: 20px;
-    cursor: pointer;
-    box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
-    z-index: 1001;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: bold;
-    animation: pulse 2s infinite;
-    max-width: 250px;
+/* ========== АДАПТИВНОСТЬ ДЛЯ ПЛАНШЕТОВ ========== */
+@media (max-width: 1024px) and (min-width: 769px) {
+    /* Для планшетов делаем компактнее */
+    .sidebar, .right-sidebar {
+        width: 200px;
+    }
+    
+    .main {
+        margin: 0 5px;
+    }
+    
+    .channel {
+        padding: 10px 12px;
+        font-size: 0.95em;
+    }
+    
+    .chat-header {
+        padding: 12px 15px;
+    }
+    
+    .messages {
+        padding: 12px;
+    }
+    
+    .input-area {
+        padding: 12px;
+    }
 }
 
-@keyframes pulse {
-    0% { transform: scale(1); box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3); }
-    50% { transform: scale(1.05); box-shadow: 0 5px 25px rgba(0, 255, 255, 0.5); }
-    100% { transform: scale(1); box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3); }
-}
-
-/* СУПЕР КНОПКА ЗВОНКА */
-.call-link {
-    display: inline-block;
-    background: linear-gradient(45deg, #ff0080, #ff5500);
-    color: white !important;
-    padding: 12px 24px;
-    border-radius: 12px;
-    margin: 10px 0;
-    text-decoration: none;
-    font-weight: bold;
-    text-align: center;
-    transition: all 0.3s;
-    border: 2px solid #ff0080;
-    box-shadow: 0 0 20px rgba(255, 0, 128, 0.6);
-    animation: pulse-call 1.5s infinite;
-    font-size: 1.1em;
-}
-
-.call-link:hover {
-    transform: scale(1.08);
-    box-shadow: 0 0 30px rgba(255, 0, 128, 0.9);
-    background: linear-gradient(45deg, #ff0066, #ff3300);
-}
-
-@keyframes pulse-call {
-    0% { transform: scale(1); box-shadow: 0 0 20px rgba(255, 0, 128, 0.6); }
-    50% { transform: scale(1.05); box-shadow: 0 0 25px rgba(255, 0, 128, 0.8); }
-    100% { transform: scale(1); box-shadow: 0 0 20px rgba(255, 0, 128, 0.6); }
-}
-
-/* Анонс звонка */
-.call-announcement {
-    background: rgba(255, 0, 128, 0.1);
-    padding: 15px;
-    border-radius: 12px;
-    border-left: 4px solid #ff0080;
-    margin: 5px 0;
-}
-
-/* Обычные ссылки в сообщениях */
-.message-content a {
-    color: #00ffff !important;
-    text-decoration: underline;
-    transition: all 0.3s;
-    word-break: break-all;
-    background: rgba(0, 255, 255, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
-}
-
-.message-content a:hover {
-    color: #00cccc !important;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-    background: rgba(0, 255, 255, 0.2);
-}
-
-/* Прокрутка */
-::-webkit-scrollbar {
-    width: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #00ffff;
-    border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #00cccc;
-}
-
-/* Статус соединения */
-#connectionStatus.connected {
-    color: #00ff80;
-}
-
-#connectionStatus.disconnected {
-    color: #ff5555;
-}
-
-/* Спиннер загрузки */
-.fa-spinner {
-    color: #00ffff;
-    animation: syncSpin 1s linear infinite;
-}
-
-@keyframes syncSpin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* ========== АДАПТИВНОСТЬ ДЛЯ МОБИЛЬНЫХ ========== */
+/* ========== ДЛЯ МОБИЛЬНЫХ ========== */
 @media (max-width: 768px) {
     /* Основной контейнер */
     #chatScreen {
@@ -797,6 +726,7 @@ body {
         position: relative;
         /* Минус безопасные отступы */
         height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 60px);
+        max-height: none;
     }
     
     /* Область сообщений */
@@ -804,6 +734,7 @@ body {
         height: calc(100% - 110px);
         padding: 12px;
         padding-bottom: 80px;
+        max-height: none;
     }
     
     /* Поле ввода - фиксированное внизу с учетом safe area */
@@ -818,6 +749,7 @@ body {
         z-index: 950;
         padding: 12px;
         margin: 0;
+        min-height: auto;
         /* Безопасные отступы по бокам */
         padding-left: calc(12px + env(safe-area-inset-left));
         padding-right: calc(12px + env(safe-area-inset-right));
@@ -905,6 +837,8 @@ body {
     /* Кнопки мобильного меню */
     .mobile-btn {
         margin: 0 5px;
+        font-size: 0.85em;
+        padding: 10px;
     }
     
     /* Скрыть на мобильных по умолчанию */
@@ -937,31 +871,31 @@ body {
     }
 }
 
-/* ========== ОСОБЕННОСТИ iOS SAFARI ========== */
-@supports (-webkit-touch-callout: none) {
-    /* iOS специфичные стили */
-    body, #chatScreen, .main {
-        height: -webkit-fill-available;
+/* ========== ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ ========== */
+@media (max-width: 480px) {
+    .input-box {
+        flex-direction: column;
     }
     
-    .messages {
-        max-height: -webkit-fill-available;
+    .send-btn {
+        width: 100%;
+        min-height: 45px;
+        margin-top: 5px;
     }
     
-    /* Предотвращаем масштабирование при фокусе на инпут */
-    input, textarea, .input-box input {
-        font-size: 16px !important; /* Предотвращает зум в iOS */
+    .actions {
+        justify-content: center;
     }
     
-    /* Улучшаем скролл на iOS */
-    .messages, .members-list, .channels {
-        -webkit-overflow-scrolling: touch;
+    .action-btn {
+        padding: 6px 10px;
+        min-width: 36px;
+        font-size: 0.9em;
     }
 }
 
-/* ========== ПОДДЕРЖКА ОРИЕНТАЦИИ ========== */
-@media (orientation: landscape) and (max-height: 500px) {
-    /* В альбомной ориентации уменьшаем высоту */
+/* ========== ГОРИЗОНТАЛЬНАЯ ОРИЕНТАЦИЯ НА МОБИЛЬНЫХ ========== */
+@media (max-height: 500px) and (orientation: landscape) {
     .main {
         height: calc(100vh - 50px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     }
@@ -975,72 +909,28 @@ body {
     .input-area {
         bottom: calc(50px + env(safe-area-inset-bottom));
         padding: 8px;
+        min-height: auto;
     }
     
     .messages {
         height: calc(100% - 90px);
         padding: 8px;
+        padding-bottom: 60px;
     }
-}
-
-/* ========== ДОПОЛНИТЕЛЬНЫЕ ФИКСЫ ДЛЯ МОБИЛЬНЫХ ========== */
-@media (max-width: 480px) {
+    
+    .chat-header {
+        padding: 8px 12px;
+        min-height: 60px;
+    }
+    
     .input-box {
-        gap: 8px;
-    }
-    
-    .input-box input {
-        padding: 10px 12px;
-        font-size: 16px !important; /* Важно для iOS чтобы не зумило */
-        line-height: 1.2;
-    }
-    
-    /* Делаем поле ввода и кнопки больше для удобства тапа */
-    .send-btn, .action-btn, .mobile-btn {
-        min-height: 44px; /* Минимальная высота для удобного тапа */
-    }
-    
-    /* Увеличиваем зону клика для маленьких экранов */
-    .action-btn {
-        min-width: 44px;
-        min-height: 44px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        margin-bottom: 8px;
     }
 }
 
-/* ========== ПРЕДОТВРАЩЕНИЕ ПОЯВЛЕНИЯ ПОЛОСЫ ПРОКРУТКИ ПРИ ФОКУСЕ НА ИНПУТ В IOS ========== */
-@media (max-width: 768px) {
-    .input-box input:focus {
-        transform: translateY(0);
-    }
-}
-
-/* ========== ФИКС ДЛЯ ПОЛНОЭКРАННОГО РЕЖИМА В MOBILE BROWSERS ========== */
-html, body {
-    overscroll-behavior-y: none; /* Предотвращает pull-to-refresh */
-}
-
-/* ========== УЛУЧШЕНИЯ ДЛЯ ТЕЛЕФОНОВ С ВЫРЕЗОМ ========== */
-.notch-padding {
-    padding-top: constant(safe-area-inset-top);
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: constant(safe-area-inset-bottom);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: constant(safe-area-inset-left);
-    padding-left: env(safe-area-inset-left);
-    padding-right: constant(safe-area-inset-right);
-    padding-right: env(safe-area-inset-right);
-}
-
-/* ========== ОПТИМИЗАЦИЯ ДЛЯ ВЫСОКОЧАСТОТНЫХ ЭКРАНОВ ========== */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-    .neon-text {
-        text-shadow: 0 0 15px #00ffff, 0 0 30px #00ffff;
-    }
-    
-    .call-link {
-        box-shadow: 0 0 30px rgba(255, 0, 128, 0.8);
+/* ========== ПОДДЕРЖКА ВЫСОКИХ ЭКРАНОВ ========== */
+@media (min-height: 800px) {
+    .messages {
+        max-height: calc(100vh - 220px);
     }
 }
