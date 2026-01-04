@@ -19,13 +19,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
-    <!-- Мета-теги для соцсетей и SEO -->
-    <meta name="description" content="NeonChat - современный российский чат для общения с друзьями. Синхронизация в реальном времени, видеозвонки, неоновый дизайн.">
-    <meta name="keywords" content="чат, общение, друзья, Россия, русский чат, NeonChat, видеозвонки">
-    <meta property="og:title" content="🚀 NeonChat | Российский чат для друзей 🇷🇺">
-    <meta property="og:description" content="Современный чат с синхронизацией между устройствами">
-    <meta property="og:type" content="website">
-    
     <style>
         /* Дополнительные inline стили для быстрой загрузки */
         .loading-screen {
@@ -56,7 +49,7 @@
 </head>
 <body>
     <!-- Экран загрузки -->
-    <div id="loadingScreen" class="loading-screen">
+    <div id="loadingScreen" class="loading-screen" style="display: none;">
         <div class="loading-logo">
             🚀 NeonChat 🇷🇺
             <span>Загрузка...</span>
@@ -64,7 +57,7 @@
     </div>
     
     <!-- Экран входа -->
-    <div id="loginScreen" class="screen">
+    <div id="loginScreen" class="screen active">
         <div class="login-box neon-box">
             <h1 class="neon-text">🚀 NeonChat <span style="font-size: 0.8em; color: #ff5555;">🇷🇺</span></h1>
             <p class="subtitle">Российский чат для друзей с синхронизацией</p>
@@ -140,6 +133,10 @@
             <div style="margin-top: 15px; font-size: 0.8em; text-align: center; color: #888;">
                 <i class="fas fa-server"></i> Сервер: Россия 🇷🇺
             </div>
+            
+            <button onclick="logout()" class="neon-btn" style="margin-top: 15px; background: linear-gradient(45deg, #ff5555, #ff0000); font-size: 0.9em; padding: 10px;">
+                <i class="fas fa-sign-out-alt"></i> Выйти
+            </button>
         </div>
         
         <!-- Центральная часть -->
@@ -148,7 +145,7 @@
             <div class="chat-header neon-box">
                 <h2><i class="fas fa-hashtag"></i> <span id="channelName">Основной чат</span> <span style="font-size: 0.7em; color: #ff5555;">🇷🇺</span></h2>
                 <div class="header-controls">
-                    <div class="online-count"><i class="fas fa-circle"></i> <span id="onlineCount">1</span> онлайн</div>
+                    <div class="online-count"><i class="fas fa-circle"></i> <span id="onlineCount">0</span> онлайн</div>
                     <button onclick="forceSync()" class="refresh-btn" title="Обновить сейчас">
                         <i class="fas fa-sync-alt"></i>
                     </button>
@@ -158,15 +155,15 @@
             <!-- Сообщения -->
             <div class="messages" id="messagesContainer">
                 <div id="loadingMessages" style="text-align:center; padding:20px; color:#888;">
-                    <i class="fas fa-spinner fa-spin"></i> Подключаемся к чату...
+                    <i class="fas fa-spinner fa-spin"></i> Войдите в чат чтобы начать общение...
                 </div>
             </div>
             
             <!-- Поле ввода -->
             <div class="input-area">
                 <div class="input-box">
-                    <input type="text" id="messageInput" placeholder="Напиши сообщение..." autocomplete="off">
-                    <button onclick="sendMessage()" class="send-btn">
+                    <input type="text" id="messageInput" placeholder="Войдите в чат чтобы писать..." autocomplete="off" disabled>
+                    <button onclick="sendMessage()" class="send-btn" disabled>
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 </div>
@@ -186,7 +183,7 @@
             <h3><i class="fas fa-users"></i> Сейчас онлайн</h3>
             <div class="members-list" id="membersList">
                 <div style="text-align:center; padding:20px; color:#888;">
-                    <i class="fas fa-spinner fa-spin"></i> Загрузка...
+                    <i class="fas fa-user-slash"></i> Войдите в чат
                 </div>
             </div>
             
@@ -205,55 +202,69 @@
             </div>
             
             <div class="system-info">
-                <p><i class="fas fa-cloud"></i> Статус: <span id="connectionStatus" style="color:#00ff80">✓</span></p>
+                <p><i class="fas fa-cloud"></i> Статус: <span id="connectionStatus" style="color:#888">●</span></p>
                 <p><i class="fas fa-comment"></i> Сообщений: <span id="messageCount">0</span></p>
-                <p><i class="fas fa-wifi"></i> Соединение: <span id="firebaseStatus">Firebase</span></p>
+                <p><i class="fas fa-wifi"></i> Соединение: <span id="firebaseStatus">Ожидание</span></p>
                 <p><i class="fas fa-globe"></i> Регион: <span style="color:#00ff80">Россия</span></p>
             </div>
         </div>
     </div>
     
-    <!-- Уведомление о новых сообщениях -->
-    <div id="newMessagesAlert" style="display: none;"></div>
-    
-    <!-- Скрытые элементы -->
-    <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importChatData(event)">
-    
     <!-- JavaScript -->
     <script src="script.js"></script>
     
     <script>
-        // Быстрая загрузка и скрытие экрана загрузки
+        // Проверка Firebase при загрузке
         document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(function() {
-                document.getElementById('loadingScreen').style.display = 'none';
-            }, 500);
-            
-            // Проверка Firebase
             const firebaseStatus = document.getElementById('firebaseStatus');
             if (typeof firebase === 'undefined') {
                 firebaseStatus.style.color = '#ff5555';
-                firebaseStatus.textContent = 'Ошибка';
+                firebaseStatus.textContent = 'Ошибка загрузки';
+                alert('Ошибка: Firebase SDK не загружен. Проверь подключение к интернету.');
             } else {
                 firebaseStatus.style.color = '#00ff80';
-                firebaseStatus.textContent = '✓ Готово';
+                firebaseStatus.textContent = '✓ Готов';
             }
             
-            // Автофокус на поле ввода при загрузке
+            // Автофокус на поле ввода логина
             setTimeout(function() {
                 const usernameInput = document.getElementById('username');
-                const messageInput = document.getElementById('messageInput');
-                if (usernameInput) usernameInput.focus();
-                if (messageInput) messageInput.focus();
-            }, 1000);
+                if (usernameInput) {
+                    usernameInput.focus();
+                    
+                    // Автозаполнение для тестирования
+                    if (localStorage.getItem('neonchat_debug')) {
+                        usernameInput.value = 'Тест' + Math.floor(Math.random() * 1000);
+                    }
+                }
+            }, 500);
         });
         
-        // Предотвращение закрытия страницы при наборе текста
-        window.addEventListener('beforeunload', function(e) {
-            const messageInput = document.getElementById('messageInput');
-            if (messageInput && messageInput.value.trim() !== '') {
-                e.preventDefault();
-                e.returnValue = 'У вас есть неотправленное сообщение. Точно хотите уйти?';
+        // Функция выхода
+        function logout() {
+            if (confirm('Точно выйти из чата?')) {
+                localStorage.removeItem('neonchat_user');
+                location.reload();
+            }
+        }
+        
+        // Функция для разработчиков - быстрый вход
+        function quickLogin(name) {
+            document.getElementById('username').value = name || 'Тест' + Math.floor(Math.random() * 1000);
+            enterChat();
+        }
+        
+        // Горячие клавиши для разработки
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+Alt+D - режим отладки
+            if (e.ctrlKey && e.altKey && e.key === 'd') {
+                localStorage.setItem('neonchat_debug', 'true');
+                alert('Режим отладки включен');
+            }
+            
+            // Ctrl+Alt+T - быстрый тестовый вход
+            if (e.ctrlKey && e.altKey && e.key === 't') {
+                quickLogin();
             }
         });
     </script>
