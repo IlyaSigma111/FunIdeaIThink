@@ -1,17 +1,15 @@
-// ==================== КОНФИГУРАЦИЯ ====================
+// ==================== КОНФИГУРАЦИЯ GIST ====================
+const GIST_ID = ''; // Оставим пустым, создадим новый
 const GITHUB_TOKEN = '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';
-const REPO_OWNER = 'IlyaSigma111';
-const REPO_NAME = 'FunIdeaIThink';
-const DATA_FILE = 'chat_data.json';
 
 // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
 let currentUser = null;
 let currentChannel = 'main';
 let allMessages = [];
 let onlineUsers = new Map();
-let lastUpdateTime = 0;
-let syncInterval;
 let myUserId = null;
+let currentGistId = null;
+let syncInterval;
 
 // ==================== УТИЛИТЫ ====================
 function generateUserId() {
@@ -27,77 +25,122 @@ function formatTime(date) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-// ==================== GITHUB API ====================
-async function fetchFromGitHub(url, options = {}) {
+// ==================== РАБОТА С GIST ====================
+async function createNewGist() {
     try {
-        const response = await fetch(url, {
-            ...options,
+        const response = await fetch('https://api.github.com/gists', {
+            method: 'POST',
             headers: {
                 'Authorization': `token ${GITHUB_TOKEN}`,
-                'Accept': 'application/vnd.github.v3+json',
-                ...options.headers
-            }
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify({
+                description: 'NeonChat Data Storage',
+                public: false,
+                files: {
+                    'chat_data.json': {
+                        content: JSON.stringify({
+                            messages: [],
+                            users: {},
+                            created: new Date().toISOString()
+                        }, null, 2)
+                    }
+                }
+            })
         });
         
-        if (!response.ok) {
-            throw new Error(`GitHub API error: ${response.status}`);
-        }
+        if (!response.ok) throw new Error('Failed to create Gist');
         
-        return await response.json();
+        const data = await response.json();
+        currentGistId = data.id;
+        localStorage.setItem('neonchat_gist_id', currentGistId);
+        
+        console.log('✅ Created new Gist:', currentGistId);
+        return data;
     } catch (error) {
-        console.error('GitHub fetch error:', error);
+        console.error('Error creating Gist:', error);
         throw error;
     }
 }
 
-async function getDataFile() {
+async function getGistData() {
     try {
-        const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_FILE}`;
-        const data = await fetchFromGitHub(url);
+        let gistId = localStorage.getItem('neonchat_gist_id');
         
-        if (data.content) {
-            const content = atob(data.content);
-            return JSON.parse(content);
+        // Если нет Gist ID, создаем новый
+        if (!gistId) {
+            const newGist = await createNewGist();
+            gistId = newGist.id;
         }
+        
+        currentGistId = gistId;
+        
+        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+        
+        if (!response.ok) {
+            // Если Gist не найден, создаем новый
+            if (response.status === 404) {
+                localStorage.removeItem('neonchat_gist_id');
+                const newGist = await createNewGist();
+                return newGist;
+            }
+            throw new Error('Failed to fetch Gist');
+        }
+        
+        return await response.json();
     } catch (error) {
-        // Файла нет, создадим его позже
-        return { messages: [], users: {} };
+        console.error('Error getting Gist:', error);
+        throw error;
     }
 }
 
-async function saveDataToGitHub(data) {
+async function saveToGist(data) {
     try {
-        // Сначала получаем текущий файл чтобы узнать sha
-        let sha = null;
-        try {
-            const current = await getDataFile();
-            if (current.sha) sha = current.sha;
-        } catch (e) {}
+        if (!currentGistId) {
+            const gist = await createNewGist();
+            currentGistId = gist.id;
+        }
         
-        const content = btoa(JSON.stringify(data, null, 2));
-        const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_FILE}`;
-        
-        const response = await fetchFromGitHub(url, {
-            method: 'PUT',
+        const response = await fetch(`https://api.github.com/gists/${currentGistId}`, {
+            method: 'PATCH',
             headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
                 'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
             },
             body: JSON.stringify({
-                message: `Chat update at ${new Date().toISOString()}`,
-                content: content,
-                sha: sha
+                description: `NeonChat - Last update: ${new Date().toLocaleString()}`,
+                files: {
+                    'chat_data.json': {
+                        content: JSON.stringify(data, null, 2)
+                    }
+                }
             })
         });
         
-        return response;
+        if (!response.ok) throw new Error('Failed to save Gist');
+        
+        return await response.json();
     } catch (error) {
-        console.error('Save error:', error);
+        console.error('Error saving to Gist:', error);
         throw error;
     }
 }
 
 // ==================== ИНИЦИАЛИЗАЦИЯ ====================
 window.onload = async function() {
+    console.log('🚀 Starting NeonChat...');
+    
+    // Показываем загрузку
+    document.getElementById('loadingMessages').innerHTML = 
+        '<i class="fas fa-spinner fa-spin"></i> Подключаемся к чату...';
+    
     // Проверяем сохраненного пользователя
     const savedUser = localStorage.getItem('neonchat_user');
     if (savedUser) {
@@ -107,16 +150,25 @@ window.onload = async function() {
     }
     
     // Загружаем данные
-    await loadChatData();
-    startSyncLoop();
+    try {
+        await loadChatData();
+        document.getElementById('loadingMessages').remove();
+        startSyncLoop();
+        console.log('✅ Chat loaded successfully');
+    } catch (error) {
+        console.error('Failed to load chat:', error);
+        document.getElementById('loadingMessages').innerHTML = 
+            '<div style="text-align:center; color:#ff5555; padding:20px;">' +
+            '<i class="fas fa-exclamation-triangle"></i><br>' +
+            'Ошибка загрузки чата<br>' +
+            '<button onclick="location.reload()" class="neon-btn" style="margin-top:10px; padding:10px;">Повторить</button>' +
+            '</div>';
+    }
     
     // Обновляем онлайн статус
-    updateMyOnlineStatus();
-    setInterval(updateMyOnlineStatus, 30000); // Каждые 30 секунд
+    setInterval(updateMyOnlineStatus, 30000);
     
     document.querySelector('.main').addEventListener('click', hideMobilePanels);
-    
-    console.log('🚀 NeonChat запущен с синхронизацией!');
 };
 
 // ==================== ВХОД В ЧАТ ====================
@@ -145,11 +197,18 @@ async function enterChat() {
     // Показываем чат
     showChat();
     
-    // Обновляем онлайн статус
-    await updateMyOnlineStatus();
-    
-    // Добавляем системное сообщение
-    addSystemMessage(`${username} вошел в чат! 👋`);
+    // Загружаем данные
+    try {
+        await loadChatData();
+        document.getElementById('loadingMessages').remove();
+        startSyncLoop();
+        
+        // Добавляем системное сообщение
+        addSystemMessage(`${username} вошел в чат! 👋`);
+    } catch (error) {
+        console.error('Error entering chat:', error);
+        alert('Ошибка входа. Обнови страницу и попробуй снова.');
+    }
 }
 
 // ==================== ПОКАЗАТЬ ЧАТ ====================
@@ -166,22 +225,33 @@ function showChat() {
 // ==================== ЗАГРУЗКА ДАННЫХ ====================
 async function loadChatData() {
     try {
-        const data = await getDataFile();
+        const gist = await getGistData();
+        const file = gist.files['chat_data.json'];
         
-        // Обновляем сообщения если есть новые
+        if (!file || !file.content) {
+            throw new Error('No chat data found');
+        }
+        
+        const data = JSON.parse(file.content);
+        
+        // Обновляем сообщения
         if (data.messages && Array.isArray(data.messages)) {
-            const newMessages = data.messages.filter(msg => msg.id > lastUpdateTime);
-            
-            if (newMessages.length > 0) {
-                allMessages = data.messages;
-                lastUpdateTime = Math.max(...data.messages.map(m => m.id));
-                updateMessagesDisplay();
-            }
+            allMessages = data.messages;
+            updateMessagesDisplay();
         }
         
         // Обновляем онлайн пользователей
         if (data.users && typeof data.users === 'object') {
             onlineUsers = new Map(Object.entries(data.users));
+            
+            // Удаляем неактивных (больше 5 минут)
+            const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+            for (const [userId, user] of onlineUsers.entries()) {
+                if (user.lastSeen < fiveMinutesAgo) {
+                    onlineUsers.delete(userId);
+                }
+            }
+            
             updateOnlineList();
         }
         
@@ -193,10 +263,12 @@ async function loadChatData() {
         document.getElementById('syncStatus').style.color = '#00ff80';
         document.getElementById('syncStatus').textContent = '✓';
         
+        return data;
     } catch (error) {
         console.error('Load error:', error);
         document.getElementById('syncStatus').style.color = '#ff5555';
         document.getElementById('syncStatus').textContent = '✗';
+        throw error;
     }
 }
 
@@ -205,7 +277,7 @@ async function updateMyOnlineStatus() {
     if (!currentUser) return;
     
     try {
-        const data = await getDataFile();
+        const data = await loadChatData();
         
         // Обновляем свой статус
         data.users = data.users || {};
@@ -215,19 +287,11 @@ async function updateMyOnlineStatus() {
             lastSeen: Date.now()
         };
         
-        // Удаляем неактивных (больше 2 минут)
-        const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
-        for (const userId in data.users) {
-            if (data.users[userId].lastSeen < twoMinutesAgo) {
-                delete data.users[userId];
-            }
-        }
-        
         // Сохраняем
-        await saveDataToGitHub(data);
+        await saveToGist(data);
         
         // Обновляем локально
-        onlineUsers = new Map(Object.entries(data.users));
+        onlineUsers.set(myUserId, data.users[myUserId]);
         updateOnlineList();
         
     } catch (error) {
@@ -255,7 +319,7 @@ async function sendMessage() {
     
     try {
         // Получаем текущие данные
-        const data = await getDataFile();
+        const data = await loadChatData();
         
         // Добавляем сообщение
         data.messages = data.messages || [];
@@ -274,12 +338,12 @@ async function sendMessage() {
             lastSeen: Date.now()
         };
         
-        // Сохраняем на GitHub
-        await saveDataToGitHub(data);
+        // Сохраняем
+        await saveToGist(data);
         
         // Обновляем локально
         allMessages = data.messages;
-        onlineUsers = new Map(Object.entries(data.users));
+        onlineUsers.set(myUserId, data.users[myUserId]);
         
         // Показываем сообщение
         displayMessage(message);
@@ -314,9 +378,19 @@ function updateMessagesDisplay() {
     
     // Очищаем и добавляем заново
     container.innerHTML = '';
-    channelMessages.forEach(displayMessage);
     
-    // Прокручиваем вниз
+    if (channelMessages.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; color:#888; padding:40px 20px;">
+                <i class="fas fa-comments" style="font-size:3em; margin-bottom:15px; display:block;"></i>
+                Здесь пока нет сообщений...<br>
+                <span style="font-size:0.9em; color:#666;">Будь первым!</span>
+            </div>
+        `;
+        return;
+    }
+    
+    channelMessages.forEach(displayMessage);
     scrollToBottom();
 }
 
@@ -342,8 +416,8 @@ function displayMessage(message) {
 }
 
 function formatMessageText(text) {
-    if (text.includes('call-link')) {
-        return text; // Не форматируем HTML звонков
+    if (text.includes('call-link') || text.includes('call-announcement')) {
+        return text;
     }
     
     return text
@@ -352,7 +426,7 @@ function formatMessageText(text) {
         .replace(/:D/g, '😃')
         .replace(/<3/g, '❤️')
         .replace(/http[^\s]+/g, url => 
-            `<a href="${url}" target="_blank" style="color:#00ffff;">${url}</a>`
+            `<a href="${url}" target="_blank" style="color:#00ffff; text-decoration:underline;">${url}</a>`
         );
 }
 
@@ -364,7 +438,7 @@ function updateOnlineList() {
     // Сортируем по последней активности
     const sortedUsers = Array.from(onlineUsers.entries())
         .sort((a, b) => b[1].lastSeen - a[1].lastSeen)
-        .slice(0, 20); // Ограничиваем 20 пользователями
+        .slice(0, 20);
     
     membersList.innerHTML = '';
     
@@ -409,8 +483,14 @@ function updateOnlineList() {
 // ==================== СИНХРОНИЗАЦИЯ ====================
 function startSyncLoop() {
     // Синхронизируем каждые 5 секунд
+    if (syncInterval) clearInterval(syncInterval);
+    
     syncInterval = setInterval(async () => {
-        await loadChatData();
+        try {
+            await loadChatData();
+        } catch (error) {
+            console.error('Sync error:', error);
+        }
     }, 5000);
 }
 
@@ -418,7 +498,11 @@ async function forceSync() {
     const btn = document.querySelector('.refresh-btn');
     btn.style.transform = 'rotate(360deg)';
     
-    await loadChatData();
+    try {
+        await loadChatData();
+    } catch (error) {
+        console.error('Force sync error:', error);
+    }
     
     setTimeout(() => {
         btn.style.transform = 'rotate(0deg)';
@@ -426,7 +510,7 @@ async function forceSync() {
 }
 
 // ==================== ЗВОНКИ ====================
-function startCall() {
+async function startCall() {
     const roomName = `neonchat-${Date.now()}`;
     const jitsiUrl = `https://meet.jit.si/${roomName}`;
     
@@ -450,21 +534,11 @@ function startCall() {
         timestamp: Date.now()
     };
     
-    // Добавляем локально
-    allMessages.push(message);
-    displayMessage(message);
-    
-    // Сохраняем асинхронно
-    saveMessageAsync(message);
-    
-    // Открываем звонок
-    window.open(jitsiUrl, '_blank');
-    scrollToBottom();
-}
-
-async function saveMessageAsync(message) {
     try {
-        const data = await getDataFile();
+        // Получаем данные
+        const data = await loadChatData();
+        
+        // Добавляем сообщение
         data.messages = data.messages || [];
         data.messages.push(message);
         
@@ -472,16 +546,25 @@ async function saveMessageAsync(message) {
             data.messages = data.messages.slice(-500);
         }
         
-        await saveDataToGitHub(data);
+        // Сохраняем
+        await saveToGist(data);
+        
+        // Обновляем локально
         allMessages = data.messages;
+        displayMessage(message);
+        
+        // Открываем звонок
+        window.open(jitsiUrl, '_blank');
+        scrollToBottom();
         
     } catch (error) {
-        console.error('Save call message error:', error);
+        console.error('Call error:', error);
+        alert('Ошибка создания звонка. Попробуй еще раз.');
     }
 }
 
 // ==================== СИСТЕМНЫЕ СООБЩЕНИЯ ====================
-function addSystemMessage(text) {
+async function addSystemMessage(text) {
     const message = {
         id: Date.now(),
         userId: 'system',
@@ -493,11 +576,23 @@ function addSystemMessage(text) {
         timestamp: Date.now()
     };
     
-    allMessages.push(message);
-    displayMessage(message);
-    
-    saveMessageAsync(message);
-    scrollToBottom();
+    try {
+        const data = await loadChatData();
+        data.messages = data.messages || [];
+        data.messages.push(message);
+        
+        if (data.messages.length > 500) {
+            data.messages = data.messages.slice(-500);
+        }
+        
+        await saveToGist(data);
+        allMessages = data.messages;
+        displayMessage(message);
+        scrollToBottom();
+        
+    } catch (error) {
+        console.error('System message error:', error);
+    }
 }
 
 // ==================== СМЕНА КАНАЛОВ ====================
@@ -562,23 +657,10 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// При закрытии вкладки обновляем последний раз
+// При закрытии вкладки
 window.addEventListener('beforeunload', function() {
     if (currentUser) {
-        updateMyOnlineStatus();
+        // Пытаемся обновить статус, но не блокируем закрытие
+        updateMyOnlineStatus().catch(() => {});
     }
 });
-
-// Периодическая чистка старых сообщений (раз в минуту)
-setInterval(async () => {
-    try {
-        const data = await getDataFile();
-        if (data.messages && data.messages.length > 1000) {
-            data.messages = data.messages.slice(-500);
-            await saveDataToGitHub(data);
-            allMessages = data.messages;
-        }
-    } catch (error) {
-        // Игнорируем ошибки очистки
-    }
-}, 60000);
