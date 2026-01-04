@@ -2,21 +2,72 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeonChat | Для друзей</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🚀 NeonChat | Российский чат для друзей 🇷🇺</title>
+    
+    <!-- Favicon - флаг России -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='33' fill='white'/><rect y='33' width='100' height='34' fill='%230055aa'/><rect y='67' width='100' height='33' fill='red'/></svg>" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='33' fill='white'/><rect y='33' width='100' height='34' fill='%230055aa'/><rect y='67' width='100' height='33' fill='red'/></svg>">
+    <meta name="theme-color" content="#0055aa">
+    <meta name="msapplication-TileColor" content="#0055aa">
+    
+    <!-- Стили -->
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Firebase SDK (ВАЖНО!) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <!-- Мета-теги для соцсетей и SEO -->
+    <meta name="description" content="NeonChat - современный российский чат для общения с друзьями. Синхронизация в реальном времени, видеозвонки, неоновый дизайн.">
+    <meta name="keywords" content="чат, общение, друзья, Россия, русский чат, NeonChat, видеозвонки">
+    <meta property="og:title" content="🚀 NeonChat | Российский чат для друзей 🇷🇺">
+    <meta property="og:description" content="Современный чат с синхронизацией между устройствами">
+    <meta property="og:type" content="website">
+    
+    <style>
+        /* Дополнительные inline стили для быстрой загрузки */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .loading-logo {
+            text-align: center;
+            color: #00ffff;
+            font-size: 2em;
+            text-shadow: 0 0 10px #00ffff;
+        }
+        .loading-logo span {
+            display: block;
+            font-size: 0.6em;
+            color: #a0a0ff;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
+    <!-- Экран загрузки -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-logo">
+            🚀 NeonChat 🇷🇺
+            <span>Загрузка...</span>
+        </div>
+    </div>
+    
     <!-- Экран входа -->
-    <div id="loginScreen" class="screen active">
+    <div id="loginScreen" class="screen">
         <div class="login-box neon-box">
-            <h1 class="neon-text">🚀 NeonChat</h1>
-            <p class="subtitle">Синхронизированный чат для друзей</p>
+            <h1 class="neon-text">🚀 NeonChat <span style="font-size: 0.8em; color: #ff5555;">🇷🇺</span></h1>
+            <p class="subtitle">Российский чат для друзей с синхронизацией</p>
             
             <div class="input-group">
                 <i class="fas fa-user"></i>
@@ -28,9 +79,10 @@
             </button>
             
             <div class="tips">
-                <p><i class="fas fa-cloud"></i> Все сообщения синхронизированы</p>
-                <p><i class="fas fa-users"></i> Онлайн статус работает на всех устройствах</p>
-                <p><i class="fas fa-sync-alt"></i> Автообновление каждые 5 секунд</p>
+                <p><i class="fas fa-cloud"></i> Синхронизация в реальном времени</p>
+                <p><i class="fas fa-users"></i> Работает на всех устройствах</p>
+                <p><i class="fas fa-video"></i> Встроенные видеозвонки</p>
+                <p><i class="fas fa-shield-alt"></i> Данные хранятся в России</p>
             </div>
         </div>
     </div>
@@ -45,12 +97,15 @@
             <button class="mobile-btn" onclick="toggleMembers()">
                 <i class="fas fa-users"></i> Участники
             </button>
+            <button class="mobile-btn" onclick="forceSync()">
+                <i class="fas fa-sync-alt"></i> Синхр.
+            </button>
         </div>
         
         <!-- Левая панель -->
         <div class="sidebar mobile-hidden">
             <div class="user-info neon-box">
-                <div class="avatar" id="userAvatar">🦊</div>
+                <div class="avatar" id="userAvatar">🇷🇺</div>
                 <div class="user-name" id="currentUserName"></div>
                 <div class="status online"><i class="fas fa-circle"></i> Online</div>
             </div>
@@ -68,6 +123,9 @@
                 <div class="channel" onclick="switchChannel('games')">
                     <i class="fas fa-gamepad"></i> Игры
                 </div>
+                <div class="channel" onclick="switchChannel('secret')">
+                    <i class="fas fa-lock"></i> Секретный
+                </div>
             </div>
             
             <button class="call-btn neon-btn" onclick="startCall()">
@@ -76,17 +134,11 @@
             
             <div class="refresh-info">
                 <i class="fas fa-sync-alt"></i> Синхронизация: <span id="syncStatus" style="color:#00ff80;">✓</span>
-                <span id="lastSync" style="font-size:0.8em; display:block; margin-top:5px; color:#88aaff;">загружаю...</span>
+                <span id="lastSync" style="font-size:0.8em; display:block; margin-top:5px; color:#88aaff;">подключаемся...</span>
             </div>
             
-            <!-- Скрытые кнопки для админа -->
-            <div style="margin-top: 15px; font-size: 0.8em; text-align: center;">
-                <button onclick="clearLocalData()" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 0.9em;">
-                    <i class="fas fa-trash"></i> Очистить данные
-                </button>
-                <button onclick="exportChatData()" style="background: none; border: none; color: #00ffff; cursor: pointer; font-size: 0.9em; margin-left: 15px;">
-                    <i class="fas fa-download"></i> Экспорт
-                </button>
+            <div style="margin-top: 15px; font-size: 0.8em; text-align: center; color: #888;">
+                <i class="fas fa-server"></i> Сервер: Россия 🇷🇺
             </div>
         </div>
         
@@ -94,7 +146,7 @@
         <div class="main">
             <!-- Заголовок чата -->
             <div class="chat-header neon-box">
-                <h2><i class="fas fa-hashtag"></i> <span id="channelName">Основной чат</span></h2>
+                <h2><i class="fas fa-hashtag"></i> <span id="channelName">Основной чат</span> <span style="font-size: 0.7em; color: #ff5555;">🇷🇺</span></h2>
                 <div class="header-controls">
                     <div class="online-count"><i class="fas fa-circle"></i> <span id="onlineCount">1</span> онлайн</div>
                     <button onclick="forceSync()" class="refresh-btn" title="Обновить сейчас">
@@ -106,19 +158,20 @@
             <!-- Сообщения -->
             <div class="messages" id="messagesContainer">
                 <div id="loadingMessages" style="text-align:center; padding:20px; color:#888;">
-                    <i class="fas fa-spinner fa-spin"></i> Загрузка чата...
+                    <i class="fas fa-spinner fa-spin"></i> Подключаемся к чату...
                 </div>
             </div>
             
             <!-- Поле ввода -->
             <div class="input-area">
                 <div class="input-box">
-                    <input type="text" id="messageInput" placeholder="Напиши сообщение...">
+                    <input type="text" id="messageInput" placeholder="Напиши сообщение..." autocomplete="off">
                     <button onclick="sendMessage()" class="send-btn">
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 </div>
                 <div class="actions">
+                    <button onclick="addEmoji('🇷🇺')" class="action-btn">🇷🇺</button>
                     <button onclick="addEmoji('😂')" class="action-btn">😂</button>
                     <button onclick="addEmoji('🔥')" class="action-btn">🔥</button>
                     <button onclick="addEmoji('❤️')" class="action-btn">❤️</button>
@@ -140,9 +193,14 @@
             <div class="news-box neon-box">
                 <h4><i class="fas fa-info-circle"></i> Информация</h4>
                 <div class="news-item">
-                    <strong>Чат синхронизирован! 🎉</strong>
-                    <p>Все устройства видят одинаковые сообщения</p>
+                    <strong>Российский сервер 🎉</strong>
+                    <p>Все данные хранятся на российских серверах</p>
                     <small id="lastUpdate">Загрузка...</small>
+                </div>
+                <div class="news-item" style="margin-top: 10px;">
+                    <strong>NeonChat v1.0</strong>
+                    <p>Быстрый и безопасный чат</p>
+                    <small>🇷🇺 Сделано в России</small>
                 </div>
             </div>
             
@@ -150,6 +208,7 @@
                 <p><i class="fas fa-cloud"></i> Статус: <span id="connectionStatus" style="color:#00ff80">✓</span></p>
                 <p><i class="fas fa-comment"></i> Сообщений: <span id="messageCount">0</span></p>
                 <p><i class="fas fa-wifi"></i> Соединение: <span id="firebaseStatus">Firebase</span></p>
+                <p><i class="fas fa-globe"></i> Регион: <span style="color:#00ff80">Россия</span></p>
             </div>
         </div>
     </div>
@@ -157,22 +216,44 @@
     <!-- Уведомление о новых сообщениях -->
     <div id="newMessagesAlert" style="display: none;"></div>
     
-    <!-- Скрытый инпут для импорта -->
+    <!-- Скрытые элементы -->
     <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importChatData(event)">
     
+    <!-- JavaScript -->
     <script src="script.js"></script>
     
     <script>
-        // Добавляем индикатор загрузки Firebase
-        window.addEventListener('load', function() {
+        // Быстрая загрузка и скрытие экрана загрузки
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                document.getElementById('loadingScreen').style.display = 'none';
+            }, 500);
+            
+            // Проверка Firebase
             const firebaseStatus = document.getElementById('firebaseStatus');
             if (typeof firebase === 'undefined') {
                 firebaseStatus.style.color = '#ff5555';
                 firebaseStatus.textContent = 'Ошибка';
-                console.error('Firebase не загружен!');
             } else {
                 firebaseStatus.style.color = '#00ff80';
                 firebaseStatus.textContent = '✓ Готово';
+            }
+            
+            // Автофокус на поле ввода при загрузке
+            setTimeout(function() {
+                const usernameInput = document.getElementById('username');
+                const messageInput = document.getElementById('messageInput');
+                if (usernameInput) usernameInput.focus();
+                if (messageInput) messageInput.focus();
+            }, 1000);
+        });
+        
+        // Предотвращение закрытия страницы при наборе текста
+        window.addEventListener('beforeunload', function(e) {
+            const messageInput = document.getElementById('messageInput');
+            if (messageInput && messageInput.value.trim() !== '') {
+                e.preventDefault();
+                e.returnValue = 'У вас есть неотправленное сообщение. Точно хотите уйти?';
             }
         });
     </script>
