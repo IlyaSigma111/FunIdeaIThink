@@ -20,7 +20,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        /* Дополнительные inline стили для быстрой загрузки */
+        /* Дополнительные inline стили */
         .loading-screen {
             position: fixed;
             top: 0;
@@ -39,14 +39,8 @@
             font-size: 2em;
             text-shadow: 0 0 10px #00ffff;
         }
-        .loading-logo span {
-            display: block;
-            font-size: 0.6em;
-            color: #a0a0ff;
-            margin-top: 10px;
-        }
         
-        /* ФИКС ДЛЯ МОБИЛЬНОГО ВВОДА */
+        /* ФИКСИРОВАННОЕ ПОЛЕ ВВОДА С ПРАВИЛЬНЫМ ОТСТУПОМ */
         .input-fix-container {
             position: fixed;
             bottom: 0;
@@ -59,19 +53,19 @@
             backdrop-filter: blur(10px);
         }
         
-        /* Дебаг кнопка */
-        .debug-btn {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: #ff5555;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 0.8em;
-            z-index: 9999;
-            cursor: pointer;
+        /* ДОБАВИТЬ ОТСТУП ДЛЯ СООБЩЕНИЙ, ЧТОБЫ НЕ ПЕРЕКРЫВАЛИСЬ */
+        .messages {
+            padding-bottom: 140px !important; /* Место для поля ввода */
+        }
+        
+        /* На мобилках меньше отступ */
+        @media (max-width: 768px) {
+            .messages {
+                padding-bottom: 180px !important; /* Больше места на мобилках */
+            }
+            .input-fix-container {
+                padding-bottom: 70px !important; /* Для мобильного меню */
+            }
         }
         
         /* Админ панель */
@@ -82,15 +76,6 @@
             padding: 15px;
             margin: 10px 0;
             display: none;
-        }
-        
-        .admin-panel h3 {
-            color: #ff4444;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 1.1em;
         }
         
         .admin-btn {
@@ -107,15 +92,6 @@
             align-items: center;
             gap: 6px;
             width: calc(50% - 6px);
-        }
-        
-        .admin-btn:hover {
-            background: rgba(255, 68, 68, 0.3);
-            transform: translateY(-2px);
-        }
-        
-        .admin-btn:active {
-            transform: translateY(0);
         }
         
         .admin-buttons {
@@ -146,22 +122,16 @@
             color: #ff0000;
             text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
         }
+        
+        /* Кнопка выхода на экране логина */
+        #logoutFromLoginButton {
+            background: linear-gradient(45deg, #ff5555, #ff0000);
+            margin-top: 10px;
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <!-- Дебаг кнопка -->
-    <button class="debug-btn" onclick="window.debugChat()" id="debugBtn" style="display: none;">
-        🔧 Дебаг
-    </button>
-    
-    <!-- Экран загрузки -->
-    <div id="loadingScreen" class="loading-screen" style="display: none;">
-        <div class="loading-logo">
-            🚀 NeonChat 🇷🇺
-            <span>Загрузка...</span>
-        </div>
-</div>
-
     <!-- Экран входа -->
     <div id="loginScreen" class="screen active">
         <div class="login-box neon-box">
@@ -173,8 +143,13 @@
                 <input type="text" id="username" placeholder="Твой крутой ник..." maxlength="20" autofocus>
             </div>
             
-            <button onclick="enterChat()" class="neon-btn">
+            <button onclick="enterChat()" class="neon-btn" id="loginButton">
                 <i class="fas fa-sign-in-alt"></i> Войти в чат
+            </button>
+            
+            <!-- Кнопка выхода если уже есть пользователь -->
+            <button onclick="logoutFromLogin()" class="neon-btn" id="logoutFromLoginButton">
+                <i class="fas fa-sign-out-alt"></i> Выйти и сменить ник
             </button>
             
             <div class="tips">
@@ -184,10 +159,10 @@
                 <p><i class="fas fa-shield-alt"></i> Данные хранятся в России</p>
             </div>
             
-            <!-- Тестовый вход для дебага -->
+            <!-- Тестовый вход -->
             <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0,255,255,0.2);">
                 <button onclick="quickTestLogin()" style="background: transparent; border: 1px solid #00ffff; color: #00ffff; padding: 8px 12px; border-radius: 6px; width: 100%; margin-top: 5px;">
-                    <i class="fas fa-bug"></i> Тестовый вход
+                    <i class="fas fa-bolt"></i> Быстрый тест
                 </button>
             </div>
         </div>
@@ -195,7 +170,7 @@
     
     <!-- Основной интерфейс -->
     <div id="chatScreen" class="screen">
-        <!-- Кнопки мобильного меню -->
+        <!-- Мобильное меню -->
         <div class="mobile-menu">
             <button class="mobile-btn" onclick="toggleSidebar()">
                 <i class="fas fa-bars"></i> Меню
@@ -261,9 +236,6 @@
                         <i class="fas fa-user-slash"></i> Кикнуть всех
                     </button>
                 </div>
-                <div style="font-size: 0.8em; color: #ff8888; margin-top: 10px; text-align: center;">
-                    <i class="fas fa-shield-alt"></i> Режим администратора
-                </div>
             </div>
             
             <button class="call-btn neon-btn" onclick="startCall()">
@@ -272,14 +244,9 @@
             
             <div class="refresh-info">
                 <i class="fas fa-sync-alt"></i> Синхронизация: <span id="syncStatus" style="color:#00ff80;">✓</span>
-                <span id="lastSync" style="font-size:0.8em; display:block; margin-top:5px; color:#88aaff;">подключаемся...</span>
             </div>
             
-            <div style="margin-top: 15px; font-size: 0.8em; text-align: center; color: #888;">
-                <i class="fas fa-server"></i> Сервер: Россия 🇷🇺
-            </div>
-            
-            <button onclick="logout()" class="neon-btn" style="margin-top: 15px; background: linear-gradient(45deg, #ff5555, #ff0000); font-size: 0.9em; padding: 10px;">
+            <button onclick="logout()" class="neon-btn" style="margin-top: 15px; background: linear-gradient(45deg, #ff5555, #ff0000);">
                 <i class="fas fa-sign-out-alt"></i> Выйти
             </button>
         </div>
@@ -288,10 +255,10 @@
         <div class="main">
             <!-- Заголовок чата -->
             <div class="chat-header neon-box">
-                <h2><i class="fas fa-hashtag"></i> <span id="channelName">Основной чат</span> <span style="font-size: 0.7em; color: #ff5555;">🇷🇺</span></h2>
+                <h2><i class="fas fa-hashtag"></i> <span id="channelName">Основной чат</span></h2>
                 <div class="header-controls">
                     <div class="online-count"><i class="fas fa-circle"></i> <span id="onlineCount">0</span> онлайн</div>
-                    <button onclick="forceSync()" class="refresh-btn" title="Обновить сейчас">
+                    <button onclick="forceSync()" class="refresh-btn">
                         <i class="fas fa-sync-alt"></i>
                     </button>
                 </div>
@@ -299,13 +266,13 @@
             
             <!-- Сообщения -->
             <div class="messages" id="messagesContainer">
-                <div id="loadingMessages" style="text-align:center; padding:20px; color:#888;">
-                    <i class="fas fa-spinner fa-spin"></i> Войдите в чат чтобы начать общение...
+                <div id="loadingMessages">
+                    <i class="fas fa-spinner fa-spin"></i> Загрузка чата...
                 </div>
             </div>
         </div>
         
-        <!-- ПРАВИЛЬНОЕ ПОЛЕ ВВОДА (фиксированное) -->
+        <!-- ФИКСИРОВАННОЕ ПОЛЕ ВВОДА -->
         <div class="input-fix-container">
             <div class="input-box">
                 <input type="text" id="messageInput" placeholder="Напиши сообщение..." autocomplete="off">
@@ -328,151 +295,467 @@
             <h3><i class="fas fa-users"></i> Сейчас онлайн</h3>
             <div class="members-list" id="membersList">
                 <div style="text-align:center; padding:20px; color:#888;">
-                    <i class="fas fa-user-slash"></i> Войдите в чат
-                </div>
-            </div>
-            
-            <div class="news-box neon-box">
-                <h4><i class="fas fa-info-circle"></i> Информация</h4>
-                <div class="news-item">
-                    <strong>Российский сервер 🎉</strong>
-                    <p>Все данные хранятся на российских серверах</p>
-                    <small id="lastUpdate">Загрузка...</small>
-                </div>
-                <div class="news-item" style="margin-top: 10px;">
-                    <strong>NeonChat v1.0</strong>
-                    <p>Быстрый и безопасный чат</p>
-                    <small>🇷🇺 Сделано в России</small>
+                    <i class="fas fa-user-slash"></i> Нет пользователей
                 </div>
             </div>
             
             <div class="system-info">
-                <p><i class="fas fa-cloud"></i> Статус: <span id="connectionStatus" style="color:#888">●</span></p>
                 <p><i class="fas fa-comment"></i> Сообщений: <span id="messageCount">0</span></p>
-                <p><i class="fas fa-wifi"></i> Соединение: <span id="firebaseStatus">Ожидание</span></p>
-                <p><i class="fas fa-globe"></i> Регион: <span style="color:#00ff80">Россия</span></p>
+                <p><i class="fas fa-wifi"></i> Статус: <span id="connectionStatus">●</span></p>
             </div>
         </div>
     </div>
     
     <!-- JavaScript -->
-    <script src="script.js"></script>
-    
     <script>
-        // Проверка Firebase при загрузке
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM загружен');
+        // ==================== КОНФИГУРАЦИЯ FIREBASE ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBBpRh7B5qZdyd66Q4KxsUBhH2qcwshI7g",
+            authDomain: "funideaithink-3206d.firebaseapp.com",
+            databaseURL: "https://funideaithink-3206d-default-rtdb.firebaseio.com",
+            projectId: "funideaithink-3206d",
+            storageBucket: "funideaithink-3206d.firebasestorage.app",
+            messagingSenderId: "475113847634",
+            appId: "1:475113847634:web:ec38afbcb33b5bde57588b",
+            measurementId: "G-9PC37HF1MJ"
+        };
+
+        // Проверяем, что Firebase загружен
+        if (typeof firebase === 'undefined') {
+            console.error('Firebase не загружен!');
+        } else {
+            try {
+                firebase.initializeApp(firebaseConfig);
+                console.log('✅ Firebase инициализирован');
+            } catch (error) {
+                console.log('Firebase уже инициализирован');
+            }
+        }
+
+        const database = firebase.database ? firebase.database() : null;
+
+        // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
+        let currentUser = null;
+        let currentChannel = 'main';
+        let allMessages = [];
+        let onlineUsers = new Map();
+        let myUserId = null;
+        let isConnected = false;
+
+        // ==================== ИНИЦИАЛИЗАЦИЯ ====================
+        window.onload = function() {
+            console.log('🚀 Запускаем NeonChat...');
             
-            const firebaseStatus = document.getElementById('firebaseStatus');
-            if (typeof firebase === 'undefined') {
-                firebaseStatus.style.color = '#ff5555';
-                firebaseStatus.textContent = 'Ошибка загрузки';
-                console.error('Firebase SDK не загружен');
+            // Проверяем сохраненного пользователя
+            const savedUser = localStorage.getItem('neonchat_user');
+            const logoutBtn = document.getElementById('logoutFromLoginButton');
+            
+            if (savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    myUserId = currentUser.id;
+                    
+                    if (currentUser && currentUser.name) {
+                        // Показываем кнопку выхода на логине
+                        if (logoutBtn) logoutBtn.style.display = 'block';
+                        
+                        // Автозаполняем поле
+                        const usernameInput = document.getElementById('username');
+                        if (usernameInput) {
+                            usernameInput.value = currentUser.name;
+                            usernameInput.focus();
+                            usernameInput.select();
+                        }
+                        
+                        console.log('Найден сохраненный пользователь:', currentUser.name);
+                    }
+                } catch (e) {
+                    console.error('Ошибка загрузки пользователя:', e);
+                }
             } else {
-                firebaseStatus.style.color = '#00ff80';
-                firebaseStatus.textContent = '✓ Готов';
-                console.log('Firebase SDK загружен');
+                if (logoutBtn) logoutBtn.style.display = 'none';
+            }
+        };
+
+        // ==================== ВХОД В ЧАТ ====================
+        function enterChat() {
+            const usernameInput = document.getElementById('username');
+            const username = usernameInput.value.trim();
+            const loginButton = document.getElementById('loginButton');
+            
+            if (!username) {
+                alert('Введи крутой ник!');
+                usernameInput.focus();
+                return;
             }
             
-            // Автофокус на поле ввода логина
-            setTimeout(function() {
-                const usernameInput = document.getElementById('username');
-                if (usernameInput) {
-                    usernameInput.focus();
-                    console.log('Фокус на поле логина');
-                    
-                    // Автозаполнение для тестирования
-                    if (localStorage.getItem('neonchat_debug')) {
-                        usernameInput.value = 'Тест' + Math.floor(Math.random() * 1000);
-                        console.log('Тестовый ник установлен');
+            // Блокируем кнопку чтобы не нажимали дважды
+            if (loginButton) {
+                loginButton.disabled = true;
+                loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Входим...';
+            }
+            
+            // Плавный переход через 0.3 секунды
+            setTimeout(() => {
+                // Создаем пользователя
+                myUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                const avatars = ['🦊', '🐯', '🐼', '🐨', '🦁', '🐲', '🐵', '🐸', '🦄', '🐙'];
+                const avatar = avatars[Math.floor(Math.random() * avatars.length)];
+                
+                currentUser = {
+                    id: myUserId,
+                    name: username,
+                    avatar: avatar,
+                    lastSeen: Date.now()
+                };
+                
+                // Сохраняем пользователя
+                localStorage.setItem('neonchat_user', JSON.stringify(currentUser));
+                
+                // Показываем чат
+                document.getElementById('loginScreen').classList.remove('active');
+                document.getElementById('chatScreen').style.display = 'flex';
+                
+                // Обновляем UI
+                document.getElementById('currentUserName').textContent = currentUser.name;
+                document.getElementById('userAvatar').textContent = currentUser.avatar;
+                
+                // Разблокируем поле ввода
+                const messageInput = document.getElementById('messageInput');
+                if (messageInput) {
+                    messageInput.disabled = false;
+                    messageInput.placeholder = "Напиши сообщение...";
+                    setTimeout(() => messageInput.focus(), 100);
+                }
+                
+                // Проверка админ статуса
+                if (username === 'Артур Пирожков') {
+                    setTimeout(activateAdminMode, 500);
+                }
+                
+                // Инициализируем Firebase
+                setTimeout(initFirebaseListeners, 300);
+                
+                console.log('✅ Успешный вход:', username);
+                
+            }, 300);
+        }
+
+        // ==================== ФУНКЦИИ ЧАТА ====================
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!text || !currentUser || !database || !isConnected) {
+                if (!isConnected) alert('❌ Нет подключения');
+                return;
+            }
+            
+            const message = {
+                id: Date.now().toString(),
+                userId: myUserId,
+                userName: currentUser.name,
+                userAvatar: currentUser.avatar,
+                text: text,
+                channel: currentChannel,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                timestamp: Date.now()
+            };
+            
+            database.ref('messages/' + message.id).set(message)
+                .then(() => {
+                    input.value = '';
+                    input.focus();
+                    scrollToBottom();
+                    updateMyOnlineStatus();
+                })
+                .catch(error => {
+                    console.error('Ошибка отправки:', error);
+                    alert('❌ Ошибка отправки');
+                });
+        }
+
+        function initFirebaseListeners() {
+            if (!database) return;
+            
+            // Подключение
+            database.ref('.info/connected').on('value', (snap) => {
+                isConnected = snap.val() === true;
+                const status = document.getElementById('connectionStatus');
+                if (status) {
+                    status.textContent = isConnected ? '✓' : '✗';
+                    status.style.color = isConnected ? '#00ff80' : '#ff5555';
+                }
+                if (isConnected && currentUser) updateMyOnlineStatus();
+            });
+            
+            // Сообщения
+            database.ref('messages').on('value', (snapshot) => {
+                const messagesData = snapshot.val();
+                allMessages = messagesData ? Object.values(messagesData) : [];
+                allMessages.sort((a, b) => a.timestamp - b.timestamp);
+                updateMessagesDisplay();
+                document.getElementById('messageCount').textContent = allMessages.length;
+                document.getElementById('syncStatus').textContent = '✓';
+                document.getElementById('syncStatus').style.color = '#00ff80';
+            });
+            
+            // Пользователи
+            database.ref('users').on('value', (snapshot) => {
+                const usersData = snapshot.val();
+                onlineUsers = usersData ? new Map(Object.entries(usersData)) : new Map();
+                
+                // Фильтруем неактивных
+                const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+                for (const [userId, user] of onlineUsers.entries()) {
+                    if (user.lastSeen < fiveMinutesAgo) {
+                        onlineUsers.delete(userId);
+                        database.ref('users/' + userId).remove();
                     }
                 }
-            }, 500);
-            
-            // Проверяем состояние ввода
-            setInterval(function() {
-                const input = document.getElementById('messageInput');
-                const debugBtn = document.getElementById('debugBtn');
                 
-                if (input && input.disabled) {
-                    console.warn('Поле ввода заблокировано!');
-                    if (debugBtn) debugBtn.style.display = 'block';
+                updateOnlineList();
+                document.getElementById('onlineCount').textContent = onlineUsers.size;
+            });
+        }
+
+        function updateMessagesDisplay() {
+            const container = document.getElementById('messagesContainer');
+            if (!container) return;
+            
+            const channelMessages = allMessages.filter(msg => msg.channel === currentChannel);
+            
+            if (channelMessages.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding:40px; color:#666;">Нет сообщений</div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            channelMessages.forEach(msg => {
+                const isOwn = msg.userId === myUserId;
+                const div = document.createElement('div');
+                div.className = `message ${isOwn ? 'own' : ''}`;
+                div.innerHTML = `
+                    <div class="message-header">
+                        <span>${msg.userAvatar} ${msg.userName}</span>
+                        <span class="message-time">${msg.time}</span>
+                    </div>
+                    <div class="message-content">${msg.text}</div>
+                `;
+                container.appendChild(div);
+            });
+            
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('messagesContainer');
+            if (container) {
+                setTimeout(() => {
+                    container.scrollTop = container.scrollHeight;
+                }, 100);
+            }
+        }
+
+        // ==================== АДМИН ФУНКЦИИ ====================
+        function activateAdminMode() {
+            console.log('🎯 Активация админ-режима');
+            
+            document.body.classList.add('admin-mode');
+            document.getElementById('adminChannel').style.display = 'flex';
+            document.getElementById('adminPanel').style.display = 'block';
+            document.getElementById('userAvatar').textContent = '👑';
+            
+            // Отправляем системное сообщение
+            if (database) {
+                const message = {
+                    id: Date.now().toString(),
+                    userId: 'system',
+                    userName: '⚡ СИСТЕМА',
+                    userAvatar: '👑',
+                    text: '👑 Администратор <strong>Артур Пирожков</strong> в сети!',
+                    channel: 'main',
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    timestamp: Date.now()
+                };
+                database.ref('messages/' + message.id).set(message);
+            }
+        }
+
+        async function adminClearChat() {
+            if (!confirm('💀 ОЧИСТИТЬ ВЕСЬ ЧАТ?')) return;
+            if (!database) return;
+            
+            try {
+                await database.ref('messages').remove();
+                alert('✅ Чат очищен');
+            } catch (error) {
+                alert('❌ Ошибка: ' + error.message);
+            }
+        }
+
+        async function adminBanUser() {
+            const userName = prompt('Введите ник для бана:');
+            if (!userName || !database) return;
+            
+            const reason = prompt('Причина:') || 'Нарушение';
+            
+            try {
+                // Ищем пользователя
+                for (const [userId, user] of onlineUsers.entries()) {
+                    if (user.name === userName) {
+                        await database.ref('users/' + userId).remove();
+                        
+                        // Сообщение о бане
+                        const banMessage = {
+                            id: Date.now().toString(),
+                            userId: 'system',
+                            userName: '🚫 АДМИН',
+                            userAvatar: '🚫',
+                            text: `🚨 Пользователь <strong>${userName}</strong> забанен!<br>Причина: ${reason}`,
+                            channel: 'main',
+                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            timestamp: Date.now()
+                        };
+                        await database.ref('messages/' + banMessage.id).set(banMessage);
+                        
+                        alert(`✅ ${userName} забанен`);
+                        return;
+                    }
                 }
-            }, 2000);
-        });
-        
-        // Функция выхода
+                alert('❌ Пользователь не найден');
+            } catch (error) {
+                alert('❌ Ошибка: ' + error.message);
+            }
+        }
+
+        async function adminSendAnnouncement() {
+            const text = prompt('Текст объявления:');
+            if (!text || !database) return;
+            
+            const message = {
+                id: Date.now().toString(),
+                userId: 'system',
+                userName: '📢 ОБЪЯВЛЕНИЕ',
+                userAvatar: '📢',
+                text: `📣 <div style="background:linear-gradient(45deg,#ff9900,#ffff00);padding:15px;border-radius:10px;color:#000;text-align:center;">
+                       ${text}<br>
+                       <small>👑 От администратора</small>
+                       </div>`,
+                channel: 'main',
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                timestamp: Date.now()
+            };
+            
+            await database.ref('messages/' + message.id).set(message);
+            alert('✅ Объявление отправлено');
+        }
+
+        // ==================== УТИЛИТЫ ====================
+        function updateMyOnlineStatus() {
+            if (!currentUser || !isConnected || !database) return;
+            
+            const userData = {
+                name: currentUser.name,
+                avatar: currentUser.avatar,
+                lastSeen: Date.now(),
+                isOnline: true
+            };
+            
+            const userRef = database.ref('users/' + myUserId);
+            userRef.set(userData);
+            userRef.onDisconnect().remove();
+        }
+
+        function updateOnlineList() {
+            const container = document.getElementById('membersList');
+            if (!container) return;
+            
+            const sortedUsers = Array.from(onlineUsers.entries())
+                .sort((a, b) => b[1].lastSeen - a[1].lastSeen)
+                .slice(0, 10);
+            
+            if (sortedUsers.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding:20px; color:#888;">Нет пользователей</div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            sortedUsers.forEach(([userId, user]) => {
+                const isYou = userId === myUserId;
+                const div = document.createElement('div');
+                div.className = 'member';
+                div.innerHTML = `
+                    <div class="member-avatar">${user.avatar}</div>
+                    <div>
+                        <div class="member-name">${user.name} ${isYou ? '(Вы)' : ''}</div>
+                        <div style="font-size:0.8em; color:#88aaff;">Online</div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
         function logout() {
-            if (confirm('Точно выйти из чата?')) {
+            if (confirm('Выйти из чата?')) {
                 localStorage.removeItem('neonchat_user');
                 location.reload();
             }
         }
-        
-        // Быстрый тестовый вход
+
+        function logoutFromLogin() {
+            if (confirm('Сменить пользователя?')) {
+                localStorage.removeItem('neonchat_user');
+                location.reload();
+            }
+        }
+
         function quickTestLogin() {
             const usernameInput = document.getElementById('username');
-            const testName = 'Тест' + Math.floor(Math.random() * 1000);
-            usernameInput.value = testName;
-            console.log('Тестовый вход как:', testName);
+            usernameInput.value = 'Тест' + Math.floor(Math.random() * 1000);
             enterChat();
         }
-        
-        // Дебаг функция
-        window.debugChat = function() {
-            console.log('=== ДЕБАГ CHAT ===');
-            console.log('currentUser:', window.currentUser);
-            console.log('myUserId:', window.myUserId);
-            console.log('isConnected:', window.isConnected);
-            
+
+        function addEmoji(emoji) {
             const input = document.getElementById('messageInput');
-            console.log('input.disabled:', input.disabled);
-            console.log('input.value:', input.value);
-            
-            // Принудительно разблокируем
-            input.disabled = false;
-            input.placeholder = "Теперь можно писать!";
+            input.value += emoji;
             input.focus();
+        }
+
+        function switchChannel(channel) {
+            currentChannel = channel;
+            document.querySelectorAll('.channel').forEach(el => el.classList.remove('active'));
+            event.target.closest('.channel').classList.add('active');
             
-            alert('Поле ввода разблокировано!\nПроверь консоль для деталей.');
-        };
-        
-        // Горячие клавиши для разработки
-        document.addEventListener('keydown', function(e) {
-            // Ctrl+Alt+D - режим отладки
-            if (e.ctrlKey && e.altKey && e.key === 'd') {
-                localStorage.setItem('neonchat_debug', 'true');
-                console.log('Режим отладки включен');
-                alert('Режим отладки включен');
-            }
+            const channelNames = {
+                'main': 'Основной чат',
+                'news': 'Новости',
+                'memes': 'Мемы',
+                'games': 'Игры',
+                'secret': 'Секретный',
+                'admin': '👑 Админ-чат'
+            };
             
-            // Ctrl+Alt+T - быстрый тестовый вход
-            if (e.ctrlKey && e.altKey && e.key === 't') {
-                quickTestLogin();
+            document.getElementById('channelName').textContent = channelNames[channel];
+            updateMessagesDisplay();
+        }
+
+        function forceSync() {
+            updateMyOnlineStatus();
+            const btn = document.querySelector('.refresh-btn');
+            if (btn) {
+                btn.style.transform = 'rotate(360deg)';
+                setTimeout(() => btn.style.transform = 'rotate(0deg)', 300);
             }
-            
-            // Ctrl+Alt+R - разблокировка ввода
-            if (e.ctrlKey && e.altKey && e.key === 'r') {
-                window.debugChat();
-            }
-            
-            // Секретные админ-клавиши
-            if (window.currentUser && window.currentUser.name === 'Артур Пирожков') {
-                // Ctrl+Shift+C - очистить чат
-                if (e.ctrlKey && e.shiftKey && e.key === 'C') {
-                    e.preventDefault();
-                    if (confirm('Очистить весь чат?')) {
-                        adminClearChat();
-                    }
-                }
-                
-                // Ctrl+Shift+B - забанить
-                if (e.ctrlKey && e.shiftKey && e.key === 'B') {
-                    e.preventDefault();
-                    adminBanUser();
-                }
-            }
-        });
+        }
+
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        }
+
+        function toggleMembers() {
+            document.querySelector('.right-sidebar').classList.toggle('active');
+        }
     </script>
 </body>
 </html>
