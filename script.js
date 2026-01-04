@@ -277,6 +277,13 @@ window.onload = function() {
                     sendBtn.disabled = false;
                 }
                 
+                // ПРОВЕРКА АДМИН СТАТУСА
+                if (currentUser.name === 'Артур Пирожков') {
+                    setTimeout(() => {
+                        activateAdminMode();
+                    }, 1000);
+                }
+                
                 // Инициализируем Firebase через секунду
                 setTimeout(() => {
                     initFirebaseListeners();
@@ -374,6 +381,13 @@ function enterChat() {
     }
     if (sendBtn) {
         sendBtn.disabled = false;
+    }
+    
+    // ПРОВЕРКА АДМИН СТАТУСА
+    if (username === 'Артур Пирожков') {
+        setTimeout(() => {
+            activateAdminMode();
+        }, 500);
     }
     
     // Инициализируем Firebase
@@ -582,7 +596,7 @@ function startCall() {
     window.open(jitsiUrl, '_blank');
 }
 
-// ==================== СИНХРОНИЗАЦИЯ ====================
+// ==================== СИНХРОНИЗАЦИИ ====================
 function forceSync() {
     const btn = document.querySelector('.refresh-btn');
     if (btn) {
@@ -608,10 +622,12 @@ function switchChannel(channel) {
         'main': 'Основной чат',
         'news': 'Новости',
         'memes': 'Мемы',
-        'games': 'Игры'
+        'games': 'Игры',
+        'secret': 'Секретный',
+        'admin': '👑 Админ-чат'
     };
     
-    document.getElementById('channelName').textContent = channelNames[channel];
+    document.getElementById('channelName').textContent = channelNames[channel] || channel;
     updateMessagesDisplay();
     hideMobilePanels();
 }
@@ -652,33 +668,242 @@ function scrollToBottom() {
     }
 }
 
-// ==================== ОЧИСТКА ЛОКАЛЬНЫХ ДАННЫХ ====================
-function clearLocalData() {
-    if (confirm('Очистить все локальные данные (ник, история)?')) {
-        localStorage.clear();
-        location.reload();
+// ==================== АДМИН ФУНКЦИИ ====================
+function activateAdminMode() {
+    console.log('🎯 Активация админ-режима для Артур Пирожков');
+    
+    // Добавляем админ-класс
+    document.body.classList.add('admin-mode');
+    
+    // Показываем админ канал
+    const adminChannel = document.getElementById('adminChannel');
+    if (adminChannel) {
+        adminChannel.style.display = 'flex';
+    }
+    
+    // Показываем админ панель
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel) {
+        adminPanel.style.display = 'block';
+    }
+    
+    // Отправляем системное сообщение
+    setTimeout(() => {
+        addSystemMessage('👑 Администратор <strong>Артур Пирожков</strong> в сети!');
+    }, 2000);
+    
+    // Добавляем специальный аватар
+    document.getElementById('userAvatar').textContent = '👑';
+    document.getElementById('userAvatar').style.background = 'linear-gradient(45deg, #ff0000, #ff8800)';
+}
+
+// 1. Очистка всего чата
+async function adminClearChat() {
+    if (!confirm('💀 ТОЧНО ОЧИСТИТЬ ВЕСЬ ЧАТ?\nЭто удалит ВСЕ сообщения у всех пользователей!')) {
+        return;
+    }
+    
+    if (!database) {
+        alert('❌ Нет подключения к Firebase');
+        return;
+    }
+    
+    try {
+        await database.ref('messages').remove();
+        addSystemMessage('🧹 <strong style="color:#ff0000;">АДМИНИСТРАТОР</strong> очистил весь чат!');
+        console.log('✅ Чат очищен админом');
+    } catch (error) {
+        console.error('Ошибка очистки чата:', error);
+        alert('❌ Ошибка: ' + error.message);
     }
 }
 
-// ==================== ЭКСПОРТ ДАННЫХ ====================
-function exportChatData() {
-    const chatData = {
-        messages: allMessages,
-        users: Object.fromEntries(onlineUsers),
-        exportDate: new Date().toISOString()
+// 2. Бан пользователя
+async function adminBanUser() {
+    const userName = prompt('Введите ник пользователя для бана:');
+    if (!userName) return;
+    
+    const reason = prompt('Причина бана (необязательно):') || 'Нарушение правил';
+    const duration = prompt('Длительность (минут, 0=навсегда):', '60') || '60';
+    
+    if (!database) {
+        alert('❌ Нет подключения к Firebase');
+        return;
+    }
+    
+    // Ищем пользователя в онлайн
+    let foundUser = null;
+    for (const [userId, user] of onlineUsers.entries()) {
+        if (user.name === userName) {
+            foundUser = { userId, ...user };
+            break;
+        }
+    }
+    
+    if (!foundUser) {
+        alert('❌ Пользователь не найден онлайн');
+        return;
+    }
+    
+    try {
+        // Отправляем сообщение о бане
+        const banMessage = {
+            id: Date.now().toString(),
+            userId: 'system',
+            userName: '🚫 АДМИНИСТРАТОР',
+            userAvatar: '🚫',
+            text: `🚨 <div style="background: linear-gradient(45deg, rgba(255,0,0,0.2), rgba(255,68,0,0.2)); padding: 15px; border-radius: 10px; border: 2px solid #ff0000;">
+                   <strong style="color:#ff0000; font-size:1.2em;">🚫 ПОЛЬЗОВАТЕЛЬ ЗАБАНЕН!</strong><br><br>
+                   👤 <strong>${userName}</strong><br>
+                   📝 <strong>Причина:</strong> ${reason}<br>
+                   ⏰ <strong>Длительность:</strong> ${duration === '0' ? 'НАВСЕГДА' : duration + ' минут'}<br><br>
+                   <div style="font-size:0.9em; color:#ff8888;">
+                   👑 Забанен администратором <strong>Артур Пирожков</strong>
+                   </div>
+                   </div>`,
+            channel: 'main',
+            time: formatTime(new Date()),
+            timestamp: Date.now()
+        };
+        
+        await database.ref('messages/' + banMessage.id).set(banMessage);
+        
+        // Удаляем пользователя из онлайн
+        await database.ref('users/' + foundUser.userId).remove();
+        
+        console.log(`✅ Пользователь ${userName} забанен`);
+        alert(`✅ Пользователь ${userName} забанен!`);
+        
+    } catch (error) {
+        console.error('Ошибка бана:', error);
+        alert('❌ Ошибка: ' + error.message);
+    }
+}
+
+// 3. Отправить объявление
+async function adminSendAnnouncement() {
+    const text = prompt('Текст объявления:');
+    if (!text) return;
+    
+    const message = {
+        id: Date.now().toString(),
+        userId: 'system',
+        userName: '📢 АДМИН-ОБЪЯВЛЕНИЕ',
+        userAvatar: '📢',
+        text: `📣 <div style="
+            background: linear-gradient(45deg, #ff9900, #ffff00);
+            padding: 20px;
+            border-radius: 12px;
+            color: #000;
+            font-weight: bold;
+            border: 3px solid #ff5500;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(255, 153, 0, 0.5);
+            margin: 10px 0;
+        ">
+            <div style="font-size: 1.3em; margin-bottom: 15px; color: #ff0000;">⚡ ВНИМАНИЕ ВСЕМ!</div>
+            <div style="font-size: 1.1em; margin-bottom: 15px;">${text}</div>
+            <div style="margin-top: 15px; font-size: 0.9em; color: #666; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 10px;">
+                👑 От администратора <strong>Артур Пирожков</strong>
+            </div>
+        </div>`,
+        channel: 'main',
+        time: formatTime(new Date()),
+        timestamp: Date.now()
     };
     
-    const dataStr = JSON.stringify(chatData, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    if (database) {
+        await database.ref('messages/' + message.id).set(message);
+        console.log('✅ Объявление отправлено');
+        alert('✅ Объявление отправлено всем пользователям!');
+    }
+}
+
+// 4. Тестовое сообщение
+async function adminTestMessage() {
+    const message = {
+        id: Date.now().toString(),
+        userId: myUserId,
+        userName: currentUser.name,
+        userAvatar: '👑',
+        text: '🔧 <span style="color:#00ffff;">[ТЕСТОВОЕ СООБЩЕНИЕ АДМИНИСТРАТОРА]</span> 🌟 Всё работает отлично! 👑<br><div style="background:rgba(255,0,0,0.1); padding:10px; border-radius:8px; margin-top:10px; font-size:0.9em;">Это тестовое сообщение от администратора чата</div>',
+        channel: currentChannel,
+        time: formatTime(new Date()),
+        timestamp: Date.now()
+    };
     
-    const exportFileDefaultName = 'neonchat_backup_' + new Date().toISOString().slice(0, 10) + '.json';
+    if (database) {
+        await database.ref('messages/' + message.id).set(message);
+        console.log('✅ Тестовое сообщение отправлено');
+    }
+}
+
+// 5. Экспорт всех данных
+async function adminExportData() {
+    if (!database) return;
     
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
+    try {
+        const snapshot = await database.ref().once('value');
+        const allData = snapshot.val();
+        
+        const dataStr = JSON.stringify(allData, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+        
+        const link = document.createElement('a');
+        link.setAttribute('href', dataUri);
+        link.setAttribute('download', `neonchat_admin_backup_${new Date().toISOString().slice(0,10)}.json`);
+        link.click();
+        
+        console.log('✅ Данные экспортированы админом');
+        alert('✅ Все данные экспортированы в JSON файл!');
+    } catch (error) {
+        console.error('Ошибка экспорта:', error);
+        alert('❌ Ошибка экспорта: ' + error.message);
+    }
+}
+
+// 6. Кикнуть всех пользователей
+async function adminKickAll() {
+    if (!confirm('🚨 КИКНУТЬ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ?\nВсе онлайн пользователи будут отключены!')) {
+        return;
+    }
     
-    console.log('✅ Данные экспортированы');
+    if (!database) {
+        alert('❌ Нет подключения к Firebase');
+        return;
+    }
+    
+    try {
+        // Удаляем всех пользователей из онлайн
+        await database.ref('users').remove();
+        
+        // Отправляем сообщение
+        const message = {
+            id: Date.now().toString(),
+            userId: 'system',
+            userName: '👑 АДМИНИСТРАТОР',
+            userAvatar: '👑',
+            text: `🚨 <div style="background: linear-gradient(45deg, rgba(255,0,0,0.3), rgba(255,68,0,0.3)); padding: 20px; border-radius: 12px; border: 3px solid #ff0000; text-align: center;">
+                   <strong style="color:#ff0000; font-size:1.3em;">⚠️ ВСЕ ПОЛЬЗОВАТЕЛИ ОТКЛЮЧЕНЫ!</strong><br><br>
+                   🔥 Администратор <strong>Артур Пирожков</strong> отключил всех пользователей!<br><br>
+                   <div style="font-size:0.9em; color:#ffaaaa;">
+                   Перезайдите в чат для продолжения общения
+                   </div>
+                   </div>`,
+            channel: 'main',
+            time: formatTime(new Date()),
+            timestamp: Date.now()
+        };
+        
+        await database.ref('messages/' + message.id).set(message);
+        
+        console.log('✅ Все пользователи отключены');
+        alert('✅ Все онлайн пользователи отключены!');
+        
+    } catch (error) {
+        console.error('Ошибка кика всех:', error);
+        alert('❌ Ошибка: ' + error.message);
+    }
 }
 
 // ==================== ДЕБАГ И МОНИТОРИНГ ====================
