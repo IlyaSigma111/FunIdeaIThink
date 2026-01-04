@@ -1,9 +1,29 @@
-// ==================== КОНФИГУРАЦИЯ ====================
-// Твой GitHub репозиторий где будет храниться chat.json
-const GITHUB_USERNAME = 'ilyasigma111'; // Твой GitHub username
-const REPO_NAME = 'FunIdeaIthink'; // Твой репозиторий
-const JSON_FILE_PATH = 'chat.json';
-const GITHUB_TOKEN = ''; // Оставь пустым для публичного доступа
+// ==================== КОНФИГУРАЦИЯ FIREBASE ====================
+const firebaseConfig = {
+    apiKey: "AIzaSyBBpRh7B5qZdyd66Q4KxsUBhH2qcwshI7g",
+    authDomain: "funideaithink-3206d.firebaseapp.com",
+    databaseURL: "https://funideaithink-3206d-default-rtdb.firebaseio.com",
+    projectId: "funideaithink-3206d",
+    storageBucket: "funideaithink-3206d.firebasestorage.app",
+    messagingSenderId: "475113847634",
+    appId: "1:475113847634:web:ec38afbcb33b5bde57588b",
+    measurementId: "G-9PC37HF1MJ"
+};
+
+// Проверяем, что Firebase загружен
+if (typeof firebase === 'undefined') {
+    console.error('Firebase не загружен! Добавь скрипты в HTML.');
+} else {
+    try {
+        // Инициализируем Firebase
+        firebase.initializeApp(firebaseConfig);
+        console.log('✅ Firebase инициализирован');
+    } catch (error) {
+        console.log('Firebase уже инициализирован');
+    }
+}
+
+const database = firebase.database ? firebase.database() : null;
 
 // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
 let currentUser = null;
@@ -11,7 +31,7 @@ let currentChannel = 'main';
 let allMessages = [];
 let onlineUsers = new Map();
 let myUserId = null;
-let syncInterval;
+let isConnected = false;
 
 // ==================== УТИЛИТЫ ====================
 function generateUserId() {
@@ -27,207 +47,202 @@ function formatTime(date) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-// ==================== РАБОТА С GITHUB JSON ====================
-async function loadChatFromGitHub() {
-    try {
-        console.log('Загружаем чат с GitHub...');
-        
-        // Пробуем загрузить напрямую из репозитория
-        const url = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/main/${JSON_FILE_PATH}?t=${Date.now()}`;
-        console.log('Загружаем с URL:', url);
-        
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            console.log('JSON файл не найден (статус:', response.status, '), создаем новый чат...');
-            return {
-                messages: [],
-                users: {},
-                lastUpdated: Date.now()
-            };
-        }
-        
-        const data = await response.json();
-        
-        console.log(`✅ Загружено ${data.messages?.length || 0} сообщений с GitHub`);
-        return data;
-        
-    } catch (error) {
-        console.error('Ошибка загрузки с GitHub:', error);
-        
-        // Возвращаем пустые данные при ошибке
-        return {
-            messages: [],
-            users: {},
-            lastUpdated: Date.now()
-        };
+// ==================== РАБОТА С FIREBASE ====================
+function initFirebaseListeners() {
+    if (!database) {
+        console.error('Firebase Database не доступен!');
+        showFirebaseError();
+        return;
     }
-}
-
-async function saveChatToGitHub(chatData) {
-    // НЕ сохраняем на GitHub без токена (только для чтения)
-    // Вместо этого сохраняем локально
-    saveToLocalStorage(chatData);
-    return true;
-}
-
-function saveToLocalStorage(chatData) {
-    try {
-        localStorage.setItem('neonchat_backup', JSON.stringify(chatData));
-        localStorage.setItem('neonchat_last_save', Date.now().toString());
+    
+    console.log('Инициализируем Firebase слушатели...');
+    
+    // Слушаем подключение
+    const connectedRef = database.ref('.info/connected');
+    connectedRef.on('value', (snap) => {
+        isConnected = snap.val() === true;
         
-        document.getElementById('syncStatus').style.color = '#00ff80';
-        document.getElementById('syncStatus').textContent = '✓';
-        document.getElementById('lastSync').textContent = 'локально';
-        document.getElementById('lastUpdate').textContent = formatTime(new Date());
-        
-        console.log('✅ Данные сохранены локально');
-        return true;
-    } catch (error) {
-        console.error('Ошибка локального сохранения:', error);
-        return false;
-    }
-}
-
-function loadFromLocalStorage() {
-    try {
-        const saved = localStorage.getItem('neonchat_backup');
-        if (saved) {
-            return JSON.parse(saved);
+        if (isConnected && currentUser) {
+            console.log('✅ Подключено к Firebase');
+            document.getElementById('connectionStatus').style.color = '#00ff80';
+            document.getElementById('connectionStatus').textContent = '✓';
+            document.getElementById('syncStatus').style.color = '#00ff80';
+            document.getElementById('syncStatus').textContent = '✓';
+            
+            // Добавляем пользователя в онлайн
+            updateMyOnlineStatus();
+        } else {
+            document.getElementById('connectionStatus').style.color = '#ff5555';
+            document.getElementById('connectionStatus').textContent = '✗';
+            document.getElementById('syncStatus').style.color = '#ff9900';
+            document.getElementById('syncStatus').textContent = '!';
+            console.log('❌ Отключено от Firebase');
         }
-    } catch (error) {
-        console.error('Ошибка загрузки из localStorage:', error);
-    }
-    return null;
-}
-
-// ==================== СИНХРОНИЗАЦИЯ ДАННЫХ ====================
-async function loadChatData() {
-    try {
-        // 1. Пробуем загрузить с GitHub (новые сообщения от других)
-        const githubData = await loadChatFromGitHub();
+    });
+    
+    // Слушаем сообщения
+    const messagesRef = database.ref('messages');
+    messagesRef.on('value', (snapshot) => {
+        console.log('Получены сообщения из Firebase');
+        const messagesData = snapshot.val();
         
-        // 2. Загружаем локальные данные (наши неотправленные сообщения)
-        const localData = loadFromLocalStorage();
-        
-        // 3. Объединяем данные
-        let mergedMessages = [];
-        let mergedUsers = {};
-        
-        // Берем сообщения с GitHub
-        if (githubData.messages && Array.isArray(githubData.messages)) {
-            mergedMessages = githubData.messages;
+        if (messagesData) {
+            // Конвертируем объект в массив
+            const messagesArray = Object.values(messagesData);
+            
+            // Сортируем по времени
+            messagesArray.sort((a, b) => a.timestamp - b.timestamp);
+            
+            allMessages = messagesArray;
+            updateMessagesDisplay();
+            document.getElementById('messageCount').textContent = allMessages.length;
+            
+            document.getElementById('syncStatus').style.color = '#00ff80';
+            document.getElementById('syncStatus').textContent = '✓';
+            document.getElementById('lastSync').textContent = 'только что';
+            document.getElementById('lastUpdate').textContent = formatTime(new Date());
+        } else {
+            allMessages = [];
+            updateMessagesDisplay();
         }
+    }, (error) => {
+        console.error('Ошибка загрузки сообщений:', error);
+        document.getElementById('syncStatus').style.color = '#ff5555';
+        document.getElementById('syncStatus').textContent = '✗';
+    });
+    
+    // Слушаем онлайн пользователей
+    const usersRef = database.ref('users');
+    usersRef.on('value', (snapshot) => {
+        console.log('Получены пользователи из Firebase');
+        const usersData = snapshot.val();
         
-        // Берем пользователей с GitHub
-        if (githubData.users && typeof githubData.users === 'object') {
-            mergedUsers = githubData.users;
-        }
-        
-        // Если есть локальные данные, объединяем
-        if (localData) {
-            // Добавляем локальные сообщения (если их нет на GitHub)
-            if (localData.messages && Array.isArray(localData.messages)) {
-                const githubMessageIds = new Set(mergedMessages.map(m => m.id));
-                
-                localData.messages.forEach(localMsg => {
-                    if (!githubMessageIds.has(localMsg.id)) {
-                        mergedMessages.push(localMsg);
-                    }
-                });
+        if (usersData) {
+            onlineUsers = new Map(Object.entries(usersData));
+            
+            // Фильтруем неактивных (больше 5 минут)
+            const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+            for (const [userId, user] of onlineUsers.entries()) {
+                if (user.lastSeen < fiveMinutesAgo) {
+                    onlineUsers.delete(userId);
+                    // Удаляем из Firebase
+                    database.ref('users/' + userId).remove();
+                }
             }
             
-            // Обновляем пользователей
-            if (localData.users && typeof localData.users === 'object') {
-                mergedUsers = { ...mergedUsers, ...localData.users };
-            }
+            updateOnlineList();
+            document.getElementById('onlineCount').textContent = onlineUsers.size;
+        } else {
+            onlineUsers = new Map();
+            updateOnlineList();
         }
-        
-        // Сортируем сообщения по времени
-        mergedMessages.sort((a, b) => a.timestamp - b.timestamp);
-        
-        // Ограничиваем историю (последние 300 сообщений)
-        if (mergedMessages.length > 300) {
-            mergedMessages = mergedMessages.slice(-300);
-        }
-        
-        // Сохраняем объединенные данные
-        allMessages = mergedMessages;
-        onlineUsers = new Map(Object.entries(mergedUsers));
-        
-        // Удаляем неактивных пользователей (больше 10 минут)
-        const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
-        for (const [userId, user] of onlineUsers.entries()) {
-            if (user.lastSeen < tenMinutesAgo) {
-                onlineUsers.delete(userId);
-            }
-        }
-        
-        // Обновляем UI
-        updateMessagesDisplay();
-        updateOnlineList();
-        
-        document.getElementById('messageCount').textContent = allMessages.length;
-        document.getElementById('onlineCount').textContent = onlineUsers.size;
-        document.getElementById('syncStatus').style.color = '#00ff80';
-        document.getElementById('syncStatus').textContent = '✓';
-        document.getElementById('lastSync').textContent = 'синхронизировано';
-        document.getElementById('lastUpdate').textContent = formatTime(new Date());
-        
-        console.log(`✅ Данные загружены: ${allMessages.length} сообщений`);
-        
-        return {
-            messages: allMessages,
-            users: Object.fromEntries(onlineUsers),
-            lastUpdated: Date.now()
-        };
-        
-    } catch (error) {
-        console.error('Ошибка загрузки чата:', error);
-        
-        // Используем локальные данные при ошибке
-        const localData = loadFromLocalStorage();
-        if (localData) {
-            allMessages = localData.messages || [];
-            onlineUsers = new Map(Object.entries(localData.users || {}));
-        }
-        
-        updateMessagesDisplay();
-        updateOnlineList();
-        
-        document.getElementById('syncStatus').style.color = '#ff9900';
-        document.getElementById('syncStatus').textContent = '!';
-        document.getElementById('lastSync').textContent = 'оффлайн';
-        
-        return null;
+    }, (error) => {
+        console.error('Ошибка загрузки пользователей:', error);
+    });
+}
+
+function showFirebaseError() {
+    const container = document.getElementById('messagesContainer');
+    if (container) {
+        container.innerHTML = `
+            <div style="text-align:center; color:#ff5555; padding:40px 20px;">
+                <i class="fas fa-exclamation-triangle" style="font-size:3em; margin-bottom:15px; display:block;"></i>
+                <strong style="font-size:1.1em;">Ошибка Firebase</strong><br>
+                <span style="font-size:0.9em; color:#ff8888;">Не удалось подключиться к базе данных.</span><br><br>
+                <div style="background: rgba(255, 85, 85, 0.1); padding: 15px; border-radius: 10px; text-align: left; font-size: 0.85em; margin: 15px 0;">
+                    <strong>Проверь:</strong><br>
+                    1. Добавил ли ты Firebase SDK в HTML?<br>
+                    2. Правильно ли настроен Realtime Database?<br>
+                    3. Включен ли тестовый режим в Firebase?
+                </div>
+                <button onclick="location.reload()" class="neon-btn" style="margin-top:10px; padding:10px 20px; font-size:1em;">
+                    <i class="fas fa-sync-alt"></i> Перезагрузить страницу
+                </button>
+            </div>
+        `;
     }
 }
 
-async function saveChatData() {
+// ==================== ОБНОВЛЕНИЕ ОНЛАЙН СТАТУСА ====================
+function updateMyOnlineStatus() {
+    if (!currentUser || !isConnected || !database) return;
+    
     try {
-        const chatData = {
-            messages: allMessages,
-            users: Object.fromEntries(onlineUsers),
-            lastUpdated: Date.now()
+        const userStatusRef = database.ref('users/' + myUserId);
+        const userData = {
+            name: currentUser.name,
+            avatar: currentUser.avatar,
+            lastSeen: Date.now(),
+            isOnline: true
         };
         
-        // Сохраняем локально
-        saveToLocalStorage(chatData);
+        userStatusRef.set(userData);
         
-        return true;
+        // Устанавливаем автоудаление при отключении
+        userStatusRef.onDisconnect().remove();
+        
+        console.log('✅ Статус обновлен в Firebase');
+        
     } catch (error) {
-        console.error('Ошибка сохранения:', error);
-        return false;
+        console.error('Ошибка обновления статуса:', error);
+    }
+}
+
+// ==================== ОТПРАВКА СООБЩЕНИЯ ====================
+async function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const text = input.value.trim();
+    
+    if (!text || !currentUser) {
+        input.focus();
+        return;
+    }
+    
+    if (!database || !isConnected) {
+        alert('❌ Нет подключения к Firebase. Проверь интернет соединение.');
+        return;
+    }
+    
+    const message = {
+        id: Date.now().toString(),
+        userId: myUserId,
+        userName: currentUser.name,
+        userAvatar: currentUser.avatar,
+        text: text,
+        channel: currentChannel,
+        time: formatTime(new Date()),
+        timestamp: Date.now()
+    };
+    
+    try {
+        // Добавляем в Firebase
+        await database.ref('messages/' + message.id).set(message);
+        
+        // Обновляем свой онлайн статус
+        updateMyOnlineStatus();
+        
+        // Очищаем поле ввода
+        input.value = '';
+        input.focus();
+        
+        // Прокручиваем вниз
+        scrollToBottom();
+        
+        console.log('✅ Сообщение отправлено в Firebase:', text.substring(0, 50));
+        
+    } catch (error) {
+        console.error('Ошибка отправки:', error);
+        alert('❌ Ошибка отправки сообщения: ' + error.message);
     }
 }
 
 // ==================== ИНИЦИАЛИЗАЦИЯ ====================
-window.onload = async function() {
-    console.log('🚀 Запускаем NeonChat (мультиустройственная версия)...');
+window.onload = function() {
+    console.log('🚀 Запускаем NeonChat...');
     
     // Показываем загрузку
     document.getElementById('loadingMessages').innerHTML = 
-        '<i class="fas fa-spinner fa-spin"></i> Подключаемся к чату...';
+        '<i class="fas fa-spinner fa-spin"></i> Инициализируем чат...';
     
     // Проверяем сохраненного пользователя
     const savedUser = localStorage.getItem('neonchat_user');
@@ -247,11 +262,16 @@ window.onload = async function() {
                 document.getElementById('currentUserName').textContent = currentUser.name;
                 document.getElementById('userAvatar').textContent = currentUser.avatar || '👤';
                 
-                // Загружаем данные
-                await loadChatData();
-                
-                // Запускаем синхронизацию
-                startSyncLoop();
+                // Инициализируем Firebase через секунду
+                setTimeout(() => {
+                    initFirebaseListeners();
+                    
+                    // Убираем загрузку
+                    setTimeout(() => {
+                        const loadingEl = document.getElementById('loadingMessages');
+                        if (loadingEl) loadingEl.remove();
+                    }, 1500);
+                }, 500);
                 
                 // Добавляем обработчик Enter
                 const messageInput = document.getElementById('messageInput');
@@ -264,15 +284,19 @@ window.onload = async function() {
                     });
                 }
                 
-                // Добавляем себя в онлайн
-                onlineUsers.set(myUserId, {
-                    name: currentUser.name,
-                    avatar: currentUser.avatar,
-                    lastSeen: Date.now()
-                });
-                
-                updateOnlineList();
-                await saveChatData();
+                // Показываем приветственное сообщение
+                setTimeout(() => {
+                    const container = document.getElementById('messagesContainer');
+                    if (container && container.children.length === 0) {
+                        container.innerHTML = `
+                            <div style="text-align:center; color:#888; padding:40px 20px;">
+                                <i class="fas fa-rocket" style="font-size:3em; margin-bottom:15px; display:block; color:#00ffff;"></i>
+                                <strong style="color:#00ffff; font-size:1.1em;">Добро пожаловать в NeonChat!</strong><br>
+                                <span style="font-size:0.9em; color:#666;">Чат синхронизируется между всеми устройствами</span>
+                            </div>
+                        `;
+                    }
+                }, 2000);
                 
             } else {
                 console.log('Невалидные данные пользователя');
@@ -284,14 +308,19 @@ window.onload = async function() {
         }
     }
     
-    // Обновляем онлайн статус
-    setInterval(updateMyOnlineStatus, 30000);
+    // Обновляем статус каждые 30 секунд
+    setInterval(() => {
+        if (currentUser && isConnected) {
+            updateMyOnlineStatus();
+        }
+    }, 30000);
     
+    // Обработчик кликов
     document.querySelector('.main')?.addEventListener('click', hideMobilePanels);
 };
 
 // ==================== ВХОД В ЧАТ ====================
-async function enterChat() {
+function enterChat() {
     const usernameInput = document.getElementById('username');
     const username = usernameInput.value.trim();
     
@@ -305,7 +334,7 @@ async function enterChat() {
     document.getElementById('loginScreen').classList.remove('active');
     document.getElementById('chatScreen').style.display = 'flex';
     document.getElementById('loadingMessages').innerHTML = 
-        '<i class="fas fa-spinner fa-spin"></i> Входим в чат...';
+        '<i class="fas fa-spinner fa-spin"></i> Создаем профиль...';
     
     // Создаем пользователя
     myUserId = generateUserId();
@@ -323,129 +352,50 @@ async function enterChat() {
     document.getElementById('currentUserName').textContent = currentUser.name;
     document.getElementById('userAvatar').textContent = currentUser.avatar;
     
-    try {
-        // Загружаем данные
-        await loadChatData();
-        
-        // Добавляем себя в онлайн
-        onlineUsers.set(myUserId, {
-            name: currentUser.name,
-            avatar: currentUser.avatar,
-            lastSeen: Date.now()
-        });
+    // Инициализируем Firebase
+    setTimeout(() => {
+        initFirebaseListeners();
         
         // Убираем загрузку
-        const loadingEl = document.getElementById('loadingMessages');
-        if (loadingEl) loadingEl.remove();
-        
-        // Запускаем синхронизацию
-        startSyncLoop();
-        
-        // Добавляем системное сообщение
-        addSystemMessage(`${username} вошел в чат! 👋`);
-        
-        // Добавляем обработчик Enter
-        const messageInput = document.getElementById('messageInput');
-        if (messageInput) {
-            messageInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            });
-        }
-        
-        console.log('✅ Успешный вход:', username);
-        
-    } catch (error) {
-        console.error('Ошибка входа:', error);
-        
-        // Все равно показываем чат
-        const loadingEl = document.getElementById('loadingMessages');
-        if (loadingEl) loadingEl.remove();
-    }
+        setTimeout(() => {
+            const loadingEl = document.getElementById('loadingMessages');
+            if (loadingEl) loadingEl.remove();
+            
+            // Добавляем обработчик Enter
+            const messageInput = document.getElementById('messageInput');
+            if (messageInput) {
+                messageInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+            }
+            
+            // Добавляем системное сообщение
+            setTimeout(() => {
+                addSystemMessage(`${username} вошел в чат! 👋`);
+            }, 1000);
+            
+            console.log('✅ Успешный вход:', username);
+            
+        }, 1000);
+    }, 500);
     
     hideMobilePanels();
-}
-
-// ==================== ОБНОВЛЕНИЕ ОНЛАЙН СТАТУСА ====================
-async function updateMyOnlineStatus() {
-    if (!currentUser) return;
-    
-    try {
-        // Обновляем свой статус
-        onlineUsers.set(myUserId, {
-            name: currentUser.name,
-            avatar: currentUser.avatar,
-            lastSeen: Date.now()
-        });
-        
-        updateOnlineList();
-        await saveChatData();
-        await loadChatData(); // Обновляем данные с сервера
-        
-    } catch (error) {
-        console.error('Ошибка обновления статуса:', error);
-    }
-}
-
-// ==================== ОТПРАВКА СООБЩЕНИЯ ====================
-async function sendMessage() {
-    const input = document.getElementById('messageInput');
-    const text = input.value.trim();
-    
-    if (!text || !currentUser) {
-        input.focus();
-        return;
-    }
-    
-    const message = {
-        id: Date.now(),
-        userId: myUserId,
-        userName: currentUser.name,
-        userAvatar: currentUser.avatar,
-        text: text,
-        channel: currentChannel,
-        time: formatTime(new Date()),
-        timestamp: Date.now()
-    };
-    
-    // Сразу показываем сообщение
-    allMessages.push(message);
-    displayMessage(message);
-    
-    // Очищаем поле ввода
-    input.value = '';
-    input.focus();
-    
-    // Прокручиваем вниз
-    scrollToBottom();
-    
-    // Обновляем счетчики
-    document.getElementById('messageCount').textContent = allMessages.length;
-    
-    // Обновляем свой статус
-    onlineUsers.set(myUserId, {
-        name: currentUser.name,
-        avatar: currentUser.avatar,
-        lastSeen: Date.now()
-    });
-    
-    updateOnlineList();
-    
-    // Сохраняем данные
-    await saveChatData();
-    
-    console.log('✅ Сообщение отправлено');
 }
 
 // ==================== ОТОБРАЖЕНИЕ СООБЩЕНИЙ ====================
 function updateMessagesDisplay() {
     const container = document.getElementById('messagesContainer');
+    if (!container) return;
+    
     const loading = document.getElementById('loadingMessages');
+    if (loading && container.contains(loading)) {
+        loading.remove();
+    }
     
-    if (loading) loading.remove();
-    
+    // Фильтруем сообщения по каналу
     const channelMessages = allMessages.filter(msg => msg.channel === currentChannel);
     
     container.innerHTML = '';
@@ -467,6 +417,8 @@ function updateMessagesDisplay() {
 
 function displayMessage(message) {
     const container = document.getElementById('messagesContainer');
+    if (!container) return;
+    
     const isOwn = message.userId === myUserId;
     
     const messageDiv = document.createElement('div');
@@ -495,7 +447,10 @@ function formatMessageText(text) {
         .replace(/:\)/g, '😊')
         .replace(/:\(/g, '😞')
         .replace(/:D/g, '😃')
-        .replace(/<3/g, '❤️');
+        .replace(/<3/g, '❤️')
+        .replace(/:P/gi, '😛')
+        .replace(/:O/gi, '😮')
+        .replace(/;\)/g, '😉');
     
     formattedText = formattedText.replace(
         /(https?:\/\/[^\s]+)/g, 
@@ -510,6 +465,7 @@ function updateOnlineList() {
     const membersList = document.getElementById('membersList');
     if (!membersList) return;
     
+    // Сортируем по последней активности
     const sortedUsers = Array.from(onlineUsers.entries())
         .sort((a, b) => b[1].lastSeen - a[1].lastSeen)
         .slice(0, 20);
@@ -554,41 +510,39 @@ function updateOnlineList() {
     document.getElementById('onlineCount').textContent = sortedUsers.length;
 }
 
-// ==================== СИНХРОНИЗАЦИЯ ====================
-function startSyncLoop() {
-    if (syncInterval) clearInterval(syncInterval);
-    
-    syncInterval = setInterval(async () => {
-        try {
-            await loadChatData();
-        } catch (error) {
-            console.error('Ошибка синхронизации:', error);
-        }
-    }, 5000);
-}
-
-function forceSync() {
-    const btn = document.querySelector('.refresh-btn');
-    if (btn) {
-        btn.style.transform = 'rotate(360deg)';
+// ==================== СИСТЕМНЫЕ СООБЩЕНИЯ ====================
+function addSystemMessage(text) {
+    if (!isConnected || !database) {
+        console.log('Не могу отправить системное сообщение: нет подключения');
+        return;
     }
     
-    loadChatData();
+    const message = {
+        id: Date.now().toString(),
+        userId: 'system',
+        userName: '⚡ Система',
+        userAvatar: '⚡',
+        text: text,
+        channel: currentChannel,
+        time: formatTime(new Date()),
+        timestamp: Date.now()
+    };
     
-    setTimeout(() => {
-        if (btn) {
-            btn.style.transform = 'rotate(0deg)';
-        }
-    }, 300);
+    database.ref('messages/' + message.id).set(message);
 }
 
 // ==================== ЗВОНКИ ====================
 function startCall() {
+    if (!database || !isConnected) {
+        alert('❌ Нет подключения к Firebase для создания звонка');
+        return;
+    }
+    
     const roomName = `neonchat-${Date.now()}`;
     const jitsiUrl = `https://meet.jit.si/${roomName}`;
     
     const message = {
-        id: Date.now(),
+        id: Date.now().toString(),
         userId: 'system',
         userName: '📞 Система',
         userAvatar: '📞',
@@ -607,31 +561,23 @@ function startCall() {
         timestamp: Date.now()
     };
     
-    allMessages.push(message);
-    displayMessage(message);
-    scrollToBottom();
-    saveChatData();
-    
+    database.ref('messages/' + message.id).set(message);
     window.open(jitsiUrl, '_blank');
 }
 
-// ==================== СИСТЕМНЫЕ СООБЩЕНИЯ ====================
-function addSystemMessage(text) {
-    const message = {
-        id: Date.now(),
-        userId: 'system',
-        userName: '⚡ Система',
-        userAvatar: '⚡',
-        text: text,
-        channel: currentChannel,
-        time: formatTime(new Date()),
-        timestamp: Date.now()
-    };
-    
-    allMessages.push(message);
-    displayMessage(message);
-    scrollToBottom();
-    saveChatData();
+// ==================== СИНХРОНИЗАЦИЯ ====================
+function forceSync() {
+    const btn = document.querySelector('.refresh-btn');
+    if (btn) {
+        btn.style.transform = 'rotate(360deg)';
+        
+        // Обновляем статус
+        updateMyOnlineStatus();
+        
+        setTimeout(() => {
+            btn.style.transform = 'rotate(0deg)';
+        }, 300);
+    }
 }
 
 // ==================== СМЕНА КАНАЛОВ ====================
@@ -687,4 +633,33 @@ function scrollToBottom() {
             container.scrollTop = container.scrollHeight;
         }, 100);
     }
+}
+
+// ==================== ОЧИСТКА ЛОКАЛЬНЫХ ДАННЫХ ====================
+function clearLocalData() {
+    if (confirm('Очистить все локальные данные (ник, история)?')) {
+        localStorage.clear();
+        location.reload();
+    }
+}
+
+// ==================== ЭКСПОРТ ДАННЫХ ====================
+function exportChatData() {
+    const chatData = {
+        messages: allMessages,
+        users: Object.fromEntries(onlineUsers),
+        exportDate: new Date().toISOString()
+    };
+    
+    const dataStr = JSON.stringify(chatData, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = 'neonchat_backup_' + new Date().toISOString().slice(0, 10) + '.json';
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    console.log('✅ Данные экспортированы');
 }
