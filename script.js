@@ -185,7 +185,7 @@ function updateMyOnlineStatus() {
     }
 }
 
-// ==================== ОТПРАВКА СООБЩЕНИЯ (ENTER ФИКС) ====================
+// ==================== ОТПРАВКА СООБЩЕНИЯ ====================
 async function sendMessage() {
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
@@ -233,33 +233,6 @@ async function sendMessage() {
     }
 }
 
-// ==================== ОБРАБОТЧИК КЛАВИШИ ENTER ====================
-function setupEnterHandler() {
-    const messageInput = document.getElementById('messageInput');
-    if (!messageInput) {
-        console.error('Поле ввода не найдено!');
-        return;
-    }
-    
-    // Удаляем старый обработчик если есть
-    messageInput.removeEventListener('keydown', handleEnterKey);
-    
-    // Добавляем новый обработчик
-    messageInput.addEventListener('keydown', handleEnterKey);
-    
-    console.log('✅ Обработчик Enter установлен');
-}
-
-function handleEnterKey(e) {
-    // Если нажат Enter без Shift
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault(); // Отменяем перенос строки
-        sendMessage(); // Отправляем сообщение
-        return false;
-    }
-    // Shift+Enter - перенос строки (работает по умолчанию)
-}
-
 // ==================== ИНИЦИАЛИЗАЦИЯ ====================
 window.onload = function() {
     console.log('🚀 Запускаем NeonChat...');
@@ -291,6 +264,9 @@ window.onload = function() {
                     usernameInput.focus();
                     usernameInput.select();
                 }
+                
+                // Запускаем автоматический вход для сохраненного пользователя
+                setTimeout(autoLogin, 100);
             } else {
                 console.log('Невалидные данные пользователя');
                 document.getElementById('loginScreen').classList.add('active');
@@ -309,9 +285,88 @@ window.onload = function() {
             usernameInput.select();
         }
     }, 500);
+    
+    // Устанавливаем обработчик Enter сразу при загрузке
+    setupEnterHandler();
 };
 
-// ==================== ВХОД В ЧАТ (ИСПРАВЛЕННЫЙ) ====================
+// ==================== АВТОМАТИЧЕСКИЙ ВХОД ====================
+function autoLogin() {
+    console.log('Автоматический вход для сохраненного пользователя...');
+    
+    // Показываем чат
+    document.getElementById('loginScreen').classList.remove('active');
+    document.getElementById('chatScreen').style.display = 'flex';
+    
+    // Обновляем UI
+    document.getElementById('currentUserName').textContent = currentUser.name;
+    document.getElementById('userAvatar').textContent = currentUser.avatar;
+    
+    // РАЗБЛОКИРОВКА ПОЛЯ ВВОДА
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.querySelector('.send-btn');
+    if (messageInput) {
+        messageInput.disabled = false;
+        messageInput.placeholder = "Напиши сообщение...";
+        setTimeout(() => {
+            messageInput.focus();
+        }, 300);
+        console.log('✅ Поле ввода разблокировано');
+    }
+    if (sendBtn) {
+        sendBtn.disabled = false;
+    }
+    
+    // УСТАНАВЛИВАЕМ ОБРАБОТЧИК ENTER
+    setupEnterHandler();
+    
+    // ПРОВЕРКА АДМИН СТАТУСА
+    if (currentUser.name === 'Артур Пирожков') {
+        setTimeout(() => {
+            activateAdminMode();
+        }, 1000);
+    }
+    
+    // Инициализируем Firebase
+    setTimeout(() => {
+        initFirebaseListeners();
+        
+        // Убираем загрузку
+        setTimeout(() => {
+            const loadingEl = document.getElementById('loadingMessages');
+            if (loadingEl) loadingEl.remove();
+        }, 1500);
+    }, 500);
+}
+
+// ==================== ОБРАБОТЧИК КЛАВИШИ ENTER (ИСПРАВЛЕННЫЙ) ====================
+function setupEnterHandler() {
+    const messageInput = document.getElementById('messageInput');
+    if (!messageInput) {
+        console.error('Поле ввода не найдено!');
+        return;
+    }
+    
+    // Удаляем все старые обработчики
+    const newInput = messageInput.cloneNode(true);
+    messageInput.parentNode.replaceChild(newInput, messageInput);
+    
+    // Получаем новую ссылку
+    const newMessageInput = document.getElementById('messageInput');
+    
+    // Устанавливаем обработчик напрямую в атрибуте (самый надежный способ)
+    newMessageInput.onkeydown = function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault(); // Отменяем перенос строки
+            sendMessage(); // Отправляем сообщение
+            return false;
+        }
+    };
+    
+    console.log('✅ Обработчик Enter установлен напрямую в onkeydown');
+}
+
+// ==================== ВХОД В ЧАТ ====================
 function enterChat() {
     const usernameInput = document.getElementById('username');
     const username = usernameInput.value.trim();
@@ -942,12 +997,31 @@ window.debugChat = function() {
     alert('Поле ввода разблокировано!\nПроверь консоль для деталей.');
 };
 
-// ==================== АВТОМАТИЧЕСКАЯ ПРОВЕРКА ====================
-setInterval(function() {
-    const input = document.getElementById('messageInput');
-    if (input && input.disabled && currentUser) {
-        console.warn('Авторазблокировка поля ввода');
-        input.disabled = false;
-        input.placeholder = "Напиши сообщение...";
+// ==================== ДОБАВИТЬ НОВОСТИ ПРАВОЙ ПАНЕЛИ ====================
+function initNewsPanel() {
+    const newsBox = document.querySelector('.news-box');
+    if (!newsBox) {
+        console.error('Блок новостей не найден!');
+        return;
     }
-}, 2000);
+    
+    // Добавляем новости если их нет
+    if (!newsBox.querySelector('.news-item')) {
+        newsBox.innerHTML = `
+            <h4><i class="fas fa-info-circle"></i> Информация</h4>
+            <div class="news-item">
+                <strong>NeonChat v1.2 🎉</strong>
+                <p>Обновленный чат с админ-панелью и мобильной версией</p>
+                <small id="lastUpdate">Загрузка...</small>
+            </div>
+            <div class="news-item" style="margin-top: 10px;">
+                <strong>Российский сервер 🇷🇺</strong>
+                <p>Все данные хранятся на российских серверах</p>
+                <small>Безопасно и быстро</small>
+            </div>
+        `;
+    }
+}
+
+// Инициализируем новости при загрузке
+setTimeout(initNewsPanel, 1000);
