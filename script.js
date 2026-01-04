@@ -168,6 +168,12 @@ window.onload = async function() {
     // Обновляем онлайн статус
     setInterval(updateMyOnlineStatus, 30000);
     
+    // ФИКС: убираем обработчик, который может конфликтовать
+    const messageInput = document.getElementById('messageInput');
+    if (messageInput) {
+        messageInput.onkeypress = null; // Убираем старый обработчик
+    }
+    
     document.querySelector('.main').addEventListener('click', hideMobilePanels);
 };
 
@@ -218,6 +224,17 @@ function showChat() {
     
     document.getElementById('currentUserName').textContent = currentUser.name;
     document.getElementById('userAvatar').textContent = currentUser.avatar;
+    
+    // ФИКС: добавляем новый обработчик Enter
+    const messageInput = document.getElementById('messageInput');
+    if (messageInput) {
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault(); // Предотвращаем перенос строки
+                sendMessage();
+            }
+        });
+    }
     
     hideMobilePanels();
 }
@@ -651,11 +668,7 @@ function scrollToBottom() {
 }
 
 // ==================== ОБРАБОТЧИКИ СОБЫТИЙ ====================
-document.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter' && document.activeElement.id === 'messageInput') {
-        sendMessage();
-    }
-});
+// ФИКС: убираем глобальный обработчик и используем локальный в showChat()
 
 // При закрытии вкладки
 window.addEventListener('beforeunload', function() {
