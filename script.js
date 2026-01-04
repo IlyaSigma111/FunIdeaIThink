@@ -10,12 +10,9 @@ const firebaseConfig = {
     measurementId: "G-9PC37HF1MJ"
 };
 
-// Проверяем, что Firebase загружен
-if (typeof firebase === 'undefined') {
-    console.error('Firebase не загружен! Добавь скрипты в HTML.');
-} else {
+// Инициализируем Firebase
+if (typeof firebase !== 'undefined') {
     try {
-        // Инициализируем Firebase
         firebase.initializeApp(firebaseConfig);
         console.log('✅ Firebase инициализирован');
     } catch (error) {
@@ -188,7 +185,7 @@ function updateMyOnlineStatus() {
     }
 }
 
-// ==================== ОТПРАВКА СООБЩЕНИЯ ====================
+// ==================== ОТПРАВКА СООБЩЕНИЯ (ENTER ФИКС) ====================
 async function sendMessage() {
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
@@ -236,6 +233,33 @@ async function sendMessage() {
     }
 }
 
+// ==================== ОБРАБОТЧИК КЛАВИШИ ENTER ====================
+function setupEnterHandler() {
+    const messageInput = document.getElementById('messageInput');
+    if (!messageInput) {
+        console.error('Поле ввода не найдено!');
+        return;
+    }
+    
+    // Удаляем старый обработчик если есть
+    messageInput.removeEventListener('keydown', handleEnterKey);
+    
+    // Добавляем новый обработчик
+    messageInput.addEventListener('keydown', handleEnterKey);
+    
+    console.log('✅ Обработчик Enter установлен');
+}
+
+function handleEnterKey(e) {
+    // Если нажат Enter без Shift
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault(); // Отменяем перенос строки
+        sendMessage(); // Отправляем сообщение
+        return false;
+    }
+    // Shift+Enter - перенос строки (работает по умолчанию)
+}
+
 // ==================== ИНИЦИАЛИЗАЦИЯ ====================
 window.onload = function() {
     console.log('🚀 Запускаем NeonChat...');
@@ -256,68 +280,17 @@ window.onload = function() {
             if (currentUser && currentUser.id && currentUser.name) {
                 console.log('Найден сохраненный пользователь:', currentUser.name);
                 
-                // Показываем чат
-                document.getElementById('loginScreen').classList.remove('active');
-                document.getElementById('chatScreen').style.display = 'flex';
+                // Показываем кнопку выхода на экране логина
+                const logoutBtn = document.getElementById('logoutFromLoginButton');
+                if (logoutBtn) logoutBtn.style.display = 'block';
                 
-                // Обновляем UI
-                document.getElementById('currentUserName').textContent = currentUser.name;
-                document.getElementById('userAvatar').textContent = currentUser.avatar || '👤';
-                
-                // РАЗБЛОКИРОВКА ПОЛЯ ВВОДА
-                const messageInput = document.getElementById('messageInput');
-                const sendBtn = document.querySelector('.send-btn');
-                if (messageInput) {
-                    messageInput.disabled = false;
-                    messageInput.placeholder = "Напиши сообщение...";
-                    messageInput.focus();
-                    console.log('✅ Поле ввода разблокировано');
+                // Автозаполняем поле логина
+                const usernameInput = document.getElementById('username');
+                if (usernameInput) {
+                    usernameInput.value = currentUser.name;
+                    usernameInput.focus();
+                    usernameInput.select();
                 }
-                if (sendBtn) {
-                    sendBtn.disabled = false;
-                }
-                
-                // ПРОВЕРКА АДМИН СТАТУСА
-                if (currentUser.name === 'Артур Пирожков') {
-                    setTimeout(() => {
-                        activateAdminMode();
-                    }, 1000);
-                }
-                
-                // Инициализируем Firebase через секунду
-                setTimeout(() => {
-                    initFirebaseListeners();
-                    
-                    // Убираем загрузку
-                    setTimeout(() => {
-                        if (loadingEl) loadingEl.remove();
-                    }, 1500);
-                }, 500);
-                
-                // Добавляем обработчик Enter
-                if (messageInput) {
-                    messageInput.addEventListener('keydown', function(e) {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            sendMessage();
-                        }
-                    });
-                }
-                
-                // Показываем приветственное сообщение
-                setTimeout(() => {
-                    const container = document.getElementById('messagesContainer');
-                    if (container && container.children.length === 0) {
-                        container.innerHTML = `
-                            <div style="text-align:center; color:#888; padding:40px 20px;">
-                                <i class="fas fa-rocket" style="font-size:3em; margin-bottom:15px; display:block; color:#00ffff;"></i>
-                                <strong style="color:#00ffff; font-size:1.1em;">Добро пожаловать в NeonChat!</strong><br>
-                                <span style="font-size:0.9em; color:#666;">Чат синхронизируется между всеми устройствами</span>
-                            </div>
-                        `;
-                    }
-                }, 2000);
-                
             } else {
                 console.log('Невалидные данные пользователя');
                 document.getElementById('loginScreen').classList.add('active');
@@ -328,21 +301,21 @@ window.onload = function() {
         }
     }
     
-    // Обновляем статус каждые 30 секунд
-    setInterval(() => {
-        if (currentUser && isConnected) {
-            updateMyOnlineStatus();
+    // Автофокус на поле логина
+    setTimeout(function() {
+        const usernameInput = document.getElementById('username');
+        if (usernameInput) {
+            usernameInput.focus();
+            usernameInput.select();
         }
-    }, 30000);
-    
-    // Обработчик кликов
-    document.querySelector('.main')?.addEventListener('click', hideMobilePanels);
+    }, 500);
 };
 
-// ==================== ВХОД В ЧАТ ====================
+// ==================== ВХОД В ЧАТ (ИСПРАВЛЕННЫЙ) ====================
 function enterChat() {
     const usernameInput = document.getElementById('username');
     const username = usernameInput.value.trim();
+    const loginButton = document.getElementById('loginButton');
     
     if (!username) {
         alert('Введи крутой ник!');
@@ -350,68 +323,87 @@ function enterChat() {
         return;
     }
     
-    // Показываем загрузку
-    document.getElementById('loginScreen').classList.remove('active');
-    document.getElementById('chatScreen').style.display = 'flex';
-    
-    // Создаем пользователя
-    myUserId = generateUserId();
-    currentUser = {
-        id: myUserId,
-        name: username,
-        avatar: getRandomAvatar(),
-        lastSeen: Date.now()
-    };
-    
-    // Сохраняем пользователя
-    localStorage.setItem('neonchat_user', JSON.stringify(currentUser));
-    
-    // Обновляем UI
-    document.getElementById('currentUserName').textContent = currentUser.name;
-    document.getElementById('userAvatar').textContent = currentUser.avatar;
-    
-    // РАЗБЛОКИРОВКА ПОЛЯ ВВОДА
-    const messageInput = document.getElementById('messageInput');
-    const sendBtn = document.querySelector('.send-btn');
-    if (messageInput) {
-        messageInput.disabled = false;
-        messageInput.placeholder = "Напиши сообщение...";
-        messageInput.focus();
-        console.log('✅ Поле ввода разблокировано после входа');
-    }
-    if (sendBtn) {
-        sendBtn.disabled = false;
+    // Блокируем кнопку чтобы не нажимали дважды
+    if (loginButton) {
+        loginButton.disabled = true;
+        loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Входим...';
     }
     
-    // ПРОВЕРКА АДМИН СТАТУСА
-    if (username === 'Артур Пирожков') {
-        setTimeout(() => {
-            activateAdminMode();
-        }, 500);
-    }
-    
-    // Инициализируем Firebase
+    // Задержка 0.3 секунды чтобы увидеть переход
     setTimeout(() => {
-        initFirebaseListeners();
+        // Создаем пользователя
+        myUserId = generateUserId();
+        currentUser = {
+            id: myUserId,
+            name: username,
+            avatar: getRandomAvatar(),
+            lastSeen: Date.now()
+        };
         
-        // Добавляем обработчик Enter
+        // Сохраняем пользователя
+        localStorage.setItem('neonchat_user', JSON.stringify(currentUser));
+        
+        // Показываем чат
+        document.getElementById('loginScreen').classList.remove('active');
+        document.getElementById('chatScreen').style.display = 'flex';
+        
+        // Обновляем UI
+        document.getElementById('currentUserName').textContent = currentUser.name;
+        document.getElementById('userAvatar').textContent = currentUser.avatar;
+        
+        // РАЗБЛОКИРОВКА ПОЛЯ ВВОДА
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.querySelector('.send-btn');
         if (messageInput) {
-            messageInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            });
+            messageInput.disabled = false;
+            messageInput.placeholder = "Напиши сообщение...";
+            setTimeout(() => {
+                messageInput.focus();
+            }, 300);
+            console.log('✅ Поле ввода разблокировано');
+        }
+        if (sendBtn) {
+            sendBtn.disabled = false;
         }
         
-        // Добавляем системное сообщение
+        // УСТАНАВЛИВАЕМ ОБРАБОТЧИК ENTER (ВАЖНО!)
+        setupEnterHandler();
+        
+        // ПРОВЕРКА АДМИН СТАТУСА
+        if (username === 'Артур Пирожков') {
+            setTimeout(() => {
+                activateAdminMode();
+            }, 1000);
+        }
+        
+        // Инициализируем Firebase через секунду
         setTimeout(() => {
-            addSystemMessage(`${username} вошел в чат! 👋`);
-        }, 1000);
+            initFirebaseListeners();
+            
+            // Убираем загрузку
+            setTimeout(() => {
+                const loadingEl = document.getElementById('loadingMessages');
+                if (loadingEl) loadingEl.remove();
+            }, 1500);
+        }, 500);
+        
+        // Показываем приветственное сообщение
+        setTimeout(() => {
+            const container = document.getElementById('messagesContainer');
+            if (container && container.children.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center; color:#888; padding:40px 20px;">
+                        <i class="fas fa-rocket" style="font-size:3em; margin-bottom:15px; display:block; color:#00ffff;"></i>
+                        <strong style="color:#00ffff; font-size:1.1em;">Добро пожаловать в NeonChat!</strong><br>
+                        <span style="font-size:0.9em; color:#666;">Чат синхронизируется между всеми устройствами</span>
+                    </div>
+                `;
+            }
+        }, 2000);
         
         console.log('✅ Успешный вход:', username);
         
-    }, 500);
+    }, 300); // Задержка перед переходом
     
     hideMobilePanels();
 }
@@ -596,7 +588,7 @@ function startCall() {
     window.open(jitsiUrl, '_blank');
 }
 
-// ==================== СИНХРОНИЗАЦИИ ====================
+// ==================== СИНХРОНИЗАЦИЯ ====================
 function forceSync() {
     const btn = document.querySelector('.refresh-btn');
     if (btn) {
@@ -627,7 +619,7 @@ function switchChannel(channel) {
         'admin': '👑 Админ-чат'
     };
     
-    document.getElementById('channelName').textContent = channelNames[channel] || channel;
+    document.getElementById('channelName').textContent = channelNames[channel];
     updateMessagesDisplay();
     hideMobilePanels();
 }
@@ -668,6 +660,37 @@ function scrollToBottom() {
     }
 }
 
+// ==================== ВЫХОД ====================
+function logout() {
+    if (confirm('Точно выйти из чата?')) {
+        localStorage.removeItem('neonchat_user');
+        location.reload();
+    }
+}
+
+function logoutFromLogin() {
+    if (confirm('Выйти и ввести новый ник?')) {
+        localStorage.removeItem('neonchat_user');
+        const logoutBtn = document.getElementById('logoutFromLoginButton');
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        
+        const usernameInput = document.getElementById('username');
+        if (usernameInput) {
+            usernameInput.value = '';
+            usernameInput.focus();
+        }
+    }
+}
+
+// ==================== ТЕСТОВЫЙ ВХОД ====================
+function quickTestLogin() {
+    const usernameInput = document.getElementById('username');
+    const testName = 'Тест' + Math.floor(Math.random() * 1000);
+    usernameInput.value = testName;
+    console.log('Тестовый вход как:', testName);
+    enterChat();
+}
+
 // ==================== АДМИН ФУНКЦИИ ====================
 function activateAdminMode() {
     console.log('🎯 Активация админ-режима для Артур Пирожков');
@@ -697,7 +720,6 @@ function activateAdminMode() {
     document.getElementById('userAvatar').style.background = 'linear-gradient(45deg, #ff0000, #ff8800)';
 }
 
-// 1. Очистка всего чата
 async function adminClearChat() {
     if (!confirm('💀 ТОЧНО ОЧИСТИТЬ ВЕСЬ ЧАТ?\nЭто удалит ВСЕ сообщения у всех пользователей!')) {
         return;
@@ -718,7 +740,6 @@ async function adminClearChat() {
     }
 }
 
-// 2. Бан пользователя
 async function adminBanUser() {
     const userName = prompt('Введите ник пользователя для бана:');
     if (!userName) return;
@@ -780,7 +801,6 @@ async function adminBanUser() {
     }
 }
 
-// 3. Отправить объявление
 async function adminSendAnnouncement() {
     const text = prompt('Текст объявления:');
     if (!text) return;
@@ -819,7 +839,6 @@ async function adminSendAnnouncement() {
     }
 }
 
-// 4. Тестовое сообщение
 async function adminTestMessage() {
     const message = {
         id: Date.now().toString(),
@@ -838,7 +857,6 @@ async function adminTestMessage() {
     }
 }
 
-// 5. Экспорт всех данных
 async function adminExportData() {
     if (!database) return;
     
@@ -862,7 +880,6 @@ async function adminExportData() {
     }
 }
 
-// 6. Кикнуть всех пользователей
 async function adminKickAll() {
     if (!confirm('🚨 КИКНУТЬ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ?\nВсе онлайн пользователи будут отключены!')) {
         return;
@@ -906,35 +923,31 @@ async function adminKickAll() {
     }
 }
 
-// ==================== ДЕБАГ И МОНИТОРИНГ ====================
-function checkInputStatus() {
+// ==================== ДЕБАГ ====================
+window.debugChat = function() {
+    console.log('=== ДЕБАГ CHAT ===');
+    console.log('currentUser:', window.currentUser);
+    console.log('myUserId:', window.myUserId);
+    console.log('isConnected:', window.isConnected);
+    
     const input = document.getElementById('messageInput');
-    if (input && input.disabled) {
-        console.warn('ВНИМАНИЕ: Поле ввода заблокировано!');
-        // Автоматически разблокируем
+    console.log('input.disabled:', input.disabled);
+    console.log('input.value:', input.value);
+    
+    // Принудительно разблокируем
+    input.disabled = false;
+    input.placeholder = "Теперь можно писать!";
+    input.focus();
+    
+    alert('Поле ввода разблокировано!\nПроверь консоль для деталей.');
+};
+
+// ==================== АВТОМАТИЧЕСКАЯ ПРОВЕРКА ====================
+setInterval(function() {
+    const input = document.getElementById('messageInput');
+    if (input && input.disabled && currentUser) {
+        console.warn('Авторазблокировка поля ввода');
         input.disabled = false;
         input.placeholder = "Напиши сообщение...";
-        input.focus();
     }
-}
-
-// Проверяем каждые 2 секунды
-setInterval(checkInputStatus, 2000);
-
-// Принудительная разблокировка при клике
-document.addEventListener('click', function(e) {
-    const input = document.getElementById('messageInput');
-    if (input && input.disabled) {
-        input.disabled = false;
-        console.log('Поле ввода разблокировано принудительно при клике');
-    }
-});
-
-// Автоматическая разблокировка при загрузке
-setTimeout(function() {
-    const input = document.getElementById('messageInput');
-    if (input) {
-        input.disabled = false;
-        console.log('Автоматическая разблокировка поля ввода при загрузке');
-    }
-}, 1000);
+}, 2000);
