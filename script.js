@@ -12,11 +12,10 @@ window.onload = function() {
         showChat();
     }
     loadMessages();
-    updateMembers();
+    updateMembersList();
     startAutoRefresh();
     updateLastUpdateTime();
     
-    // Скрываем мобильные панели при клике на основной контент
     document.querySelector('.main').addEventListener('click', function() {
         hideMobilePanels();
     });
@@ -39,7 +38,8 @@ function enterChat() {
     currentUser = {
         name: username,
         avatar: randomAvatar,
-        id: Date.now()
+        id: Date.now().toString(),
+        lastActive: Date.now()
     };
     
     localStorage.setItem('neonchat_user', JSON.stringify(currentUser));
@@ -55,7 +55,6 @@ function showChat() {
     document.getElementById('currentUserName').textContent = currentUser.name;
     document.getElementById('userAvatar').textContent = currentUser.avatar;
     
-    // На мобильных скрываем панели
     hideMobilePanels();
 }
 
@@ -80,12 +79,14 @@ function sendMessage() {
     input.value = '';
     input.focus();
     updateLastUpdateTime();
+    
+    currentUser.lastActive = Date.now();
+    localStorage.setItem('neonchat_user', JSON.stringify(currentUser));
 }
 
 function saveMessage(message) {
     let messages = JSON.parse(localStorage.getItem('neonchat_messages') || '[]');
     messages.push(message);
-    // Храним только последние 500 сообщений
     if (messages.length > 500) {
         messages = messages.slice(-500);
     }
@@ -98,7 +99,6 @@ function loadMessages() {
     const container = document.getElementById('messagesContainer');
     const currentMessages = messages.filter(msg => msg.channel === currentChannel);
     
-    // Находим последнее ID
     if (currentMessages.length > 0) {
         lastMessageId = Math.max(...currentMessages.map(m => m.id));
     }
@@ -106,7 +106,6 @@ function loadMessages() {
     container.innerHTML = '';
     currentMessages.forEach(displayMessage);
     
-    // Прокручиваем вниз если нужно
     setTimeout(() => {
         const isScrolledToBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 100;
         if (isScrolledToBottom) {
@@ -118,23 +117,25 @@ function loadMessages() {
 // ==================== ОТОБРАЖЕНИЕ СООБЩЕНИЙ ====================
 function displayMessage(message) {
     const container = document.getElementById('messagesContainer');
-    const isOwn = message.user.id === currentUser?.id;
+    const isOwn = message.user && currentUser && message.user.id === currentUser.id;
     
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${isOwn ? 'own' : ''}`;
     messageDiv.dataset.id = message.id;
     
+    const userName = message.user?.name || 'Аноним';
+    const userAvatar = message.user?.avatar || '👤';
+    
     messageDiv.innerHTML = `
         <div class="message-header">
             <span class="message-user">
-                ${message.user.avatar} ${message.user.name}
+                ${userAvatar} ${userName}
             </span>
             <span class="message-time">${message.time}</span>
         </div>
         <div class="message-content">${formatMessageText(message.text)}</div>
     `;
     
-    // Если это новое сообщение - анимация
     if (message.id > lastMessageId) {
         messageDiv.style.animation = 'fadeIn 0.3s';
         lastMessageId = message.id;
@@ -144,6 +145,11 @@ function displayMessage(message) {
 }
 
 function formatMessageText(text) {
+    // Обрабатываем HTML в системных сообщениях (звонки)
+    if (text.includes('call-link') || text.includes('call-announcement')) {
+        return text;
+    }
+    
     return text
         .replace(/:\)/g, '😊')
         .replace(/:\(/g, '😞')
@@ -151,7 +157,7 @@ function formatMessageText(text) {
         .replace(/;\)/g, '😉')
         .replace(/<3/g, '❤️')
         .replace(/lol/gi, '😂')
-        .replace(/http[^\s]+/g, url => `<a href="${url}" target="_blank" style="color: #00ffff;">${url}</a>`);
+        .replace(/http[^\s]+/g, url => `<a href="${url}" target="_blank" class="message-link">${url}</a>`);
 }
 
 // ==================== СИСТЕМНЫЕ СООБЩЕНИЯ ====================
@@ -174,11 +180,9 @@ function addSystemMessage(text) {
 function switchChannel(channel) {
     currentChannel = channel;
     
-    // Обновляем активный канал
     document.querySelectorAll('.channel').forEach(el => el.classList.remove('active'));
     event.target.closest('.channel').classList.add('active');
     
-    // Обновляем название
     const channelNames = {
         'main': 'Основной чат',
         'news': 'Новости',
@@ -187,11 +191,8 @@ function switchChannel(channel) {
     };
     document.getElementById('channelName').textContent = channelNames[channel];
     
-    // Загружаем сообщения
     loadMessages();
     updateLastUpdateTime();
-    
-    // На мобильных скрываем меню
     hideMobilePanels();
 }
 
@@ -203,50 +204,79 @@ function addEmoji(emoji) {
 }
 
 // ==================== УЧАСТНИКИ ====================
-function updateMembers() {
+function updateMembersList() {
+    const messages = JSON.parse(localStorage.getItem('neonchat_messages') || '[]');
     const membersList = document.getElementById('membersList');
-    let members = JSON.parse(localStorage.getItem('neonchat_members') || '[]');
     
-    // Добавляем текущего пользователя
-    if (currentUser) {
-        const existingIndex = members.findIndex(m => m.id === currentUser.id);
-        if (existingIndex === -1) {
-            members.push(currentUser);
-        } else {
-            members[existingIndex] = currentUser;
-        }
-        
-        // Удаляем старые записи (старше 24 часа)
-        const now = Date.now();
-        members = members.filter(m => now - (m.lastSeen || now) < 24 * 60 * 60 * 1000);
-        
-        // Обновляем время последней активности
-        members.forEach(m => {
-            if (m.id === currentUser.id) {
-                m.lastSeen = now;
+    const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+    const activeUsers = {};
+    
+    messages.forEach(msg => {
+        if (msg.user && msg.timestamp > twoHoursAgo) {
+            const userId = msg.user.id;
+            if (!activeUsers[userId] || msg.timestamp > activeUsers[userId].lastSeen) {
+                activeUsers[userId] = {
+                    name: msg.user.name,
+                    avatar: msg.user.avatar,
+                    lastSeen: msg.timestamp
+                };
             }
-        });
-        
-        localStorage.setItem('neonchat_members', JSON.stringify(members));
-    }
-    
-    membersList.innerHTML = '';
-    members.forEach(member => {
-        const memberDiv = document.createElement('div');
-        memberDiv.className = 'member';
-        memberDiv.innerHTML = `
-            <div class="member-avatar">${member.avatar}</div>
-            <div>
-                <div class="member-name">${member.name}</div>
-                <div style="color: #00ff80; font-size: 0.85em;">
-                    ${member.id === currentUser?.id ? 'Вы' : 'Online'}
-                </div>
-            </div>
-        `;
-        membersList.appendChild(memberDiv);
+        }
     });
     
-    document.getElementById('onlineCount').textContent = members.length;
+    if (currentUser) {
+        activeUsers[currentUser.id] = {
+            name: currentUser.name,
+            avatar: currentUser.avatar,
+            lastSeen: Date.now()
+        };
+    }
+    
+    const activeUsersArray = Object.values(activeUsers).sort((a, b) => b.lastSeen - a.lastSeen);
+    const displayUsers = activeUsersArray.slice(0, 20);
+    
+    membersList.innerHTML = '';
+    
+    if (displayUsers.length === 0) {
+        membersList.innerHTML = `
+            <div style="text-align: center; color: #888; padding: 20px;">
+                <i class="fas fa-users" style="font-size: 2em; margin-bottom: 10px; display: block;"></i>
+                Здесь пока никого нет...
+            </div>
+        `;
+    } else {
+        displayUsers.forEach(user => {
+            const isYou = currentUser && user.name === currentUser.name;
+            const minutesAgo = Math.floor((Date.now() - user.lastSeen) / 60000);
+            let statusText = 'Только что';
+            
+            if (minutesAgo > 0) {
+                if (minutesAgo < 60) {
+                    statusText = `${minutesAgo} мин назад`;
+                } else {
+                    const hoursAgo = Math.floor(minutesAgo / 60);
+                    statusText = `${hoursAgo} ч назад`;
+                }
+            }
+            
+            const memberDiv = document.createElement('div');
+            memberDiv.className = 'member';
+            memberDiv.innerHTML = `
+                <div class="member-avatar">${user.avatar}</div>
+                <div>
+                    <div class="member-name">
+                        ${user.name} ${isYou ? '<span style="color:#00ff80;">(Вы)</span>' : ''}
+                    </div>
+                    <div style="color: #88aaff; font-size: 0.8em;">
+                        ${isYou ? 'Online' : statusText}
+                    </div>
+                </div>
+            `;
+            membersList.appendChild(memberDiv);
+        });
+    }
+    
+    document.getElementById('onlineCount').textContent = displayUsers.length;
 }
 
 // ==================== ЗВОНКИ ====================
@@ -257,7 +287,16 @@ function startCall() {
     const message = {
         id: Date.now(),
         user: {name: '📞 Система', avatar: '📞'},
-        text: `🚀 ВСЕ НА ЗВОНОК! Ссылка: ${jitsiUrl}`,
+        text: `🚀 <div class="call-announcement">
+               <strong style="color:#00ffff; font-size:1.2em; display:block; margin-bottom:10px;">📢 ВСЕ НА ЗВОНОК!</strong>
+               <a href="${jitsiUrl}" target="_blank" class="call-link">
+               <i class="fas fa-phone-alt"></i> НАЖМИ ДЛЯ ПОДКЛЮЧЕНИЯ
+               </a>
+               <div style="margin-top:12px; font-size:0.9em; color:#aaa;">
+               Или скопируй ссылку:<br>
+               <code style="background:#222; padding:8px 12px; border-radius:6px; display:inline-block; margin-top:5px; font-size:0.85em; word-break:break-all; max-width:100%;">${jitsiUrl}</code>
+               </div>
+               </div>`,
         time: new Date().toLocaleTimeString(),
         channel: currentChannel
     };
@@ -277,7 +316,7 @@ function startAutoRefresh() {
     refreshInterval = setInterval(() => {
         if (autoRefreshEnabled) {
             checkForNewMessages();
-            updateMembers();
+            updateMembersList();
         }
     }, 3000);
     
@@ -292,21 +331,11 @@ function stopAutoRefresh() {
     document.getElementById('refreshStatus').textContent = 'ВЫКЛ';
 }
 
-function toggleAutoRefresh() {
-    autoRefreshEnabled = !autoRefreshEnabled;
-    if (autoRefreshEnabled) {
-        startAutoRefresh();
-    } else {
-        stopAutoRefresh();
-    }
-}
-
 function manualRefresh() {
     loadMessages();
-    updateMembers();
+    updateMembersList();
     updateLastUpdateTime();
     
-    // Анимация кнопки
     const btn = document.querySelector('.refresh-btn');
     btn.style.transform = 'rotate(360deg)';
     setTimeout(() => {
@@ -320,7 +349,6 @@ function checkForNewMessages() {
     const channelMessages = messages.filter(msg => msg.channel === currentChannel);
     const container = document.getElementById('messagesContainer');
     
-    // Находим последнее отображенное сообщение
     const displayedMessages = container.querySelectorAll('.message[data-id]');
     let lastDisplayedId = 0;
     
@@ -329,13 +357,11 @@ function checkForNewMessages() {
         lastDisplayedId = parseInt(lastMessage.dataset.id) || 0;
     }
     
-    // Ищем новые сообщения
     const newMessages = channelMessages.filter(msg => msg.id > lastDisplayedId);
     
     if (newMessages.length > 0) {
         newMessages.forEach(displayMessage);
         
-        // Проверяем, находится ли пользователь внизу чата
         const isScrolledToBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 100;
         
         if (isScrolledToBottom) {
@@ -365,7 +391,6 @@ function showNewMessagesAlert(count) {
             alertDiv.style.display = 'none';
         };
         
-        // Автоскрытие через 10 секунд
         setTimeout(() => {
             alertDiv.style.display = 'none';
         }, 10000);
@@ -381,19 +406,13 @@ function scrollToBottom() {
 function toggleSidebar() {
     const sidebar = document.querySelector('.sidebar');
     sidebar.classList.toggle('active');
-    
-    // Закрываем другую панель если открыта
-    const rightSidebar = document.querySelector('.right-sidebar');
-    rightSidebar.classList.remove('active');
+    document.querySelector('.right-sidebar').classList.remove('active');
 }
 
 function toggleMembers() {
     const rightSidebar = document.querySelector('.right-sidebar');
     rightSidebar.classList.toggle('active');
-    
-    // Закрываем другую панель если открыта
-    const sidebar = document.querySelector('.sidebar');
-    sidebar.classList.remove('active');
+    document.querySelector('.sidebar').classList.remove('active');
 }
 
 function hideMobilePanels() {
@@ -417,22 +436,11 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// Обновляем при фокусе на окне
 window.addEventListener('focus', function() {
     checkForNewMessages();
-    updateMembers();
+    updateMembersList();
 });
 
-// Обновляем статус соединения
-window.addEventListener('online', function() {
-    document.getElementById('connectionStatus').textContent = '✓';
-    document.getElementById('connectionStatus').style.color = '#00ff80';
-});
+setInterval(updateMembersList, 10000);
 
-window.addEventListener('offline', function() {
-    document.getElementById('connectionStatus').textContent = '✗';
-    document.getElementById('connectionStatus').style.color = '#ff5555';
-});
-
-// Инициализация
-console.log('🚀 NeonChat загружен! Автообновление каждые 3 секунды.');
+console.log('🚀 NeonChat загружен! Все видят одних и тех же участников.');
