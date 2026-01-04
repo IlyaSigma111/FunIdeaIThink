@@ -1,11 +1,113 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
     color: white;
     height: 100vh;
     overflow: hidden;
     -webkit-tap-highlight-color: transparent;
+    /* Безопасные отступы для iPhone с вырезом */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 /* Экраны */
-@@ -108,6 +109,10 @@ body {
+.screen {
+    display: none;
+    height: 100vh;
+    width: 100%;
+}
+
+.screen.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Окно входа */
+.login-box {
+    background: rgba(25, 25, 40, 0.95);
+    padding: 30px;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 255, 255, 0.1);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+}
+
+.neon-text {
+    color: #00ffff;
+    text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+    font-size: 2.2em;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    color: #a0a0ff;
+    margin-bottom: 25px;
+    font-size: 1.1em;
+}
+
+/* Поля ввода */
+.input-group {
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid #00ffff;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s;
+}
+
+.input-group:focus-within {
+    box-shadow: 0 0 15px #00ffff;
+}
+
+.input-group i {
+    color: #00ffff;
+    margin-right: 10px;
+    font-size: 1.2em;
+}
+
+.input-group input {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.1em;
+    width: 100%;
+    outline: none;
+}
+
+.input-group input::placeholder {
+    color: #666;
+}
+
+/* Кнопки */
+.neon-btn {
+    background: linear-gradient(45deg, #00ffff, #0080ff);
+    color: white;
+    border: none;
+    padding: 15px 25px;
+    border-radius: 10px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s;
+    width: 100%;
+    margin: 10px 0;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.neon-btn:hover {
+    transform: translateY(-2px);
     box-shadow: 0 0 20px #00ffff;
 }
 
@@ -16,7 +118,71 @@
 .neon-btn i {
     margin-right: 10px;
 }
-@@ -170,6 +175,12 @@ body {
+
+/* Подсказки */
+.tips {
+    margin-top: 25px;
+    text-align: left;
+    color: #88aaff;
+    font-size: 0.95em;
+}
+
+.tips p {
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+}
+
+.tips i {
+    margin-right: 10px;
+    color: #00ffff;
+    min-width: 20px;
+}
+
+/* Основной интерфейс чата */
+#chatScreen {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    gap: 10px;
+    padding: 10px;
+    position: relative;
+    /* Безопасные отступы */
+    padding-top: calc(10px + env(safe-area-inset-top));
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    padding-left: calc(10px + env(safe-area-inset-left));
+    padding-right: calc(10px + env(safe-area-inset-right));
+}
+
+/* Мобильное меню */
+.mobile-menu {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(30, 30, 50, 0.95);
+    padding: 10px;
+    z-index: 1000;
+    border-top: 2px solid #00ffff;
+    backdrop-filter: blur(10px);
+    /* Учитываем нижнюю безопасную зону */
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    height: auto;
+    min-height: 60px;
+}
+
+.mobile-btn {
+    flex: 1;
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid #00ffff;
+    color: white;
+    padding: 12px;
+    margin: 0 5px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+    display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
@@ -29,31 +195,210 @@
 }
 
 .mobile-btn i {
-@@ -355,13 +366,8 @@ body {
+    font-size: 1.1em;
+}
+
+/* Блоки с неоновым эффектом */
+.neon-box {
+    background: rgba(30, 30, 50, 0.7);
+    border-radius: 15px;
+    padding: 15px;
+    border: 1px solid rgba(0, 255, 255, 0.1);
+    margin-bottom: 10px;
+}
+
+/* Левая панель */
+.sidebar {
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.user-info {
+    text-align: center;
+    padding: 15px;
+}
+
+.avatar {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(45deg, #ff0080, #ff8c00);
+    border-radius: 50%;
+    margin: 0 auto 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8em;
+    border: 3px solid #00ffff;
+}
+
+.user-name {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #00ffff;
+    margin-bottom: 5px;
+    word-break: break-word;
+}
+
+.status {
+    color: #00ff80;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+/* Каналы */
+.channels {
+    flex: 1;
+    margin: 10px 0;
+    overflow-y: auto;
+}
+
+.channel {
+    padding: 12px 15px;
+    margin: 6px 0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: #ccccff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.channel:hover {
+    background: rgba(0, 255, 255, 0.1);
+    transform: translateX(3px);
+}
+
+.channel.active {
+    background: rgba(0, 255, 255, 0.2);
+    color: #00ffff;
+    font-weight: bold;
+    border-left: 4px solid #00ffff;
+}
+
+.channel i {
+    font-size: 1.1em;
+    min-width: 20px;
+}
+
+/* Кнопка звонка */
+.call-btn {
+    margin-top: 10px;
+    padding: 12px;
+    font-size: 1em;
+}
+
+/* Информация о синхронизации */
+.refresh-info {
+    text-align: center;
+    color: #88aaff;
+    font-size: 0.9em;
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.refresh-info i {
+    margin-right: 8px;
+    color: #00ffff;
+}
+
+/* Центральная часть (чат) */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: rgba(20, 20, 35, 0.8);
+    border-radius: 15px;
+    overflow: hidden;
+    min-width: 0;
+}
+
+/* Заголовок чата */
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 2px solid rgba(0, 255, 255, 0.1);
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.chat-header h2 {
+    color: #00ffff;
+    font-size: 1.3em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.online-count {
+    color: #00ff80;
+    font-weight: bold;
+    font-size: 0.95em;
+    white-space: nowrap;
+}
+
+.online-count i {
+    font-size: 0.8em;
+    margin-right: 5px;
+}
+
+/* Кнопка обновления */
+.refresh-btn {
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid #00ffff;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.refresh-btn:hover {
+    background: rgba(0, 255, 255, 0.3);
     transform: rotate(180deg);
 }
 
-.refresh-btn.syncing i {
-    animation: syncSpin 1s linear infinite;
-}
-
-@keyframes syncSpin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
 .refresh-btn:active {
     transform: scale(0.95);
 }
 
 /* Область сообщений */
-@@ -373,6 +379,7 @@ body {
+.messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
     flex-direction: column;
     gap: 12px;
     min-height: 0;
-    -webkit-overflow-scrolling: touch; /* Плавная прокрутка на iOS */
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Сообщения */
-@@ -384,6 +391,7 @@ body {
+.message {
+    background: rgba(40, 40, 60, 0.5);
+    padding: 12px 15px;
+    border-radius: 12px;
+    max-width: 85%;
     animation: fadeIn 0.3s;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -61,7 +406,90 @@
 }
 
 @keyframes fadeIn {
-@@ -474,6 +482,10 @@ body {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message.own {
+    background: rgba(0, 100, 255, 0.3);
+    align-self: flex-end;
+    border-bottom-right-radius: 5px;
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    color: #00ffff;
+    font-weight: bold;
+    font-size: 0.95em;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.message-time {
+    color: #888;
+    font-size: 0.85em;
+    white-space: nowrap;
+}
+
+.message-content {
+    line-height: 1.5;
+    font-size: 1em;
+}
+
+.message-content img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-top: 8px;
+}
+
+/* Поле ввода */
+.input-area {
+    padding: 15px;
+    border-top: 2px solid rgba(0, 255, 255, 0.1);
+}
+
+.input-box {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.input-box input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid #00ffff;
+    border-radius: 10px;
+    padding: 12px 15px;
+    color: white;
+    font-size: 1em;
+    outline: none;
+    transition: all 0.3s;
+    min-width: 0;
+}
+
+.input-box input:focus {
+    box-shadow: 0 0 12px #00ffff;
+}
+
+/* Кнопка отправки */
+.send-btn {
+    background: linear-gradient(45deg, #00ffff, #0080ff);
+    border: none;
+    min-width: 50px;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    font-size: 1.1em;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.send-btn:hover {
+    transform: scale(1.05);
     box-shadow: 0 0 12px #00ffff;
 }
 
@@ -72,7 +500,24 @@
 /* Кнопки эмодзи */
 .actions {
     display: flex;
-@@ -498,6 +510,10 @@ body {
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    background: rgba(0, 255, 255, 0.1);
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 1.1em;
+    min-width: 40px;
+}
+
+.action-btn:hover {
+    background: rgba(0, 255, 255, 0.3);
     transform: translateY(-2px);
 }
 
@@ -83,7 +528,26 @@
 /* Правая панель */
 .right-sidebar {
     width: 250px;
-@@ -524,6 +540,7 @@ body {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.right-sidebar h3 {
+    color: #00ffff;
+    margin-bottom: 15px;
+    font-size: 1.2em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Список участников */
+.members-list {
+    background: rgba(30, 30, 50, 0.7);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 12px;
     max-height: 250px;
     overflow-y: auto;
     flex: 1;
@@ -91,11 +555,214 @@
 }
 
 .member {
-@@ -735,83 +752,187 @@ body {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    margin: 6px 0;
+    border-radius: 8px;
+    transition: all 0.3s;
+    gap: 12px;
+}
+
+.member:hover {
+    background: rgba(0, 255, 255, 0.1);
+}
+
+.member-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #ff0080, #ff8c00);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1em;
+    flex-shrink: 0;
+}
+
+.member-name {
+    font-weight: bold;
+    font-size: 0.95em;
+    color: #00ffff;
+}
+
+/* Блок новостей */
+.news-box {
+    color: #ccccff;
+}
+
+.news-box h4 {
+    color: #00ffff;
+    margin-bottom: 12px;
+    font-size: 1.1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.news-item {
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+.news-item strong {
+    color: #00ffff;
+    display: block;
+    margin-bottom: 5px;
+    font-size: 1em;
+}
+
+.news-item p {
+    font-size: 0.9em;
+    line-height: 1.4;
+    margin-bottom: 5px;
+}
+
+.news-item small {
+    color: #888;
+    font-size: 0.8em;
+}
+
+/* Системная информация */
+.system-info {
+    margin-top: 15px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    font-size: 0.9em;
+    color: #88aaff;
+}
+
+.system-info p {
+    margin: 6px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.system-info i {
+    color: #00ffff;
+    margin-right: 8px;
+}
+
+/* Уведомление о новых сообщениях */
+#newMessagesAlert {
+    position: fixed;
+    bottom: 70px;
+    right: 15px;
+    background: linear-gradient(45deg, #00ffff, #0080ff);
+    color: white;
+    padding: 12px 18px;
+    border-radius: 20px;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
+    animation: pulse 2s infinite;
+    max-width: 250px;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3); }
+    50% { transform: scale(1.05); box-shadow: 0 5px 25px rgba(0, 255, 255, 0.5); }
+    100% { transform: scale(1); box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3); }
+}
+
+/* СУПЕР КНОПКА ЗВОНКА */
+.call-link {
+    display: inline-block;
+    background: linear-gradient(45deg, #ff0080, #ff5500);
+    color: white !important;
+    padding: 12px 24px;
+    border-radius: 12px;
+    margin: 10px 0;
+    text-decoration: none;
+    font-weight: bold;
+    text-align: center;
+    transition: all 0.3s;
+    border: 2px solid #ff0080;
+    box-shadow: 0 0 20px rgba(255, 0, 128, 0.6);
+    animation: pulse-call 1.5s infinite;
+    font-size: 1.1em;
+}
+
+.call-link:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 30px rgba(255, 0, 128, 0.9);
+    background: linear-gradient(45deg, #ff0066, #ff3300);
+}
+
+@keyframes pulse-call {
+    0% { transform: scale(1); box-shadow: 0 0 20px rgba(255, 0, 128, 0.6); }
+    50% { transform: scale(1.05); box-shadow: 0 0 25px rgba(255, 0, 128, 0.8); }
+    100% { transform: scale(1); box-shadow: 0 0 20px rgba(255, 0, 128, 0.6); }
+}
+
+/* Анонс звонка */
+.call-announcement {
+    background: rgba(255, 0, 128, 0.1);
+    padding: 15px;
+    border-radius: 12px;
+    border-left: 4px solid #ff0080;
+    margin: 5px 0;
+}
+
+/* Обычные ссылки в сообщениях */
+.message-content a {
+    color: #00ffff !important;
+    text-decoration: underline;
+    transition: all 0.3s;
+    word-break: break-all;
+    background: rgba(0, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.message-content a:hover {
+    color: #00cccc !important;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    background: rgba(0, 255, 255, 0.2);
+}
+
+/* Прокрутка */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #00ffff;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #00cccc;
+}
+
+/* Статус соединения */
+#connectionStatus.connected {
+    color: #00ff80;
+}
+
+#connectionStatus.disconnected {
+    color: #ff5555;
+}
+
+/* Спиннер загрузки */
+.fa-spinner {
+    color: #00ffff;
     animation: syncSpin 1s linear infinite;
 }
 
-/* Адаптивность для планшетов */
 @keyframes syncSpin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
@@ -103,48 +770,6 @@
 
 /* ========== АДАПТИВНОСТЬ ДЛЯ ПЛАНШЕТОВ ========== */
 @media (max-width: 768px) {
-    /* Основной контейнер */
-    #chatScreen {
-        flex-direction: column;
-        padding: 0;
-        gap: 0;
-        height: 100vh;
-        position: relative;
-    }
-    
-    /* Центральная часть занимает всё пространство */
-    .main {
-        flex: 1;
-        border-radius: 0;
-        margin: 0;
-        width: 100%;
-        height: calc(100vh - 60px); /* Минус высота мобильного меню */
-        margin-bottom: 60px; /* Отступ для мобильного меню */
-        position: relative;
-    }
-    
-    /* Область сообщений */
-    .messages {
-        height: calc(100% - 110px); /* Высота минус заголовок и поле ввода */
-        padding: 12px;
-        padding-bottom: 80px; /* Дополнительный отступ снизу для поля ввода */
-    }
-    
-    /* Поле ввода - фиксированное внизу */
-    .input-area {
-        position: fixed;
-        bottom: 60px; /* Над мобильным меню */
-        left: 0;
-        right: 0;
-        background: rgba(20, 20, 35, 0.95);
-        backdrop-filter: blur(10px);
-        border-top: 2px solid rgba(0, 255, 255, 0.2);
-        z-index: 950;
-        padding: 12px;
-        margin: 0;
-    }
-    
-    /* Боковые панели */
     .sidebar,
     .right-sidebar {
         position: fixed;
@@ -152,204 +777,151 @@
         bottom: 0;
         background: rgba(20, 20, 35, 0.95);
         z-index: 900;
-        z-index: 999;
         backdrop-filter: blur(10px);
         transition: transform 0.3s ease;
         overflow-y: auto;
-        width: 85%;
-        max-width: 300px;
-        padding: 20px 15px;
-        display: none;
     }
-
+    
     .sidebar {
         left: 0;
         width: 280px;
         transform: translateX(-100%);
     }
-
+    
     .sidebar.active {
         transform: translateX(0);
-        display: flex;
     }
-
+    
     .right-sidebar {
         right: 0;
         width: 280px;
         transform: translateX(100%);
     }
-
+    
     .right-sidebar.active {
         transform: translateX(0);
-        display: flex;
     }
-
+    
     .main {
         border-radius: 0;
         margin: 0;
         width: 100%;
-    /* Заголовок чата */
-    .chat-header {
-        padding: 12px 15px;
-        position: sticky;
-        top: 0;
-        background: rgba(20, 20, 35, 0.95);
-        z-index: 10;
-        backdrop-filter: blur(10px);
     }
     
-    /* Сообщения */
-    .message {
-        max-width: 90%;
-    }
-
-    /* Мобильное меню */
     .mobile-menu {
         display: flex;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 60px;
-        padding: 8px;
-        z-index: 1000;
     }
-
+    
     #chatScreen {
         padding: 0;
         gap: 0;
-    /* Скрыть на мобильных по умолчанию */
-    .mobile-hidden {
-        display: none;
-    }
-
-    .chat-header {
-        padding: 12px 15px;
-    /* Кнопка звонка в мобильном меню */
-    .call-btn {
-        margin-top: 5px;
-        padding: 10px;
-        font-size: 0.9em;
-    }
-
-    .messages {
-        padding: 12px;
-    /* Инпут и кнопка отправки */
-    .input-box input {
-        padding: 10px 12px;
-        font-size: 0.95em;
-    }
-
-    .message {
-        max-width: 90%;
-    .send-btn {
-        min-width: 45px;
-        min-height: 45px;
-    }
-
-    .mobile-hidden {
-        display: none;
-    /* Кнопки эмодзи */
-    .actions {
-        gap: 5px;
-    }
-
-    .mobile-hidden.active {
-        display: flex;
-    .action-btn {
-        padding: 6px 10px;
-        min-width: 36px;
-        font-size: 1em;
     }
     
-    /* Уведомление о новых сообщениях */
-    #newMessagesAlert {
-        bottom: 70px;
-        right: 10px;
-        left: 10px;
-        max-width: none;
-        padding: 10px 15px;
-        font-size: 0.9em;
+    .chat-header {
+        padding: 12px 15px;
     }
-
-    /* Кнопка звонка в сообщении */
+    
+    .messages {
+        padding: 12px;
+    }
+    
+    .message {
+        max-width: 90%;
+    }
+    
+    .mobile-hidden {
+        display: none;
+    }
+    
+    .mobile-hidden.active {
+        display: flex;
+    }
+    
     .call-link {
         padding: 10px 20px;
         font-size: 1em;
         display: block;
         text-align: center;
     }
-    
-    /* Оверлей при открытой боковой панели */
-    .sidebar.active ~ .main::after,
-    .right-sidebar.active ~ .main::after {
-        content: '';
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 998;
-    }
 }
 
-/* Адаптивность для телефонов */
 /* ========== АДАПТИВНОСТЬ ДЛЯ ТЕЛЕФОНОВ ========== */
 @media (max-width: 480px) {
-    /* Окно входа */
     .login-box {
         padding: 25px;
         margin: 10px;
-@@ -838,11 +959,7 @@ body {
+    }
+    
+    .neon-text {
+        font-size: 1.8em;
+    }
+    
+    .subtitle {
+        font-size: 1em;
+    }
+    
+    .input-group {
+        padding: 12px;
+    }
+    
+    .neon-btn {
+        padding: 12px 20px;
+        font-size: 1em;
+    }
+    
+    .tips {
         font-size: 0.9em;
     }
-
+    
     .sidebar,
     .right-sidebar {
         width: 100%;
     }
     
-    /* Заголовок чата */
     .chat-header {
         flex-direction: column;
         align-items: flex-start;
-@@ -854,6 +971,7 @@ body {
+        gap: 8px;
+    }
+    
+    .header-controls {
+        width: 100%;
         justify-content: space-between;
     }
-
-    /* Сообщения */
+    
     .message {
         max-width: 95%;
         padding: 10px 12px;
-@@ -867,53 +985,30 @@ body {
+    }
+    
+    .message-header {
+        font-size: 0.9em;
+    }
+    
+    .message-content {
         font-size: 0.95em;
     }
-
-    /* Поле ввода */
+    
     .input-area {
         padding: 12px;
-        padding: 10px;
     }
-
+    
     .input-box input {
         padding: 10px 12px;
         font-size: 0.95em;
     }
-
-    /* Кнопки эмодзи */
+    
     .action-btn {
         padding: 6px 10px;
         min-width: 36px;
         font-size: 1em;
     }
-
-    /* Мобильные кнопки */
+    
     .mobile-btn {
         font-size: 0.85em;
         padding: 10px;
     }
-
+    
     #newMessagesAlert {
         bottom: 60px;
         right: 10px;
@@ -367,40 +939,6 @@
     }
 }
 
-/* Очень маленькие экраны */
-@media (max-width: 360px) {
-    .login-box {
-        padding: 20px;
-    }
-    
-    .neon-text {
-        font-size: 1.6em;
-    }
-    
-    /* Аватар и информация пользователя */
-    .avatar {
-        width: 50px;
-        height: 50px;
-@@ -924,11 +1019,13 @@ body {
-        font-size: 1.1em;
-    }
-
-    /* Каналы */
-    .channel {
-        padding: 10px 12px;
-        font-size: 0.95em;
-    }
-
-    /* Участники */
-    .member {
-        padding: 8px;
-        font-size: 0.9em;
-@@ -939,9 +1036,30 @@ body {
-        height: 32px;
-        font-size: 1em;
-    }
-}
-
 /* ========== ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ ========== */
 @media (max-width: 360px) {
     .login-box {
@@ -411,38 +949,91 @@
         font-size: 1.6em;
     }
     
-    .input-box {
-        flex-direction: column;
+    .avatar {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5em;
     }
     
-    .send-btn {
-        width: 100%;
-        min-height: 45px;
-        margin-top: 5px;
+    .user-name {
+        font-size: 1.1em;
     }
-
+    
+    .channel {
+        padding: 10px 12px;
+        font-size: 0.95em;
+    }
+    
+    .member {
+        padding: 8px;
+        font-size: 0.9em;
+    }
+    
+    .member-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 1em;
+    }
+    
     .actions {
         gap: 5px;
-        justify-content: center;
     }
-
+    
     .action-btn {
-@@ -951,12 +1069,12 @@ body {
+        padding: 5px 8px;
+        min-width: 32px;
+        font-size: 0.9em;
     }
-
+    
     .call-link {
         padding: 6px 12px;
-        padding: 8px 16px;
         font-size: 0.9em;
     }
 }
 
-/* Портретная ориентация на мобильных */
 /* ========== ПОРТРЕТНАЯ ОРИЕНТАЦИЯ НА МОБИЛЬНЫХ ========== */
 @media (max-height: 600px) and (orientation: portrait) {
     .login-box {
         padding: 20px;
-@@ -1002,3 +1120,136 @@ body {
+        margin: 5px;
+    }
+    
+    .neon-text {
+        font-size: 1.8em;
+        margin-bottom: 5px;
+    }
+    
+    .subtitle {
+        margin-bottom: 15px;
+    }
+    
+    .tips {
+        margin-top: 15px;
+    }
+    
+    .tips p {
+        margin: 6px 0;
+    }
+    
+    .mobile-menu {
+        padding: 8px;
+    }
+    
+    .messages {
+        padding: 10px;
+        gap: 8px;
+    }
+    
+    .message {
+        padding: 10px;
+    }
+    
+    .input-area {
+        padding: 10px;
+    }
+    
+    .call-link {
+        padding: 8px 16px;
         margin: 8px 0;
     }
 }
@@ -460,7 +1051,6 @@
     }
     
     .input-area {
-        bottom: 50px;
         padding: 8px;
     }
     
@@ -497,85 +1087,5 @@
     
     .neon-box {
         background: rgba(20, 20, 35, 0.85);
-    }
-}
-
-/* ========== АНИМАЦИЯ ПОЯВЛЕНИЯ ========== */
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.screen.active .login-box {
-    animation: slideIn 0.5s ease-out;
-}
-
-/* ========== СКЕЛЕТОН ДЛЯ ЗАГРУЗКИ ========== */
-.skeleton {
-    background: linear-gradient(90deg, rgba(40, 40, 60, 0.5) 25%, 
-                                      rgba(60, 60, 80, 0.5) 50%, 
-                                      rgba(40, 40, 60, 0.5) 75%);
-    background-size: 200% 100%;
-    animation: loading 1.5s infinite;
-    border-radius: 8px;
-}
-
-@keyframes loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
-
-.skeleton-message {
-    height: 60px;
-    margin-bottom: 12px;
-}
-
-.skeleton-member {
-    height: 40px;
-    margin-bottom: 8px;
-}
-
-/* ========== ДОСТУПНОСТЬ ========== */
-*:focus {
-    outline: 2px solid #00ffff;
-    outline-offset: 2px;
-}
-
-*:focus:not(:focus-visible) {
-    outline: none;
-}
-
-*:focus-visible {
-    outline: 2px solid #00ffff;
-    outline-offset: 2px;
-}
-
-/* ========== ПЕЧАТЬ ========== */
-@media print {
-    .mobile-menu,
-    .input-area,
-    .actions,
-    .send-btn,
-    .refresh-btn,
-    .call-btn {
-        display: none !important;
-    }
-    
-    body {
-        background: white !important;
-        color: black !important;
-    }
-    
-    .message {
-        border: 1px solid #ddd !important;
-        background: white !important;
-        color: black !important;
-        max-width: 100% !important;
     }
 }
