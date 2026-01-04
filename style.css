@@ -12,7 +12,7 @@ body {
     overflow: hidden;
 }
 
-/* Экран входа */
+/* Экраны */
 .screen {
     display: none;
     height: 100vh;
@@ -26,6 +26,7 @@ body {
     padding: 20px;
 }
 
+/* Окно входа */
 .login-box {
     background: rgba(25, 25, 40, 0.95);
     padding: 30px;
@@ -51,6 +52,7 @@ body {
     font-size: 1.1em;
 }
 
+/* Поля ввода */
 .input-group {
     background: rgba(0, 0, 0, 0.3);
     border: 2px solid #00ffff;
@@ -85,6 +87,7 @@ body {
     color: #666;
 }
 
+/* Кнопки */
 .neon-btn {
     background: linear-gradient(45deg, #00ffff, #0080ff);
     color: white;
@@ -109,6 +112,7 @@ body {
     margin-right: 10px;
 }
 
+/* Подсказки */
 .tips {
     margin-top: 25px;
     text-align: left;
@@ -172,6 +176,7 @@ body {
     font-size: 1.1em;
 }
 
+/* Блоки с неоновым эффектом */
 .neon-box {
     background: rgba(30, 30, 50, 0.7);
     border-radius: 15px;
@@ -223,6 +228,7 @@ body {
     gap: 5px;
 }
 
+/* Каналы */
 .channels {
     flex: 1;
     margin: 10px 0;
@@ -258,12 +264,14 @@ body {
     min-width: 20px;
 }
 
+/* Кнопка звонка */
 .call-btn {
     margin-top: 10px;
     padding: 12px;
     font-size: 1em;
 }
 
+/* Информация о синхронизации */
 .refresh-info {
     text-align: center;
     color: #88aaff;
@@ -279,7 +287,7 @@ body {
     color: #00ffff;
 }
 
-/* Центральная часть */
+/* Центральная часть (чат) */
 .main {
     flex: 1;
     display: flex;
@@ -290,6 +298,7 @@ body {
     min-width: 0;
 }
 
+/* Заголовок чата */
 .chat-header {
     display: flex;
     justify-content: space-between;
@@ -326,6 +335,7 @@ body {
     margin-right: 5px;
 }
 
+/* Кнопка обновления */
 .refresh-btn {
     background: rgba(0, 255, 255, 0.1);
     border: 1px solid #00ffff;
@@ -345,6 +355,16 @@ body {
     transform: rotate(180deg);
 }
 
+.refresh-btn.syncing i {
+    animation: syncSpin 1s linear infinite;
+}
+
+@keyframes syncSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Область сообщений */
 .messages {
     flex: 1;
     padding: 15px;
@@ -355,6 +375,7 @@ body {
     min-height: 0;
 }
 
+/* Сообщения */
 .message {
     background: rgba(40, 40, 60, 0.5);
     padding: 12px 15px;
@@ -404,6 +425,7 @@ body {
     margin-top: 8px;
 }
 
+/* Поле ввода */
 .input-area {
     padding: 15px;
     border-top: 2px solid rgba(0, 255, 255, 0.1);
@@ -432,6 +454,7 @@ body {
     box-shadow: 0 0 12px #00ffff;
 }
 
+/* Кнопка отправки */
 .send-btn {
     background: linear-gradient(45deg, #00ffff, #0080ff);
     border: none;
@@ -451,6 +474,7 @@ body {
     box-shadow: 0 0 12px #00ffff;
 }
 
+/* Кнопки эмодзи */
 .actions {
     display: flex;
     gap: 8px;
@@ -491,6 +515,7 @@ body {
     gap: 8px;
 }
 
+/* Список участников */
 .members-list {
     background: rgba(30, 30, 50, 0.7);
     border-radius: 12px;
@@ -533,6 +558,7 @@ body {
     color: #00ffff;
 }
 
+/* Блок новостей */
 .news-box {
     color: #ccccff;
 }
@@ -571,6 +597,7 @@ body {
     font-size: 0.8em;
 }
 
+/* Системная информация */
 .system-info {
     margin-top: 15px;
     padding: 12px;
@@ -618,7 +645,7 @@ body {
     100% { transform: scale(1); box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3); }
 }
 
-/* КНОПКА ЗВОНКА - САМОЕ ВАЖНОЕ */
+/* СУПЕР КНОПКА ЗВОНКА */
 .call-link {
     display: inline-block;
     background: linear-gradient(45deg, #ff0080, #ff5500);
@@ -648,6 +675,7 @@ body {
     100% { transform: scale(1); box-shadow: 0 0 20px rgba(255, 0, 128, 0.6); }
 }
 
+/* Анонс звонка */
 .call-announcement {
     background: rgba(255, 0, 128, 0.1);
     padding: 15px;
@@ -656,8 +684,8 @@ body {
     margin: 5px 0;
 }
 
-/* Для обычных ссылок в сообщениях */
-.message-content a.message-link {
+/* Обычные ссылки в сообщениях */
+.message-content a {
     color: #00ffff !important;
     text-decoration: underline;
     transition: all 0.3s;
@@ -667,7 +695,7 @@ body {
     border-radius: 4px;
 }
 
-.message-content a.message-link:hover {
+.message-content a:hover {
     color: #00cccc !important;
     text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
     background: rgba(0, 255, 255, 0.2);
@@ -692,7 +720,22 @@ body {
     background: #00cccc;
 }
 
-/* Медиа-запросы для адаптивности */
+/* Статус соединения */
+#connectionStatus.connected {
+    color: #00ff80;
+}
+
+#connectionStatus.disconnected {
+    color: #ff5555;
+}
+
+/* Спиннер загрузки */
+.fa-spinner {
+    color: #00ffff;
+    animation: syncSpin 1s linear infinite;
+}
+
+/* Адаптивность для планшетов */
 @media (max-width: 768px) {
     .sidebar,
     .right-sidebar {
@@ -767,6 +810,7 @@ body {
     }
 }
 
+/* Адаптивность для телефонов */
 @media (max-width: 480px) {
     .login-box {
         padding: 25px;
@@ -860,6 +904,7 @@ body {
     }
 }
 
+/* Очень маленькие экраны */
 @media (max-width: 360px) {
     .login-box {
         padding: 20px;
@@ -911,6 +956,7 @@ body {
     }
 }
 
+/* Портретная ориентация на мобильных */
 @media (max-height: 600px) and (orientation: portrait) {
     .login-box {
         padding: 20px;
