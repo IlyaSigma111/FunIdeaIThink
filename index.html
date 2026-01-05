@@ -10,24 +10,26 @@
     
     <style>
         /* СБРОС */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
+        
         html, body { 
             height: 100%; 
             width: 100%; 
             overflow: hidden;
-            font-family: 'Segoe UI', sans-serif; 
-            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #0a0a1a;
             color: white;
         }
         
         /* ЭКРАН ЛОГИНА */
         #loginScreen {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -36,80 +38,91 @@
         }
         
         .login-box {
-            background: rgba(25, 25, 40, 0.98);
-            padding: 35px 30px;
+            background: rgba(15, 15, 35, 0.95);
+            padding: 40px 35px;
             border-radius: 20px;
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             text-align: center;
-            border: 2px solid #00ffff;
-            box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+            border: 1px solid rgba(0, 200, 255, 0.3);
+            box-shadow: 
+                0 10px 40px rgba(0, 200, 255, 0.2),
+                inset 0 0 20px rgba(0, 200, 255, 0.05);
+            backdrop-filter: blur(10px);
         }
         
         .neon-text {
-            color: #00ffff;
-            text-shadow: 0 0 15px #00ffff, 0 0 30px #00ffff;
-            font-size: 2.2em;
-            margin-bottom: 15px;
-            font-weight: bold;
+            color: #00ccff;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(0, 200, 255, 0.7);
         }
         
         .subtitle {
-            color: #a0a0ff;
-            margin-bottom: 25px;
-            font-size: 1.1em;
+            color: #88aaff;
+            margin-bottom: 30px;
+            font-size: 1em;
+            opacity: 0.9;
         }
         
         .input-group {
-            background: rgba(0, 0, 0, 0.4);
-            border: 2px solid #00ffff;
+            background: rgba(10, 10, 25, 0.7);
+            border: 1px solid rgba(0, 200, 255, 0.4);
             border-radius: 12px;
-            padding: 15px;
+            padding: 16px 20px;
             margin: 20px 0;
             display: flex;
             align-items: center;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
         }
         
         .input-group:focus-within {
-            box-shadow: 0 0 20px #00ffff;
+            border-color: #00ccff;
+            box-shadow: 0 0 20px rgba(0, 200, 255, 0.3);
             transform: translateY(-2px);
         }
         
         .input-group i {
-            color: #00ffff;
+            color: #00ccff;
             margin-right: 12px;
             font-size: 1.2em;
+            opacity: 0.8;
         }
         
         .input-group input {
             background: transparent;
             border: none;
             color: white;
-            font-size: 16px;
+            font-size: 1.1em;
             width: 100%;
             outline: none;
-            font-size: 1.1em;
+            font-weight: 500;
+        }
+        
+        .input-group input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
         }
         
         .neon-btn {
-            background: linear-gradient(45deg, #00ffff, #0080ff);
+            background: linear-gradient(135deg, #0066ff 0%, #00ccff 100%);
             color: white;
             border: none;
-            padding: 16px;
+            padding: 17px;
             border-radius: 12px;
             font-size: 1.1em;
             cursor: pointer;
             width: 100%;
-            margin: 10px 0;
-            font-weight: bold;
-            transition: all 0.3s;
-            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+            margin: 8px 0;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
         }
         
         .neon-btn:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 255, 255, 0.5);
+            box-shadow: 0 10px 25px rgba(0, 150, 255, 0.4);
         }
         
         .neon-btn:active {
@@ -119,15 +132,22 @@
         .tips {
             margin-top: 25px;
             text-align: left;
-            color: #88aaff;
+            color: #99aaff;
             font-size: 0.95em;
             line-height: 1.6;
         }
         
+        .tips p {
+            margin: 12px 0;
+            display: flex;
+            align-items: center;
+        }
+        
         .tips i {
-            color: #00ffff;
-            margin-right: 10px;
+            color: #00ccff;
+            margin-right: 12px;
             width: 20px;
+            font-size: 1.1em;
         }
         
         /* ОСНОВНОЙ ИНТЕРФЕЙС */
@@ -136,6 +156,7 @@
             height: 100vh;
             width: 100vw;
             flex-direction: column;
+            background: #0a0a1a;
         }
         
         /* МОБИЛЬНОЕ МЕНЮ */
@@ -145,33 +166,37 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: rgba(30, 30, 50, 0.98);
-            padding: 12px 10px;
+            background: rgba(20, 20, 40, 0.95);
+            padding: 10px 12px;
             z-index: 1000;
-            border-top: 2px solid #00ffff;
-            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(0, 200, 255, 0.3);
+            backdrop-filter: blur(15px);
+            justify-content: space-around;
         }
         
         .mobile-btn {
-            flex: 1;
-            background: rgba(0, 255, 255, 0.15);
-            border: 1px solid #00ffff;
-            color: white;
-            padding: 12px 8px;
-            margin: 0 3px;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
             border-radius: 10px;
             cursor: pointer;
             font-size: 0.85em;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.3s;
+            gap: 6px;
+            flex: 1;
+            transition: all 0.2s ease;
         }
         
         .mobile-btn:active {
-            background: rgba(0, 255, 255, 0.3);
-            transform: scale(0.98);
+            background: rgba(0, 200, 255, 0.1);
+            color: #00ccff;
+        }
+        
+        .mobile-btn i {
+            font-size: 1.3em;
         }
         
         /* ОСНОВНОЙ КОНТЕНТ */
@@ -179,21 +204,134 @@
             flex: 1;
             display: flex;
             overflow: hidden;
+            height: 100%;
         }
         
-        /* БОКОВЫЕ ПАНЕЛИ */
-        .sidebar, .right-sidebar {
-            width: 250px;
-            background: rgba(20, 20, 35, 0.95);
+        /* ЛЕВАЯ ПАНЕЛЬ - КОМПАКТНАЯ */
+        .sidebar {
+            width: 220px;
+            background: rgba(15, 15, 30, 0.95);
             display: flex;
             flex-direction: column;
+            border-right: 1px solid rgba(0, 200, 255, 0.1);
             padding: 20px;
-            border-right: 1px solid rgba(0, 255, 255, 0.1);
+            height: 100%;
         }
         
-        .right-sidebar {
-            border-left: 1px solid rgba(0, 255, 255, 0.1);
-            border-right: none;
+        .user-info {
+            text-align: center;
+            padding: 20px 0 25px 0;
+            border-bottom: 1px solid rgba(0, 200, 255, 0.1);
+        }
+        
+        .avatar {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #ff3366 0%, #ff9966 100%);
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+            border: 2px solid rgba(0, 200, 255, 0.5);
+            box-shadow: 0 0 20px rgba(255, 51, 102, 0.3);
+        }
+        
+        .user-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #00ccff;
+            margin-bottom: 5px;
+            word-break: break-word;
+        }
+        
+        .status {
+            color: #00ffaa;
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        /* КАНАЛЫ - КОМПАКТНЫЕ */
+        .channels {
+            margin: 20px 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .channel {
+            padding: 14px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.95em;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid transparent;
+        }
+        
+        .channel:hover {
+            background: rgba(0, 200, 255, 0.05);
+            color: rgba(255, 255, 255, 0.9);
+            transform: translateX(3px);
+        }
+        
+        .channel.active {
+            background: rgba(0, 150, 255, 0.15);
+            color: #00ccff;
+            border-color: rgba(0, 200, 255, 0.3);
+            font-weight: 600;
+        }
+        
+        .channel i {
+            font-size: 1.1em;
+            width: 20px;
+        }
+        
+        /* КНОПКИ В ЛЕВОЙ ПАНЕЛИ */
+        .sidebar-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .sidebar-btn {
+            background: rgba(0, 150, 255, 0.1);
+            border: 1px solid rgba(0, 200, 255, 0.3);
+            color: white;
+            padding: 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .sidebar-btn:hover {
+            background: rgba(0, 150, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .sidebar-btn.logout {
+            background: rgba(255, 60, 60, 0.1);
+            border-color: rgba(255, 100, 100, 0.3);
+        }
+        
+        .sidebar-btn.logout:hover {
+            background: rgba(255, 60, 60, 0.2);
         }
         
         /* ЦЕНТРАЛЬНАЯ ЧАСТЬ */
@@ -201,23 +339,25 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            min-height: 0;
+            min-width: 0;
+            height: 100%;
         }
         
         /* ЗАГОЛОВОК ЧАТА */
         .chat-header {
             padding: 18px 25px;
-            background: rgba(25, 25, 40, 0.95);
-            border-bottom: 2px solid rgba(0, 255, 255, 0.15);
+            background: rgba(20, 20, 40, 0.95);
+            border-bottom: 1px solid rgba(0, 200, 255, 0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
+            backdrop-filter: blur(10px);
         }
         
         .chat-header h2 {
-            color: #00ffff;
+            color: #00ccff;
             font-size: 1.3em;
+            font-weight: 600;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -226,66 +366,68 @@
         .header-controls {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 15px;
         }
         
         .online-count {
-            color: #00ff80;
-            font-weight: bold;
-            font-size: 1em;
+            color: #00ffaa;
+            font-weight: 600;
+            font-size: 0.95em;
             display: flex;
             align-items: center;
             gap: 8px;
         }
         
         .refresh-btn {
-            background: rgba(0, 255, 255, 0.15);
-            border: 1px solid #00ffff;
-            color: white;
-            width: 42px;
-            height: 42px;
+            background: rgba(0, 200, 255, 0.1);
+            border: 1px solid rgba(0, 200, 255, 0.3);
+            color: #00ccff;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
             font-size: 1.1em;
         }
         
-        .refresh-btn:active {
+        .refresh-btn:hover {
             transform: rotate(180deg);
+            background: rgba(0, 200, 255, 0.2);
         }
         
-        /* СООБЩЕНИЯ */
+        /* СООБЩЕНИЯ - КОМПАКТНЫЕ */
         .messages {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
+            background: rgba(10, 10, 25, 0.3);
         }
         
         .message {
-            background: rgba(40, 40, 60, 0.7);
-            padding: 15px 18px;
+            background: rgba(30, 30, 50, 0.6);
+            padding: 14px 16px;
             border-radius: 12px;
             max-width: 75%;
-            word-break: break-word;
-            animation: fadeIn 0.3s ease;
-            border: 1px solid rgba(0, 255, 255, 0.1);
+            animation: fadeIn 0.2s ease;
+            border: 1px solid rgba(0, 200, 255, 0.1);
+            backdrop-filter: blur(5px);
         }
         
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
         
         .message.own {
-            background: rgba(0, 100, 255, 0.35);
+            background: rgba(0, 100, 255, 0.25);
             align-self: flex-end;
-            border-color: rgba(0, 128, 255, 0.3);
+            border-color: rgba(0, 150, 255, 0.3);
         }
         
         .message-header {
@@ -293,11 +435,13 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         
         .message-user {
-            color: #00ffff;
-            font-weight: bold;
+            color: #00ccff;
+            font-weight: 600;
             font-size: 0.95em;
             display: flex;
             align-items: center;
@@ -305,20 +449,23 @@
         }
         
         .message-time {
-            color: #888;
+            color: rgba(255, 255, 255, 0.5);
             font-size: 0.85em;
+            font-weight: 500;
         }
         
         .message-content {
             line-height: 1.5;
-            font-size: 1.05em;
+            font-size: 1em;
+            color: rgba(255, 255, 255, 0.9);
         }
         
         /* ПОЛЕ ВВОДА */
         .input-area {
             padding: 20px;
-            background: rgba(25, 25, 40, 0.95);
-            border-top: 2px solid rgba(0, 255, 255, 0.15);
+            background: rgba(20, 20, 40, 0.95);
+            border-top: 1px solid rgba(0, 200, 255, 0.1);
+            backdrop-filter: blur(10px);
         }
         
         .input-box {
@@ -329,34 +476,40 @@
         
         .input-box input {
             flex: 1;
-            background: rgba(0, 0, 0, 0.4);
-            border: 2px solid #00ffff;
+            background: rgba(10, 10, 25, 0.7);
+            border: 1px solid rgba(0, 200, 255, 0.3);
             border-radius: 12px;
-            padding: 15px 20px;
+            padding: 16px 20px;
             color: white;
-            font-size: 16px;
+            font-size: 1em;
             outline: none;
-            transition: all 0.3s;
-            font-size: 1.05em;
+            transition: all 0.3s ease;
+            font-weight: 500;
         }
         
         .input-box input:focus {
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+            border-color: #00ccff;
+            box-shadow: 0 0 20px rgba(0, 200, 255, 0.2);
         }
         
         .send-btn {
-            background: linear-gradient(45deg, #00ffff, #0080ff);
+            background: linear-gradient(135deg, #0066ff 0%, #00ccff 100%);
             border: none;
             min-width: 55px;
             border-radius: 12px;
             color: white;
             cursor: pointer;
             font-size: 1.2em;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
+        }
+        
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(0, 150, 255, 0.4);
         }
         
         .send-btn:active {
-            transform: scale(0.95);
+            transform: scale(0.98);
         }
         
         .actions {
@@ -366,148 +519,173 @@
         }
         
         .action-btn {
-            background: rgba(0, 255, 255, 0.15);
-            border: 1px solid #00ffff;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
+            background: rgba(0, 200, 255, 0.1);
+            border: 1px solid rgba(0, 200, 255, 0.3);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 10px 14px;
+            border-radius: 10px;
             cursor: pointer;
             font-size: 1.1em;
-            transition: all 0.3s;
+            transition: all 0.2s ease;
+            min-width: 45px;
         }
         
-        .action-btn:active {
-            background: rgba(0, 255, 255, 0.3);
-            transform: scale(0.95);
+        .action-btn:hover {
+            background: rgba(0, 200, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        /* ПРАВАЯ ПАНЕЛЬ - КОМПАКТНАЯ */
+        .right-sidebar {
+            width: 260px;
+            background: rgba(15, 15, 30, 0.95);
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid rgba(0, 200, 255, 0.1);
+            padding: 20px;
+            height: 100%;
+        }
+        
+        .right-sidebar h3 {
+            color: #00ccff;
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         /* СПИСОК УЧАСТНИКОВ */
         .members-list {
-            flex: 1;
-            background: rgba(30, 30, 50, 0.7);
+            background: rgba(10, 10, 25, 0.5);
             border-radius: 12px;
             padding: 15px;
             margin-bottom: 20px;
+            max-height: 200px;
             overflow-y: auto;
+            border: 1px solid rgba(0, 200, 255, 0.1);
         }
         
         .member {
             display: flex;
             align-items: center;
-            padding: 12px;
-            margin: 8px 0;
+            padding: 10px 12px;
+            margin: 6px 0;
             border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            transition: all 0.3s;
+            transition: all 0.2s ease;
         }
         
         .member:hover {
-            background: rgba(0, 255, 255, 0.1);
-            transform: translateX(5px);
+            background: rgba(0, 200, 255, 0.08);
         }
         
         .member-avatar {
-            width: 38px;
-            height: 38px;
-            background: linear-gradient(45deg, #ff0080, #ff8c00);
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #ff3366 0%, #ff9966 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1em;
+            font-size: 1em;
             margin-right: 12px;
-            border: 2px solid rgba(0, 255, 255, 0.3);
+            border: 1px solid rgba(0, 200, 255, 0.3);
         }
         
         .member-name {
-            font-weight: bold;
-            color: #00ffff;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
             font-size: 0.95em;
         }
         
-        /* TELEGRAM ПАНЕЛЬ */
+        /* TELEGRAM ПАНЕЛЬ - КОМПАКТНАЯ */
         .telegram-panel {
-            background: rgba(0, 100, 200, 0.1);
-            border: 1px solid #0088cc;
+            background: rgba(0, 100, 200, 0.08);
+            border: 1px solid rgba(0, 150, 255, 0.2);
             border-radius: 12px;
-            padding: 15px;
-            margin-top: 15px;
+            padding: 16px;
+            margin-bottom: 20px;
         }
         
         .telegram-panel h4 {
-            color: #00ace6;
+            color: #00aaff;
             margin-bottom: 12px;
-            font-size: 1.05em;
+            font-size: 1em;
+            font-weight: 600;
             display: flex;
             align-items: center;
             gap: 8px;
         }
         
         .tg-btn {
-            background: rgba(0, 136, 204, 0.2);
-            border: 1px solid #0088cc;
-            color: white;
-            padding: 10px 12px;
-            border-radius: 8px;
+            background: rgba(0, 150, 255, 0.1);
+            border: 1px solid rgba(0, 180, 255, 0.3);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 12px;
+            border-radius: 10px;
             cursor: pointer;
             font-size: 0.9em;
+            font-weight: 500;
             width: 100%;
-            margin: 5px 0;
+            margin: 6px 0;
             display: flex;
             align-items: center;
-            gap: 8px;
             justify-content: center;
-            transition: all 0.3s;
+            gap: 8px;
+            transition: all 0.2s ease;
         }
         
-        .tg-btn:active {
-            background: rgba(0, 136, 204, 0.3);
-            transform: scale(0.98);
+        .tg-btn:hover {
+            background: rgba(0, 150, 255, 0.2);
+            transform: translateY(-2px);
         }
         
         .tg-status {
-            margin-top: 8px;
+            margin-top: 10px;
             font-size: 0.8em;
-            min-height: 20px;
+            min-height: 18px;
             color: #88aaff;
+            text-align: center;
         }
         
-        /* НОВОСТИ И СТАТИСТИКА */
-        .news-box {
-            margin-top: 20px;
+        /* СТАТИСТИКА - КОМПАКТНАЯ */
+        .stats {
+            background: rgba(10, 10, 25, 0.5);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid rgba(0, 200, 255, 0.1);
+            margin-top: auto;
         }
         
-        .news-item {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 12px;
-            border: 1px solid rgba(0, 255, 255, 0.1);
-        }
-        
-        .news-item strong {
-            color: #00ffff;
-            display: block;
-            margin-bottom: 8px;
-            font-size: 1.05em;
-        }
-        
-        .system-info {
-            margin-top: 20px;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            font-size: 0.9em;
-            color: #88aaff;
-        }
-        
-        .system-info p {
+        .stats p {
             margin: 8px 0;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .stats i {
+            color: #00ccff;
+            margin-right: 8px;
+            width: 16px;
+        }
+        
+        .stats span {
+            font-weight: 600;
+            color: #00ffaa;
         }
         
         /* АДАПТИВНОСТЬ */
+        @media (max-width: 1100px) {
+            .sidebar, .right-sidebar {
+                width: 200px;
+                padding: 15px;
+            }
+        }
+        
         @media (max-width: 768px) {
             .sidebar, .right-sidebar {
                 position: fixed;
@@ -517,8 +695,9 @@
                 z-index: 900;
                 transform: translateX(-100%);
                 transition: transform 0.3s ease;
-                background: rgba(20, 20, 35, 0.98);
-                backdrop-filter: blur(10px);
+                background: rgba(15, 15, 30, 0.98);
+                backdrop-filter: blur(20px);
+                padding: 20px;
             }
             
             .right-sidebar {
@@ -536,25 +715,69 @@
             }
             
             .messages {
-                padding-bottom: 80px;
-            }
-            
-            .input-area {
+                padding: 15px;
                 padding-bottom: 70px;
             }
             
+            .input-area {
+                padding: 15px;
+                padding-bottom: 60px;
+            }
+            
             .message {
-                max-width: 85%;
+                max-width: 90%;
+                padding: 12px 14px;
             }
             
             .login-box {
+                padding: 30px 25px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .login-box {
                 padding: 25px 20px;
-                margin: 10px;
             }
             
             .neon-text {
-                font-size: 1.8em;
+                font-size: 2em;
             }
+            
+            .chat-header {
+                padding: 15px;
+            }
+            
+            .message {
+                max-width: 95%;
+            }
+            
+            .mobile-btn {
+                font-size: 0.8em;
+                padding: 8px;
+            }
+            
+            .mobile-btn i {
+                font-size: 1.2em;
+            }
+        }
+        
+        /* СКРОЛЛБАР */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 200, 255, 0.4);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 200, 255, 0.6);
         }
     </style>
 </head>
@@ -562,23 +785,22 @@
     <!-- ЭКРАН ЛОГИНА -->
     <div id="loginScreen">
         <div class="login-box">
-            <h1 class="neon-text">🚀 NeonChat</h1>
-            <p class="subtitle">Чат с Telegram уведомлениями</p>
+            <h1 class="neon-text">NeonChat</h1>
+            <p class="subtitle">Быстрый чат с Telegram уведомлениями</p>
             
             <div class="input-group">
                 <i class="fas fa-user"></i>
-                <input type="text" id="username" placeholder="Введи свой ник..." maxlength="20" autofocus>
+                <input type="text" id="username" placeholder="Твой никнейм..." maxlength="20" autofocus>
             </div>
             
-            <button onclick="enterChat()" class="neon-btn" id="loginButton">
-                <i class="fas fa-sign-in-alt"></i> Войти в чат
+            <button onclick="enterChat()" class="neon-btn">
+                <i class="fas fa-sign-in-alt"></i> Начать общение
             </button>
             
             <div class="tips">
                 <p><i class="fas fa-bolt"></i> Мгновенные сообщения</p>
-                <p><i class="fas fa-users"></i> Онлайн в реальном времени</p>
                 <p><i class="fab fa-telegram"></i> Уведомления в Telegram</p>
-                <p><i class="fas fa-video"></i> Видеозвонки Jitsi</p>
+                <p><i class="fas fa-mobile-alt"></i> Работает на всех устройствах</p>
             </div>
         </div>
     </div>
@@ -588,16 +810,20 @@
         <!-- МОБИЛЬНОЕ МЕНЮ -->
         <div class="mobile-menu">
             <button class="mobile-btn" onclick="toggleSidebar()">
-                <i class="fas fa-bars"></i> Меню
+                <i class="fas fa-bars"></i>
+                <span>Меню</span>
             </button>
             <button class="mobile-btn" onclick="toggleMembers()">
-                <i class="fas fa-users"></i> Онлайн
+                <i class="fas fa-users"></i>
+                <span>Люди</span>
             </button>
             <button class="mobile-btn" onclick="startCall()">
-                <i class="fas fa-phone-alt"></i> Звонок
+                <i class="fas fa-phone"></i>
+                <span>Звонок</span>
             </button>
-            <button class="mobile-btn" onclick="testTelegram()">
-                <i class="fab fa-telegram"></i> Тест
+            <button class="mobile-btn" onclick="toggleTelegram()">
+                <i class="fab fa-telegram"></i>
+                <span>Telegram</span>
             </button>
         </div>
         
@@ -607,32 +833,31 @@
                 <div class="user-info">
                     <div class="avatar" id="userAvatar">👤</div>
                     <div class="user-name" id="currentUserName">Гость</div>
-                    <div class="status"><i class="fas fa-circle"></i> Online</div>
+                    <div class="status"><i class="fas fa-circle"></i> онлайн</div>
                 </div>
                 
                 <div class="channels">
                     <div class="channel active" onclick="switchChannel('main')">
-                        <i class="fas fa-comments"></i> Основной чат
+                        <i class="fas fa-comment-alt"></i> Основной
                     </div>
                     <div class="channel" onclick="switchChannel('general')">
                         <i class="fas fa-hashtag"></i> Общий
                     </div>
                     <div class="channel" onclick="switchChannel('fun')">
-                        <i class="fas fa-laugh"></i> Развлечения
+                        <i class="fas fa-gamepad"></i> Игры
+                    </div>
+                    <div class="channel" onclick="switchChannel('media')">
+                        <i class="fas fa-photo-video"></i> Медиа
                     </div>
                 </div>
                 
-                <button onclick="startCall()" class="neon-btn" style="margin-top: 10px;">
-                    <i class="fas fa-phone-alt"></i> Созвать звонок
-                </button>
-                
-                <button onclick="logout()" class="neon-btn" style="margin-top: 10px; background: linear-gradient(45deg, #ff5555, #ff0000);">
-                    <i class="fas fa-sign-out-alt"></i> Выйти
-                </button>
-                
-                <div class="system-info" style="margin-top: 15px;">
-                    <p><i class="fas fa-database"></i> Сообщений: <span id="messageCount">0</span></p>
-                    <p><i class="fas fa-wifi"></i> Статус: <span id="connectionStatus" style="color:#00ff80">✓</span></p>
+                <div class="sidebar-buttons">
+                    <button onclick="startCall()" class="sidebar-btn">
+                        <i class="fas fa-phone-alt"></i> Видеозвонок
+                    </button>
+                    <button onclick="logout()" class="sidebar-btn logout">
+                        <i class="fas fa-sign-out-alt"></i> Выйти
+                    </button>
                 </div>
             </div>
             
@@ -644,25 +869,21 @@
                         <div class="online-count">
                             <i class="fas fa-user"></i> <span id="onlineCount">1</span>
                         </div>
-                        <button onclick="forceSync()" class="refresh-btn">
+                        <button onclick="forceSync()" class="refresh-btn" title="Обновить">
                             <i class="fas fa-sync-alt"></i>
                         </button>
                     </div>
                 </div>
                 
                 <div class="messages" id="messagesContainer">
-                    <div style="text-align: center; padding: 40px; color: #666;">
-                        <i class="fas fa-comments" style="font-size: 3em; margin-bottom: 15px; display: block;"></i>
-                        Добро пожаловать в NeonChat!<br>
-                        <span style="font-size: 0.9em;">Начни общение первым</span>
-                    </div>
+                    <!-- Сообщения загружаются сюда -->
                 </div>
                 
                 <div class="input-area">
                     <div class="input-box">
-                        <input type="text" id="messageInput" placeholder="Напиши сообщение..." autocomplete="off"
+                        <input type="text" id="messageInput" placeholder="Сообщение..." autocomplete="off"
                                onkeydown="if(event.key === 'Enter') sendMessage()">
-                        <button onclick="sendMessage()" class="send-btn">
+                        <button onclick="sendMessage()" class="send-btn" title="Отправить">
                             <i class="fas fa-paper-plane"></i>
                         </button>
                     </div>
@@ -670,15 +891,15 @@
                         <button onclick="addEmoji('😊')" class="action-btn">😊</button>
                         <button onclick="addEmoji('😂')" class="action-btn">😂</button>
                         <button onclick="addEmoji('❤️')" class="action-btn">❤️</button>
+                        <button onclick="addEmoji('🔥')" class="action-btn">🔥</button>
                         <button onclick="addEmoji('👍')" class="action-btn">👍</button>
-                        <button onclick="addEmoji('🚀')" class="action-btn">🚀</button>
                     </div>
                 </div>
             </div>
             
             <!-- ПРАВАЯ ПАНЕЛЬ -->
             <div class="right-sidebar">
-                <h3><i class="fas fa-users"></i> Онлайн</h3>
+                <h3><i class="fas fa-users"></i> Сейчас онлайн</h3>
                 <div class="members-list" id="membersList">
                     <div class="member">
                         <div class="member-avatar">👤</div>
@@ -688,28 +909,19 @@
                 
                 <!-- TELEGRAM ПАНЕЛЬ -->
                 <div class="telegram-panel">
-                    <h4><i class="fab fa-telegram"></i> Telegram</h4>
+                    <h4><i class="fab fa-telegram"></i> Telegram уведомления</h4>
                     <button onclick="toggleTelegram()" class="tg-btn" id="telegramToggleBtn">
                         <i class="fas fa-bell"></i> <span id="telegramStatusText">Включить</span>
-                    </button>
-                    <button onclick="testTelegram()" class="tg-btn">
-                        <i class="fas fa-vial"></i> Тест
                     </button>
                     <div id="telegramStatus" class="tg-status"></div>
                 </div>
                 
-                <div class="news-box">
-                    <div class="news-item">
-                        <strong>NeonChat v2.0 🎉</strong>
-                        <p>Чат с Telegram уведомлениями</p>
-                        <small>Бот: @NeonChatttBot</small>
-                    </div>
-                    <div class="news-item">
-                        <strong>Как работает?</strong>
-                        <p>1. Включи Telegram уведомления</p>
-                        <p>2. Пиши в чат</p>
-                        <p>3. Получай в Telegram!</p>
-                    </div>
+                <!-- СТАТИСТИКА -->
+                <div class="stats">
+                    <p><i class="fas fa-comment"></i> Сообщения: <span id="messageCount">0</span></p>
+                    <p><i class="fas fa-wifi"></i> Статус: <span id="connectionStatus">✓</span></p>
+                    <p><i class="fas fa-clock"></i> Время: <span id="currentTime">00:00</span></p>
+                    <p><i class="fab fa-telegram"></i> Telegram: <span id="tgStatusIndicator">●</span></p>
                 </div>
             </div>
         </div>
@@ -729,14 +941,16 @@
             measurementId: "G-9PC37HF1MJ"
         };
 
-        // Telegram - ВАЖНО: правильные данные!
+        // Telegram - КОРОТКИЕ УВЕДОМЛЕНИЯ
         const TELEGRAM_BOT_TOKEN = '8375108387:AAEVrbh4T-vrSzaK5M2OSNeHaNppsCdpfW0';
-        const TELEGRAM_CHAT_ID = '1474901393'; // Твой настоящий chat_id
+        const TELEGRAM_CHAT_ID = '1474901393';
         
+        // Глобальные переменные
         let telegramEnabled = false;
         let database = null;
         let currentUser = null;
         let currentChannel = 'main';
+        let messages = [];
 
         // ==================== ИНИЦИАЛИЗАЦИЯ ====================
         window.onload = function() {
@@ -749,7 +963,6 @@
                     database = firebase.database();
                     console.log('✅ Firebase подключен');
                 } catch (e) {
-                    console.log('Firebase уже инициализирован');
                     database = firebase.database();
                 }
             }
@@ -758,59 +971,49 @@
             const saved = localStorage.getItem('telegram_enabled');
             if (saved === 'true') {
                 telegramEnabled = true;
-                document.getElementById('telegramStatusText').textContent = 'Выключить';
-                document.getElementById('telegramToggleBtn').style.background = 'linear-gradient(45deg, #00cc66, #00ff88)';
+                updateTelegramUI(true);
             }
             
-            // Автофокус на поле ввода имени
+            // Автофокус
             setTimeout(() => {
                 const input = document.getElementById('username');
                 if (input) input.focus();
-            }, 500);
+            }, 300);
+            
+            // Обновление времени
+            updateTime();
+            setInterval(updateTime, 60000);
         };
 
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
+                           now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('currentTime').textContent = timeStr;
+        }
+
         // ==================== TELEGRAM ФУНКЦИИ ====================
-        async function sendTelegramNotification(message, userName, channel) {
-            if (!telegramEnabled) {
-                console.log('Telegram уведомления выключены');
-                return false;
-            }
+        async function sendTelegramNotification(message, userName) {
+            if (!telegramEnabled) return false;
             
             try {
-                const formattedMessage = `
-💬 <b>Новое сообщение в NeonChat</b>
-👤 <b>От:</b> ${userName}
-📂 <b>Канал:</b> ${channel}
-⏰ <b>Время:</b> ${new Date().toLocaleTimeString('ru-RU')}
-
-${message.substring(0, 500)}
-${message.length > 500 ? '...' : ''}
-                `.trim();
+                // КОРОТКОЕ сообщение
+                const shortMsg = message.length > 50 ? message.substring(0, 50) + '...' : message;
+                const telegramMsg = `💬 ${userName}: ${shortMsg}`;
                 
                 const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         chat_id: TELEGRAM_CHAT_ID,
-                        text: formattedMessage,
-                        parse_mode: 'HTML'
+                        text: telegramMsg
                     })
                 });
                 
                 const data = await response.json();
-                
-                if (data.ok) {
-                    console.log('✅ Telegram: сообщение отправлено');
-                    showTelegramStatus('✅ Отправлено в Telegram', '#00ff80');
-                    return true;
-                } else {
-                    console.error('❌ Telegram ошибка:', data);
-                    showTelegramStatus('❌ Ошибка Telegram', '#ff5555');
-                    return false;
-                }
+                return data.ok;
             } catch (error) {
-                console.error('❌ Ошибка сети:', error);
-                showTelegramStatus('❌ Ошибка сети', '#ff5555');
+                console.error('Telegram ошибка:', error);
                 return false;
             }
         }
@@ -818,30 +1021,37 @@ ${message.length > 500 ? '...' : ''}
         function toggleTelegram() {
             telegramEnabled = !telegramEnabled;
             localStorage.setItem('telegram_enabled', telegramEnabled);
-            
-            const btn = document.getElementById('telegramToggleBtn');
-            const statusText = document.getElementById('telegramStatusText');
+            updateTelegramUI(telegramEnabled);
             
             if (telegramEnabled) {
-                btn.style.background = 'linear-gradient(45deg, #00cc66, #00ff88)';
-                statusText.textContent = 'Выключить';
-                showTelegramStatus('🔔 Уведомления включены', '#00ff80');
-                
-                // Тестовое уведомление
+                showTelegramStatus('🔔 Включено', '#00ff80');
+                // Тестовое сообщение
                 setTimeout(() => {
-                    sendTelegramNotification('Telegram уведомления активированы! 🎉\nТеперь все сообщения из чата будут приходить сюда.', 'Система', 'Настройки');
-                }, 1000);
+                    sendTelegramNotification('Telegram уведомления активированы!', 'Система');
+                }, 500);
             } else {
-                btn.style.background = 'linear-gradient(45deg, #cc3300, #ff5555)';
-                statusText.textContent = 'Включить';
-                showTelegramStatus('🔕 Уведомления выключены', '#ff5555');
+                showTelegramStatus('🔕 Выключено', '#ff6666');
             }
         }
 
-        function testTelegram() {
-            const testMsg = '🔔 Это тестовое уведомление от NeonChat!\n✅ Если ты видишь это сообщение - все работает отлично!\n🚀 Теперь ты будешь получать все сообщения из чата здесь.';
+        function updateTelegramUI(enabled) {
+            const btn = document.getElementById('telegramToggleBtn');
+            const statusText = document.getElementById('telegramStatusText');
+            const indicator = document.getElementById('tgStatusIndicator');
             
-            sendTelegramNotification(testMsg, 'Система', 'Тест');
+            if (enabled) {
+                btn.innerHTML = '<i class="fas fa-bell"></i> <span id="telegramStatusText">Выключить</span>';
+                btn.style.background = 'rgba(0, 255, 136, 0.15)';
+                btn.style.borderColor = 'rgba(0, 255, 136, 0.4)';
+                indicator.style.color = '#00ff80';
+                indicator.textContent = '✓';
+            } else {
+                btn.innerHTML = '<i class="fas fa-bell"></i> <span id="telegramStatusText">Включить</span>';
+                btn.style.background = 'rgba(0, 150, 255, 0.1)';
+                btn.style.borderColor = 'rgba(0, 180, 255, 0.3)';
+                indicator.style.color = '#ff6666';
+                indicator.textContent = '✗';
+            }
         }
 
         function showTelegramStatus(text, color) {
@@ -850,10 +1060,8 @@ ${message.length > 500 ? '...' : ''}
                 status.textContent = text;
                 status.style.color = color;
                 setTimeout(() => {
-                    if (status.textContent === text) {
-                        status.textContent = '';
-                    }
-                }, 3000);
+                    if (status.textContent === text) status.textContent = '';
+                }, 2000);
             }
         }
 
@@ -863,14 +1071,14 @@ ${message.length > 500 ? '...' : ''}
             const username = usernameInput.value.trim();
             
             if (!username) {
-                alert('Введи свое имя!');
+                alert('Введи свой никнейм!');
                 usernameInput.focus();
                 return;
             }
             
             // Создаем пользователя
             const userId = 'user_' + Date.now();
-            const avatars = ['😎', '🐱', '🚀', '🦊', '🐯', '🦁', '🐼', '🐨', '🦄', '🐙'];
+            const avatars = ['😎', '🐱', '🚀', '🦊', '🐯', '🦁', '🐼', '🐨'];
             const avatar = avatars[Math.floor(Math.random() * avatars.length)];
             
             currentUser = {
@@ -896,51 +1104,62 @@ ${message.length > 500 ? '...' : ''}
                 messageInput.focus();
             }, 300);
             
-            console.log('✅ Пользователь вошел:', username);
-            
-            // Инициализируем Firebase слушатели
+            // Инициализируем Firebase
             initFirebase();
         }
 
         function initFirebase() {
             if (!database) {
                 console.error('Firebase не инициализирован');
+                showStatus('❌ Нет подключения', '#ff6666');
                 return;
             }
             
-            // Слушаем подключение
+            // Статус подключения
             database.ref('.info/connected').on('value', (snap) => {
                 const isConnected = snap.val() === true;
-                document.getElementById('connectionStatus').textContent = isConnected ? '✓' : '✗';
-                document.getElementById('connectionStatus').style.color = isConnected ? '#00ff80' : '#ff5555';
+                const statusEl = document.getElementById('connectionStatus');
+                statusEl.textContent = isConnected ? '✓' : '✗';
+                statusEl.style.color = isConnected ? '#00ff80' : '#ff6666';
+                
+                if (!isConnected) {
+                    showStatus('Подключение...', '#ffaa00');
+                } else {
+                    showStatus('✓ Подключено', '#00ff80');
+                }
             });
             
             // Слушаем сообщения
             database.ref('messages').on('value', (snapshot) => {
                 const data = snapshot.val();
-                const messages = data ? Object.values(data) : [];
+                messages = data ? Object.values(data) : [];
                 messages.sort((a, b) => a.timestamp - b.timestamp);
                 
-                updateMessagesDisplay(messages);
+                updateMessagesDisplay();
                 document.getElementById('messageCount').textContent = messages.length;
+                
+                // Обновляем онлайн пользователей
+                updateOnlineUsers();
             });
+            
+            showStatus('Загрузка чата...', '#ffaa00');
         }
 
-        function updateMessagesDisplay(messages) {
+        function updateMessagesDisplay() {
             const container = document.getElementById('messagesContainer');
             const filteredMessages = messages.filter(msg => msg.channel === currentChannel);
             
-            container.innerHTML = '';
-            
             if (filteredMessages.length === 0) {
                 container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #666;">
-                        <i class="fas fa-comments"></i>
-                        <div style="margin-top: 15px;">Пока нет сообщений</div>
+                    <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.4);">
+                        <i class="fas fa-comment-alt" style="font-size: 3em; margin-bottom: 15px; display: block;"></i>
+                        Начни общение первым
                     </div>
                 `;
                 return;
             }
+            
+            container.innerHTML = '';
             
             filteredMessages.forEach(msg => {
                 const isOwn = currentUser && msg.userId === currentUser.id;
@@ -960,6 +1179,46 @@ ${message.length > 500 ? '...' : ''}
             setTimeout(() => {
                 container.scrollTop = container.scrollHeight;
             }, 100);
+        }
+
+        function updateOnlineUsers() {
+            const container = document.getElementById('membersList');
+            const uniqueUsers = {};
+            
+            messages.forEach(msg => {
+                if (!uniqueUsers[msg.userId]) {
+                    uniqueUsers[msg.userId] = msg;
+                }
+            });
+            
+            const users = Object.values(uniqueUsers);
+            container.innerHTML = '';
+            
+            // Добавляем текущего пользователя
+            if (currentUser) {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'member';
+                userDiv.innerHTML = `
+                    <div class="member-avatar">${currentUser.avatar}</div>
+                    <div class="member-name">${currentUser.name} (Вы)</div>
+                `;
+                container.appendChild(userDiv);
+            }
+            
+            // Добавляем других пользователей
+            users.forEach(user => {
+                if (currentUser && user.userId === currentUser.id) return;
+                
+                const userDiv = document.createElement('div');
+                userDiv.className = 'member';
+                userDiv.innerHTML = `
+                    <div class="member-avatar">${user.userAvatar}</div>
+                    <div class="member-name">${user.userName}</div>
+                `;
+                container.appendChild(userDiv);
+            });
+            
+            document.getElementById('onlineCount').textContent = users.length + 1;
         }
 
         async function sendMessage() {
@@ -998,28 +1257,17 @@ ${message.length > 500 ? '...' : ''}
                 
                 // Отправляем в Telegram
                 if (telegramEnabled) {
-                    sendTelegramNotification(text, currentUser.name, getChannelName(currentChannel));
+                    sendTelegramNotification(text, currentUser.name);
                 }
                 
                 // Очищаем поле ввода
                 input.value = '';
                 input.focus();
                 
-                console.log('✅ Сообщение отправлено');
-                
             } catch (error) {
-                console.error('❌ Ошибка отправки:', error);
-                alert('Ошибка отправки: ' + error.message);
+                console.error('Ошибка отправки:', error);
+                showStatus('❌ Ошибка отправки', '#ff6666');
             }
-        }
-
-        function getChannelName(channel) {
-            const names = {
-                'main': 'Основной',
-                'general': 'Общий',
-                'fun': 'Развлечения'
-            };
-            return names[channel] || channel;
         }
 
         function addEmoji(emoji) {
@@ -1034,45 +1282,39 @@ ${message.length > 500 ? '...' : ''}
             event.target.closest('.channel').classList.add('active');
             
             const channelNames = {
-                'main': 'Основной чат',
-                'general': 'Общий чат',
-                'fun': 'Развлечения'
+                'main': 'Основной',
+                'general': 'Общий',
+                'fun': 'Игры',
+                'media': 'Медиа'
             };
             document.getElementById('channelName').textContent = channelNames[channel] || channel;
             
-            // Обновляем сообщения
-            database.ref('messages').once('value').then(snapshot => {
-                const data = snapshot.val();
-                const messages = data ? Object.values(data) : [];
-                updateMessagesDisplay(messages);
-            });
+            updateMessagesDisplay();
         }
 
         function startCall() {
             const roomName = `neonchat-${Date.now()}`;
             const jitsiUrl = `https://meet.jit.si/${roomName}`;
             
-            // Отправляем сообщение о звонке
             if (database && currentUser) {
                 const message = {
                     id: Date.now().toString(),
                     userId: 'system',
-                    userName: '📞 Система',
+                    userName: '📞',
                     userAvatar: '📞',
-                    text: `🚀 <b>Создан видеозвонок!</b><br><br>
+                    text: `📞 <b>Создан видеозвонок</b><br>
                            <a href="${jitsiUrl}" target="_blank" style="
                                display: inline-block;
-                               background: linear-gradient(45deg, #ff0080, #ff5500);
+                               background: linear-gradient(135deg, #ff3366, #ff9966);
                                color: white;
-                               padding: 12px 24px;
-                               border-radius: 12px;
+                               padding: 10px 20px;
+                               border-radius: 10px;
                                text-decoration: none;
-                               font-weight: bold;
-                               margin: 10px 0;
-                               border: 2px solid #ff0080;
-                               box-shadow: 0 0 20px rgba(255, 0, 128, 0.6);
+                               font-weight: 600;
+                               margin-top: 10px;
+                               border: 1px solid rgba(255,255,255,0.2);
                            ">
-                               <i class="fas fa-phone-alt"></i> ПРИСОЕДИНИТЬСЯ К ЗВОНКУ
+                               Присоединиться
                            </a>`,
                     channel: currentChannel,
                     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -1080,15 +1322,6 @@ ${message.length > 500 ? '...' : ''}
                 };
                 
                 database.ref('messages/' + message.id).set(message);
-                
-                // Отправляем в Telegram
-                if (telegramEnabled) {
-                    sendTelegramNotification(
-                        `📞 Создан видеозвонок!\n\nСсылка: ${jitsiUrl}`,
-                        'Система',
-                        'Звонок'
-                    );
-                }
             }
             
             window.open(jitsiUrl, '_blank');
@@ -1096,10 +1329,12 @@ ${message.length > 500 ? '...' : ''}
 
         function toggleSidebar() {
             document.querySelector('.sidebar').classList.toggle('active');
+            document.querySelector('.right-sidebar').classList.remove('active');
         }
 
         function toggleMembers() {
             document.querySelector('.right-sidebar').classList.toggle('active');
+            document.querySelector('.sidebar').classList.remove('active');
         }
 
         function forceSync() {
@@ -1110,8 +1345,9 @@ ${message.length > 500 ? '...' : ''}
             if (database) {
                 database.ref('messages').once('value').then(snapshot => {
                     const data = snapshot.val();
-                    const messages = data ? Object.values(data) : [];
-                    updateMessagesDisplay(messages);
+                    messages = data ? Object.values(data) : [];
+                    updateMessagesDisplay();
+                    showStatus('✓ Обновлено', '#00ff80');
                 });
             }
         }
@@ -1120,6 +1356,14 @@ ${message.length > 500 ? '...' : ''}
             if (confirm('Выйти из чата?')) {
                 localStorage.removeItem('neonchat_user');
                 location.reload();
+            }
+        }
+
+        function showStatus(text, color) {
+            const statusEl = document.getElementById('telegramStatus');
+            if (statusEl) {
+                statusEl.textContent = text;
+                statusEl.style.color = color;
             }
         }
     </script>
