@@ -20,7 +20,7 @@
             color: white;
         }
         
-        /* ЭКРАН ЛОГИНА (НОРМАЛЬНЫЙ) */
+        /* ЭКРАН ЛОГИНА */
         #loginScreen {
             position: fixed;
             top: 0;
@@ -425,6 +425,53 @@
             font-size: 0.95em;
         }
         
+        /* TELEGRAM ПАНЕЛЬ */
+        .telegram-panel {
+            background: rgba(0, 100, 200, 0.1);
+            border: 1px solid #0088cc;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .telegram-panel h4 {
+            color: #00ace6;
+            margin-bottom: 12px;
+            font-size: 1.05em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .tg-btn {
+            background: rgba(0, 136, 204, 0.2);
+            border: 1px solid #0088cc;
+            color: white;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            width: 100%;
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .tg-btn:active {
+            background: rgba(0, 136, 204, 0.3);
+            transform: scale(0.98);
+        }
+        
+        .tg-status {
+            margin-top: 8px;
+            font-size: 0.8em;
+            min-height: 20px;
+            color: #88aaff;
+        }
+        
         /* НОВОСТИ И СТАТИСТИКА */
         .news-box {
             margin-top: 20px;
@@ -555,6 +602,10 @@
             .neon-text {
                 font-size: 1.8em;
             }
+            
+            .telegram-panel {
+                padding: 12px;
+            }
         }
         
         @media (max-width: 480px) {
@@ -612,6 +663,7 @@
                 <p><i class="fas fa-users"></i> Работает на всех устройствах</p>
                 <p><i class="fas fa-video"></i> Встроенные видеозвонки</p>
                 <p><i class="fas fa-shield-alt"></i> Данные хранятся в России</p>
+                <p><i class="fab fa-telegram"></i> Telegram уведомления</p>
             </div>
         </div>
     </div>
@@ -739,17 +791,29 @@
                     </div>
                 </div>
                 
+                <!-- TELEGRAM УПРАВЛЕНИЕ -->
+                <div class="telegram-panel">
+                    <h4><i class="fab fa-telegram"></i> Telegram Уведомления</h4>
+                    <button onclick="toggleTelegram()" class="tg-btn" id="telegramToggleBtn">
+                        <i class="fas fa-bell"></i> <span id="telegramStatusText">Включить</span>
+                    </button>
+                    <button onclick="testTelegram()" class="tg-btn">
+                        <i class="fas fa-vial"></i> Тест уведомление
+                    </button>
+                    <div id="telegramStatus" class="tg-status"></div>
+                </div>
+                
                 <div class="news-box">
                     <h4><i class="fas fa-info-circle"></i> Информация</h4>
                     <div class="news-item">
-                        <strong>Ilya Durak <span style="text-decoration: line-through; color: #ff5555;">Pavel Durov</span></strong>
-                        <p>Истинный программист</p>
-                        <small id="lastUpdate">Загрузка...</small>
+                        <strong>NeonChat v2.0 🚀</strong>
+                        <p>Чат с Telegram уведомлениями</p>
+                        <small>Сообщения приходят в Telegram</small>
                     </div>
                     <div class="news-item">
-                        <strong>NeonChat v1.3 🚀</strong>
-                        <p>Российский чат с синхронизацией</p>
-                        <small>🇷🇺 Сделано в России</small>
+                        <strong>Telegram Bot</strong>
+                        <p>Бот: @neonchat_notifier_bot</p>
+                        <small>Получай уведомления где угодно</small>
                     </div>
                 </div>
                 
@@ -758,13 +822,14 @@
                     <p><i class="fas fa-wifi"></i> Статус: <span id="connectionStatus" style="color:#888">●</span></p>
                     <p><i class="fas fa-server"></i> Сервер: <span style="color:#00ff80">Россия</span></p>
                     <p><i class="fas fa-clock"></i> Время: <span id="currentTime">00:00</span></p>
+                    <p><i class="fab fa-telegram"></i> Telegram: <span id="tgStatusIndicator" style="color:#ff5555">●</span></p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Firebase config
+        // ==================== КОНФИГУРАЦИЯ ====================
         const firebaseConfig = {
             apiKey: "AIzaSyBBpRh7B5qZdyd66Q4KxsUBhH2qcwshI7g",
             authDomain: "funideaithink-3206d.firebaseapp.com",
@@ -776,18 +841,25 @@
             measurementId: "G-9PC37HF1MJ"
         };
 
-        // Инициализация Firebase
+        // TELEGRAM КОНФИГ
+        const TELEGRAM_BOT_TOKEN = '8375108387:AAEVrbh4T-vrSzaK5M2OSNeHaNppsCdpfW0';
+        const TELEGRAM_CHAT_ID = '8375108387';
+        let telegramEnabled = false;
+
+        // ==================== ИНИЦИАЛИЗАЦИЯ FIREBASE ====================
+        let database = null;
         if (typeof firebase !== 'undefined') {
             try {
                 firebase.initializeApp(firebaseConfig);
                 console.log('✅ Firebase инициализирован');
+                database = firebase.database();
             } catch (e) {
                 console.log('Firebase уже инициализирован');
+                database = firebase.database();
             }
         }
-        const database = firebase.database ? firebase.database() : null;
 
-        // Глобальные переменные
+        // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
         let currentUser = null;
         let currentChannel = 'main';
         let allMessages = [];
@@ -795,13 +867,117 @@
         let myUserId = null;
         let isConnected = false;
 
-        // ========== ИНИЦИАЛИЗАЦИЯ ==========
-        window.onload = function() {
-            console.log('🚀 Запускаем NeonChat...');
+        // ==================== TELEGRAM ФУНКЦИИ ====================
+        async function sendTelegramNotification(message, userName, channel) {
+            if (!telegramEnabled) return false;
             
-            // Обновляем время
-            updateTime();
-            setInterval(updateTime, 60000);
+            try {
+                const formattedMessage = `
+📨 <b>NeonChat - новое сообщение</b>
+👤 <b>Пользователь:</b> ${userName}
+📂 <b>Канал:</b> ${channel}
+⏰ <b>Время:</b> ${new Date().toLocaleTimeString('ru-RU')}
+
+💬 <b>Сообщение:</b>
+${message.substring(0, 300)}
+${message.length > 300 ? '...' : ''}
+                `.trim();
+                
+                const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: TELEGRAM_CHAT_ID,
+                        text: formattedMessage,
+                        parse_mode: 'HTML'
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Telegram:', data.ok ? '✅ Уведомление отправлено' : '❌ Ошибка');
+                return data.ok;
+            } catch (error) {
+                console.error('Telegram ошибка:', error);
+                return false;
+            }
+        }
+
+        function toggleTelegram() {
+            telegramEnabled = !telegramEnabled;
+            localStorage.setItem('telegram_enabled', telegramEnabled);
+            
+            const btn = document.getElementById('telegramToggleBtn');
+            const statusText = document.getElementById('telegramStatusText');
+            const indicator = document.getElementById('tgStatusIndicator');
+            
+            if (telegramEnabled) {
+                btn.style.background = 'linear-gradient(45deg, #00cc66, #00ff88)';
+                statusText.textContent = 'Выключить';
+                indicator.style.color = '#00ff80';
+                indicator.textContent = '✓';
+                showTelegramStatus('🔔 Уведомления включены', '#00ff80');
+                
+                // Отправляем тестовое сообщение
+                setTimeout(() => {
+                    sendTelegramNotification('Telegram уведомления активированы! 🎉', 'Система', 'Настройки');
+                }, 500);
+            } else {
+                btn.style.background = 'linear-gradient(45deg, #cc3300, #ff5555)';
+                statusText.textContent = 'Включить';
+                indicator.style.color = '#ff5555';
+                indicator.textContent = '✗';
+                showTelegramStatus('🔕 Уведомления выключены', '#ff5555');
+            }
+        }
+
+        function testTelegram() {
+            const testMsg = 'Это тестовое уведомление от NeonChat! 🚀\nЕсли ты видишь это сообщение - все работает отлично! ✅';
+            
+            sendTelegramNotification(testMsg, 'Система', 'Тест')
+                .then(success => {
+                    showTelegramStatus(
+                        success ? '✅ Тест отправлен в Telegram' : '❌ Ошибка отправки',
+                        success ? '#00ff80' : '#ff5555'
+                    );
+                })
+                .catch(() => {
+                    showTelegramStatus('❌ Ошибка сети', '#ff5555');
+                });
+        }
+
+        function showTelegramStatus(text, color) {
+            const status = document.getElementById('telegramStatus');
+            if (status) {
+                status.textContent = text;
+                status.style.color = color;
+                setTimeout(() => status.textContent = '', 3000);
+            }
+        }
+
+        function loadTelegramSettings() {
+            const saved = localStorage.getItem('telegram_enabled');
+            if (saved === 'true') {
+                telegramEnabled = true;
+                
+                const btn = document.getElementById('telegramToggleBtn');
+                const statusText = document.getElementById('telegramStatusText');
+                const indicator = document.getElementById('tgStatusIndicator');
+                
+                if (btn) btn.style.background = 'linear-gradient(45deg, #00cc66, #00ff88)';
+                if (statusText) statusText.textContent = 'Выключить';
+                if (indicator) {
+                    indicator.style.color = '#00ff80';
+                    indicator.textContent = '✓';
+                }
+            }
+        }
+
+        // ==================== ОСНОВНЫЕ ФУНКЦИИ ЧАТА ====================
+        window.onload = function() {
+            console.log('🚀 Запускаем NeonChat с Telegram...');
+            
+            // Загружаем настройки Telegram
+            loadTelegramSettings();
             
             // Проверяем сохраненного пользователя
             const savedUser = localStorage.getItem('neonchat_user');
@@ -811,21 +987,19 @@
                     myUserId = currentUser.id;
                     
                     if (currentUser && currentUser.name) {
-                        // Показываем кнопку выхода
                         document.getElementById('logoutFromLoginButton').style.display = 'block';
-                        
-                        // Автозаполняем поле
                         const usernameInput = document.getElementById('username');
                         usernameInput.value = currentUser.name;
                         usernameInput.focus();
                         usernameInput.select();
-                        
-                        console.log('Найден сохраненный пользователь:', currentUser.name);
                     }
                 } catch (e) {
                     console.error('Ошибка загрузки пользователя:', e);
                 }
             }
+            
+            updateTime();
+            setInterval(updateTime, 60000);
         };
 
         function updateTime() {
@@ -835,7 +1009,6 @@
                 now.getMinutes().toString().padStart(2, '0');
         }
 
-        // ========== ВХОД В ЧАТ ==========
         function enterChat() {
             const usernameInput = document.getElementById('username');
             const username = usernameInput.value.trim();
@@ -847,14 +1020,12 @@
                 return;
             }
             
-            // Блокируем кнопку
             if (loginButton) {
                 loginButton.disabled = true;
                 loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Входим...';
             }
             
             setTimeout(() => {
-                // Создаем пользователя
                 myUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 const avatars = ['🦊', '🐯', '🐼', '🐨', '🦁', '🐲', '🐵', '🐸', '🦄', '🐙'];
                 const avatar = avatars[Math.floor(Math.random() * avatars.length)];
@@ -866,29 +1037,23 @@
                     lastSeen: Date.now()
                 };
                 
-                // Сохраняем
                 localStorage.setItem('neonchat_user', JSON.stringify(currentUser));
                 
-                // Показываем чат
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('chatScreen').style.display = 'flex';
                 
-                // Обновляем UI
                 document.getElementById('currentUserName').textContent = currentUser.name;
                 document.getElementById('userAvatar').textContent = currentUser.avatar;
                 
-                // Разблокируем поле ввода
                 const messageInput = document.getElementById('messageInput');
                 messageInput.disabled = false;
                 messageInput.placeholder = "Напиши сообщение...";
                 setTimeout(() => messageInput.focus(), 300);
                 
-                // Проверка админ статуса
                 if (username === 'Артур Пирожков') {
                     setTimeout(activateAdminMode, 500);
                 }
                 
-                // Инициализируем Firebase
                 setTimeout(initFirebaseListeners, 300);
                 
                 console.log('✅ Успешный вход:', username);
@@ -896,14 +1061,12 @@
             }, 300);
         }
 
-        // ========== FIREBASE ==========
         function initFirebaseListeners() {
             if (!database) {
                 alert('❌ Firebase не загружен!');
                 return;
             }
             
-            // Подключение
             database.ref('.info/connected').on('value', (snap) => {
                 isConnected = snap.val() === true;
                 const status = document.getElementById('connectionStatus');
@@ -914,7 +1077,6 @@
                 if (isConnected && currentUser) updateMyOnlineStatus();
             });
             
-            // Сообщения
             database.ref('messages').on('value', (snapshot) => {
                 const data = snapshot.val();
                 allMessages = data ? Object.values(data) : [];
@@ -926,12 +1088,10 @@
                 document.getElementById('syncStatus').style.color = '#00ff80';
             });
             
-            // Пользователи
             database.ref('users').on('value', (snapshot) => {
                 const data = snapshot.val();
                 onlineUsers = data ? new Map(Object.entries(data)) : new Map();
                 
-                // Фильтруем неактивных
                 const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
                 for (const [userId, user] of onlineUsers.entries()) {
                     if (user.lastSeen < fiveMinutesAgo) {
@@ -958,8 +1118,7 @@
             userRef.onDisconnect().remove();
         }
 
-        // ========== СООБЩЕНИЯ ==========
-        function sendMessage() {
+        async function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             
@@ -984,17 +1143,23 @@
                 timestamp: Date.now()
             };
             
-            database.ref('messages/' + message.id).set(message)
-                .then(() => {
-                    input.value = '';
-                    input.focus();
-                    scrollToBottom();
-                    updateMyOnlineStatus();
-                })
-                .catch(error => {
-                    console.error('Ошибка отправки:', error);
-                    alert('❌ Ошибка отправки: ' + error.message);
-                });
+            try {
+                await database.ref('messages/' + message.id).set(message);
+                
+                // Отправляем в Telegram
+                if (telegramEnabled) {
+                    sendTelegramNotification(text, currentUser.name, getChannelName(currentChannel));
+                }
+                
+                input.value = '';
+                input.focus();
+                scrollToBottom();
+                updateMyOnlineStatus();
+                
+            } catch (error) {
+                console.error('Ошибка отправки:', error);
+                alert('❌ Ошибка отправки: ' + error.message);
+            }
         }
 
         function updateMessagesDisplay() {
@@ -1042,7 +1207,6 @@
             }
         }
 
-        // ========== СПИСОК ОНЛАЙН ==========
         function updateOnlineList() {
             const container = document.getElementById('membersList');
             if (!container) return;
@@ -1080,7 +1244,6 @@
             });
         }
 
-        // ========== УТИЛИТЫ ==========
         function addEmoji(emoji) {
             const input = document.getElementById('messageInput');
             input.value += emoji;
@@ -1102,6 +1265,17 @@
             document.getElementById('channelName').textContent = channelNames[channel] || channel;
             
             updateMessagesDisplay();
+        }
+
+        function getChannelName(channel) {
+            const names = {
+                'main': 'Основной',
+                'news': 'Новости',
+                'memes': 'Мемы',
+                'games': 'Игры',
+                'admin': 'Админ'
+            };
+            return names[channel] || channel;
         }
 
         function forceSync() {
@@ -1166,7 +1340,6 @@
             }
         }
 
-        // ========== АДМИН ФУНКЦИИ ==========
         function activateAdminMode() {
             console.log('🎯 Активация админ-режима');
             document.getElementById('adminChannel').style.display = 'flex';
@@ -1174,7 +1347,6 @@
             document.getElementById('userAvatar').textContent = '👑';
             document.getElementById('userAvatar').style.background = 'linear-gradient(45deg, #ff0000, #ff8800)';
             
-            // Системное сообщение
             if (database) {
                 const message = {
                     id: Date.now().toString(),
@@ -1209,12 +1381,10 @@
             const reason = prompt('Причина бана:') || 'Нарушение правил';
             
             try {
-                // Ищем пользователя
                 for (const [userId, user] of onlineUsers.entries()) {
                     if (user.name === userName) {
                         await database.ref('users/' + userId).remove();
                         
-                        // Сообщение о бане
                         const banMessage = {
                             id: Date.now().toString(),
                             userId: 'system',
@@ -1279,4 +1449,3 @@
     </script>
 </body>
 </html>
-
