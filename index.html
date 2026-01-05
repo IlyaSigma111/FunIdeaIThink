@@ -2,9 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🚀 NeonChat | Российский чат для друзей 🇷🇺</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 NeonChat</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -16,53 +15,73 @@
             height: 100%; 
             width: 100%; 
             overflow: hidden;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Segoe UI', sans-serif; 
             background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
             color: white;
         }
         
-        /* ЭКРАНЫ */
-        .screen { 
-            display: none; 
-            height: 100vh; 
-            width: 100vw;
+        /* ЭКРАН ЛОГИНА (НОРМАЛЬНЫЙ) */
+        #loginScreen {
             position: fixed;
             top: 0;
             left: 0;
-        }
-        .screen.active { 
-            display: flex; 
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+            display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            z-index: 1000;
         }
         
-        /* ЛОГИН */
         .login-box {
-            background: rgba(25, 25, 40, 0.95);
-            padding: 30px;
+            background: rgba(25, 25, 40, 0.98);
+            padding: 35px 30px;
             border-radius: 20px;
-            max-width: 450px;
-            width: 90%;
+            width: 100%;
+            max-width: 400px;
             text-align: center;
-            border: 1px solid rgba(0, 255, 255, 0.1);
-            box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
         }
+        
         .neon-text {
             color: #00ffff;
-            text-shadow: 0 0 10px #00ffff;
-            font-size: 2em;
-            margin-bottom: 10px;
+            text-shadow: 0 0 15px #00ffff, 0 0 30px #00ffff;
+            font-size: 2.2em;
+            margin-bottom: 15px;
+            font-weight: bold;
         }
+        
+        .subtitle {
+            color: #a0a0ff;
+            margin-bottom: 25px;
+            font-size: 1.1em;
+        }
+        
         .input-group {
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.4);
             border: 2px solid #00ffff;
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 15px;
             margin: 20px 0;
             display: flex;
             align-items: center;
+            transition: all 0.3s;
         }
+        
+        .input-group:focus-within {
+            box-shadow: 0 0 20px #00ffff;
+            transform: translateY(-2px);
+        }
+        
+        .input-group i {
+            color: #00ffff;
+            margin-right: 12px;
+            font-size: 1.2em;
+        }
+        
         .input-group input {
             background: transparent;
             border: none;
@@ -70,33 +89,111 @@
             font-size: 16px;
             width: 100%;
             outline: none;
+            font-size: 1.1em;
         }
+        
         .neon-btn {
             background: linear-gradient(45deg, #00ffff, #0080ff);
             color: white;
             border: none;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 1em;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 1.1em;
             cursor: pointer;
             width: 100%;
-            margin: 5px 0;
+            margin: 10px 0;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
         }
         
-        /* ОСНОВНОЙ ЧАТ */
+        .neon-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 255, 255, 0.5);
+        }
+        
+        .neon-btn:active {
+            transform: translateY(0);
+        }
+        
+        .tips {
+            margin-top: 25px;
+            text-align: left;
+            color: #88aaff;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+        
+        .tips i {
+            color: #00ffff;
+            margin-right: 10px;
+            width: 20px;
+        }
+        
+        /* ОСНОВНОЙ ИНТЕРФЕЙС */
         #chatScreen {
-            display: flex;
+            display: none;
             height: 100vh;
             width: 100vw;
+            flex-direction: column;
         }
         
-        /* БОКОВЫЕ ПАНЕЛИ (ПК) */
+        /* МОБИЛЬНОЕ МЕНЮ */
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(30, 30, 50, 0.98);
+            padding: 12px 10px;
+            z-index: 1000;
+            border-top: 2px solid #00ffff;
+            backdrop-filter: blur(10px);
+        }
+        
+        .mobile-btn {
+            flex: 1;
+            background: rgba(0, 255, 255, 0.15);
+            border: 1px solid #00ffff;
+            color: white;
+            padding: 12px 8px;
+            margin: 0 3px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .mobile-btn:active {
+            background: rgba(0, 255, 255, 0.3);
+            transform: scale(0.98);
+        }
+        
+        /* ОСНОВНОЙ КОНТЕНТ */
+        .chat-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        /* БОКОВЫЕ ПАНЕЛИ */
         .sidebar, .right-sidebar {
             width: 250px;
-            background: rgba(20, 20, 35, 0.9);
+            background: rgba(20, 20, 35, 0.95);
             display: flex;
             flex-direction: column;
-            padding: 15px;
+            padding: 20px;
+            border-right: 1px solid rgba(0, 255, 255, 0.1);
+        }
+        
+        .right-sidebar {
+            border-left: 1px solid rgba(0, 255, 255, 0.1);
+            border-right: none;
         }
         
         /* ЦЕНТРАЛЬНАЯ ЧАСТЬ */
@@ -104,7 +201,60 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: rgba(20, 20, 35, 0.8);
+            min-height: 0;
+        }
+        
+        /* ЗАГОЛОВОК ЧАТА */
+        .chat-header {
+            padding: 18px 25px;
+            background: rgba(25, 25, 40, 0.95);
+            border-bottom: 2px solid rgba(0, 255, 255, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .chat-header h2 {
+            color: #00ffff;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .online-count {
+            color: #00ff80;
+            font-weight: bold;
+            font-size: 1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .refresh-btn {
+            background: rgba(0, 255, 255, 0.15);
+            border: 1px solid #00ffff;
+            color: white;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            font-size: 1.1em;
+        }
+        
+        .refresh-btn:active {
+            transform: rotate(180deg);
         }
         
         /* СООБЩЕНИЯ */
@@ -114,119 +264,338 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 15px;
         }
+        
         .message {
-            background: rgba(40, 40, 60, 0.5);
-            padding: 12px 15px;
-            border-radius: 10px;
-            max-width: 70%;
+            background: rgba(40, 40, 60, 0.7);
+            padding: 15px 18px;
+            border-radius: 12px;
+            max-width: 75%;
             word-break: break-word;
+            animation: fadeIn 0.3s ease;
+            border: 1px solid rgba(0, 255, 255, 0.1);
         }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
         .message.own {
-            background: rgba(0, 100, 255, 0.3);
+            background: rgba(0, 100, 255, 0.35);
             align-self: flex-end;
+            border-color: rgba(0, 128, 255, 0.3);
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .message-user {
+            color: #00ffff;
+            font-weight: bold;
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .message-time {
+            color: #888;
+            font-size: 0.85em;
+        }
+        
+        .message-content {
+            line-height: 1.5;
+            font-size: 1.05em;
         }
         
         /* ПОЛЕ ВВОДА */
         .input-area {
-            padding: 15px;
-            background: rgba(20, 20, 35, 0.95);
-            border-top: 1px solid rgba(0, 255, 255, 0.1);
+            padding: 20px;
+            background: rgba(25, 25, 40, 0.95);
+            border-top: 2px solid rgba(0, 255, 255, 0.15);
         }
+        
         .input-box {
             display: flex;
-            gap: 10px;
+            gap: 12px;
+            margin-bottom: 15px;
         }
+        
         .input-box input {
             flex: 1;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.4);
             border: 2px solid #00ffff;
-            border-radius: 10px;
-            padding: 12px 15px;
+            border-radius: 12px;
+            padding: 15px 20px;
             color: white;
             font-size: 16px;
             outline: none;
+            transition: all 0.3s;
+            font-size: 1.05em;
         }
+        
+        .input-box input:focus {
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+        }
+        
         .send-btn {
             background: linear-gradient(45deg, #00ffff, #0080ff);
             border: none;
-            width: 50px;
-            border-radius: 10px;
+            min-width: 55px;
+            border-radius: 12px;
             color: white;
             cursor: pointer;
+            font-size: 1.2em;
+            transition: all 0.3s;
         }
         
-        /* МОБИЛЬНАЯ ВЕРСИЯ */
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            background: rgba(0, 255, 255, 0.15);
+            border: 1px solid #00ffff;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: all 0.3s;
+        }
+        
+        .action-btn:active {
+            background: rgba(0, 255, 255, 0.3);
+            transform: scale(0.95);
+        }
+        
+        /* СПИСОК УЧАСТНИКОВ */
+        .members-list {
+            flex: 1;
+            background: rgba(30, 30, 50, 0.7);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            overflow-y: auto;
+        }
+        
+        .member {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            transition: all 0.3s;
+        }
+        
+        .member:hover {
+            background: rgba(0, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .member-avatar {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(45deg, #ff0080, #ff8c00);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1em;
+            margin-right: 12px;
+            border: 2px solid rgba(0, 255, 255, 0.3);
+        }
+        
+        .member-name {
+            font-weight: bold;
+            color: #00ffff;
+            font-size: 0.95em;
+        }
+        
+        /* НОВОСТИ И СТАТИСТИКА */
+        .news-box {
+            margin-top: 20px;
+        }
+        
+        .news-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(0, 255, 255, 0.1);
+        }
+        
+        .news-item strong {
+            color: #00ffff;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.05em;
+        }
+        
+        .system-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            font-size: 0.9em;
+            color: #88aaff;
+        }
+        
+        .system-info p {
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        /* АДМИН ПАНЕЛЬ */
+        .admin-panel {
+            background: linear-gradient(45deg, rgba(255, 0, 0, 0.15), rgba(255, 85, 0, 0.15));
+            border: 2px solid #ff4444;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .admin-panel h3 {
+            color: #ff4444;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .admin-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .admin-btn {
+            background: rgba(255, 68, 68, 0.25);
+            border: 1px solid #ff4444;
+            color: #ffaaaa;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            flex: 1;
+            min-width: 110px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        
+        .admin-btn:active {
+            background: rgba(255, 68, 68, 0.4);
+            transform: scale(0.98);
+        }
+        
+        /* АДАПТИВНОСТЬ */
         @media (max-width: 768px) {
             .sidebar, .right-sidebar {
                 position: fixed;
                 top: 0;
                 bottom: 0;
                 width: 280px;
-                z-index: 1000;
+                z-index: 900;
                 transform: translateX(-100%);
-                transition: transform 0.3s;
+                transition: transform 0.3s ease;
+                background: rgba(20, 20, 35, 0.98);
+                backdrop-filter: blur(10px);
             }
+            
             .right-sidebar {
-                left: auto;
                 right: 0;
+                left: auto;
                 transform: translateX(100%);
             }
+            
             .sidebar.active, .right-sidebar.active {
                 transform: translateX(0);
             }
             
-            /* МОБИЛЬНОЕ МЕНЮ ВНИЗУ */
             .mobile-menu {
                 display: flex;
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                background: rgba(30, 30, 50, 0.95);
-                padding: 10px;
-                z-index: 900;
-                border-top: 2px solid #00ffff;
-            }
-            .mobile-btn {
-                flex: 1;
-                background: rgba(0, 255, 255, 0.1);
-                border: 1px solid #00ffff;
-                color: white;
-                padding: 10px;
-                margin: 0 3px;
-                border-radius: 8px;
-                cursor: pointer;
-                font-size: 0.8em;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 5px;
             }
             
             .messages {
-                padding-bottom: 80px; /* Для мобильного меню */
+                padding-bottom: 80px;
+            }
+            
+            .input-area {
+                padding-bottom: 70px;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+            
+            .login-box {
+                padding: 25px 20px;
+                margin: 10px;
+            }
+            
+            .neon-text {
+                font-size: 1.8em;
             }
         }
         
-        @media (min-width: 769px) {
-            .mobile-menu {
-                display: none !important;
+        @media (max-width: 480px) {
+            .chat-header {
+                padding: 15px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .header-controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .message {
+                max-width: 90%;
+                padding: 12px 15px;
+            }
+            
+            .input-area {
+                padding: 15px;
+            }
+            
+            .mobile-btn {
+                font-size: 0.8em;
+                padding: 10px 6px;
             }
         }
     </style>
 </head>
 <body>
     <!-- ЭКРАН ЛОГИНА -->
-    <div id="loginScreen" class="screen active">
+    <div id="loginScreen">
         <div class="login-box">
             <h1 class="neon-text">🚀 NeonChat</h1>
-            <p style="color:#a0a0ff; margin-bottom:20px;">Российский чат для друзей</p>
+            <p class="subtitle">Российский чат для друзей с синхронизацией</p>
             
             <div class="input-group">
-                <i class="fas fa-user" style="color:#00ffff; margin-right:10px;"></i>
-                <input type="text" id="username" placeholder="Твой крутой ник..." maxlength="20" autofocus>
+                <i class="fas fa-user"></i>
+                <input type="text" id="username" placeholder="Введи крутой ник..." maxlength="20" autofocus>
             </div>
             
             <button onclick="enterChat()" class="neon-btn" id="loginButton">
@@ -234,15 +603,22 @@
             </button>
             
             <button onclick="logoutFromLogin()" class="neon-btn" id="logoutFromLoginButton" 
-                    style="background:linear-gradient(45deg,#ff5555,#ff0000); display:none;">
+                    style="background: linear-gradient(45deg, #ff5555, #ff0000); display: none;">
                 <i class="fas fa-sign-out-alt"></i> Выйти и сменить ник
             </button>
+            
+            <div class="tips">
+                <p><i class="fas fa-cloud"></i> Синхронизация в реальном времени</p>
+                <p><i class="fas fa-users"></i> Работает на всех устройствах</p>
+                <p><i class="fas fa-video"></i> Встроенные видеозвонки</p>
+                <p><i class="fas fa-shield-alt"></i> Данные хранятся в России</p>
+            </div>
         </div>
     </div>
     
-    <!-- ОСНОВНОЙ ЧАТ -->
-    <div id="chatScreen" class="screen">
-        <!-- МОБИЛЬНОЕ МЕНЮ (только на телефонах) -->
+    <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
+    <div id="chatScreen">
+        <!-- МОБИЛЬНОЕ МЕНЮ -->
         <div class="mobile-menu">
             <button class="mobile-btn" onclick="toggleSidebar()">
                 <i class="fas fa-bars"></i> Каналы
@@ -253,85 +629,140 @@
             <button class="mobile-btn" onclick="forceSync()">
                 <i class="fas fa-sync-alt"></i> Синхр
             </button>
-        </div>
-        
-        <!-- ЛЕВАЯ ПАНЕЛЬ -->
-        <div class="sidebar">
-            <div style="text-align:center; padding:15px 0;">
-                <div id="userAvatar" style="width:60px;height:60px;background:linear-gradient(45deg,#ff0080,#ff8c00);border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:1.5em;">👤</div>
-                <div id="currentUserName" style="color:#00ffff;font-weight:bold;font-size:1.1em;">Гость</div>
-            </div>
-            
-            <div style="flex:1; overflow-y:auto; padding:10px 0;">
-                <div class="channel active" onclick="switchChannel('main')" style="padding:12px; margin:5px 0; background:rgba(0,255,255,0.1); border-radius:8px; cursor:pointer;">
-                    <i class="fas fa-comments"></i> Основной чат
-                </div>
-                <div class="channel" onclick="switchChannel('news')" style="padding:12px; margin:5px 0; border-radius:8px; cursor:pointer; color:#ccccff;">
-                    <i class="fas fa-newspaper"></i> Новости
-                </div>
-                <div class="channel" onclick="switchChannel('memes')" style="padding:12px; margin:5px 0; border-radius:8px; cursor:pointer; color:#ccccff;">
-                    <i class="fas fa-laugh"></i> Мемы
-                </div>
-                <div id="adminChannel" style="display:none;" class="channel" onclick="switchChannel('admin')" style="padding:12px; margin:5px 0; border-radius:8px; cursor:pointer; color:#ff4444;">
-                    <i class="fas fa-crown"></i> Админ
-                </div>
-            </div>
-            
-            <button onclick="logout()" class="neon-btn" style="background:linear-gradient(45deg,#ff5555,#ff0000); margin-top:10px;">
-                <i class="fas fa-sign-out-alt"></i> Выйти
+            <button class="mobile-btn" onclick="startCall()">
+                <i class="fas fa-phone-alt"></i> Звонок
             </button>
         </div>
         
-        <!-- ЦЕНТРАЛЬНАЯ ЧАСТЬ -->
-        <div class="main">
-            <div style="padding:15px 20px; border-bottom:1px solid rgba(0,255,255,0.1);">
-                <h2 style="color:#00ffff;">
-                    <i class="fas fa-hashtag"></i> <span id="channelName">Основной чат</span>
-                    <span style="float:right; font-size:0.9em; color:#00ff80;">
-                        <i class="fas fa-circle"></i> <span id="onlineCount">0</span> онлайн
-                    </span>
-                </h2>
-            </div>
-            
-            <div class="messages" id="messagesContainer">
-                <div id="loadingMessages" style="text-align:center; padding:40px; color:#888;">
-                    <i class="fas fa-spinner fa-spin"></i> Загрузка чата...
+        <div class="chat-content">
+            <!-- ЛЕВАЯ ПАНЕЛЬ -->
+            <div class="sidebar">
+                <div class="user-info" style="text-align: center; padding: 20px 0; border-bottom: 1px solid rgba(0,255,255,0.1);">
+                    <div class="avatar" id="userAvatar" style="width:70px;height:70px;background:linear-gradient(45deg,#ff0080,#ff8c00);border-radius:50%;margin:0 auto 15px;display:flex;align-items:center;justify-content:center;font-size:2em;border:3px solid #00ffff;">👤</div>
+                    <div class="user-name" id="currentUserName" style="color:#00ffff;font-weight:bold;font-size:1.2em;">Гость</div>
+                    <div class="status" style="color:#00ff80;margin-top:8px;font-size:0.9em;"><i class="fas fa-circle"></i> Online</div>
+                </div>
+                
+                <div class="channels" style="flex:1; padding:15px 0;">
+                    <div class="channel active" onclick="switchChannel('main')">
+                        <i class="fas fa-comments"></i> Основной чат
+                    </div>
+                    <div class="channel" onclick="switchChannel('news')">
+                        <i class="fas fa-newspaper"></i> Новости
+                    </div>
+                    <div class="channel" onclick="switchChannel('memes')">
+                        <i class="fas fa-laugh"></i> Мемы
+                    </div>
+                    <div class="channel" onclick="switchChannel('games')">
+                        <i class="fas fa-gamepad"></i> Игры
+                    </div>
+                    <div class="channel" id="adminChannel" onclick="switchChannel('admin')" style="display:none; background:rgba(255,0,0,0.1); border-left:4px solid #ff0000;">
+                        <i class="fas fa-crown"></i> Админ-чат
+                    </div>
+                </div>
+                
+                <!-- АДМИН ПАНЕЛЬ -->
+                <div class="admin-panel" id="adminPanel">
+                    <h3><i class="fas fa-user-secret"></i> Админ-панель</h3>
+                    <div class="admin-buttons">
+                        <button onclick="adminClearChat()" class="admin-btn">
+                            <i class="fas fa-broom"></i> Очистить чат
+                        </button>
+                        <button onclick="adminBanUser()" class="admin-btn">
+                            <i class="fas fa-ban"></i> Забанить
+                        </button>
+                        <button onclick="adminSendAnnouncement()" class="admin-btn">
+                            <i class="fas fa-bullhorn"></i> Объявление
+                        </button>
+                        <button onclick="adminTestMessage()" class="admin-btn">
+                            <i class="fas fa-vial"></i> Тест
+                        </button>
+                    </div>
+                </div>
+                
+                <button onclick="startCall()" class="neon-btn" style="margin-top:10px;">
+                    <i class="fas fa-phone-alt"></i> Созвать всех
+                </button>
+                
+                <button onclick="logout()" class="neon-btn" style="background:linear-gradient(45deg,#ff5555,#ff0000); margin-top:10px;">
+                    <i class="fas fa-sign-out-alt"></i> Выйти
+                </button>
+                
+                <div class="refresh-info" style="margin-top:15px; text-align:center; font-size:0.9em; color:#88aaff;">
+                    <i class="fas fa-sync-alt"></i> Синхронизация: <span id="syncStatus" style="color:#00ff80;">✓</span>
                 </div>
             </div>
             
-            <div class="input-area">
-                <div class="input-box">
-                    <input type="text" id="messageInput" placeholder="Напиши сообщение..." autocomplete="off"
-                           onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }">
-                    <button onclick="sendMessage()" class="send-btn">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
+            <!-- ЦЕНТРАЛЬНАЯ ЧАСТЬ -->
+            <div class="main">
+                <div class="chat-header">
+                    <h2><i class="fas fa-hashtag"></i> <span id="channelName">Основной чат</span></h2>
+                    <div class="header-controls">
+                        <div class="online-count"><i class="fas fa-circle"></i> <span id="onlineCount">0</span> онлайн</div>
+                        <button onclick="forceSync()" class="refresh-btn">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
                 </div>
-                <div style="display:flex; gap:8px; margin-top:10px;">
-                    <button onclick="addEmoji('😂')" style="background:rgba(0,255,255,0.1); border:none; color:white; padding:8px 12px; border-radius:6px; font-size:1.1em;">😂</button>
-                    <button onclick="addEmoji('🔥')" style="background:rgba(0,255,255,0.1); border:none; color:white; padding:8px 12px; border-radius:6px; font-size:1.1em;">🔥</button>
-                    <button onclick="addEmoji('❤️')" style="background:rgba(0,255,255,0.1); border:none; color:white; padding:8px 12px; border-radius:6px; font-size:1.1em;">❤️</button>
+                
+                <div class="messages" id="messagesContainer">
+                    <div id="loadingMessages" style="text-align:center; padding:50px; color:#888;">
+                        <i class="fas fa-spinner fa-spin"></i> Загрузка чата...
+                    </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- ПРАВАЯ ПАНЕЛЬ -->
-        <div class="right-sidebar">
-            <h3 style="color:#00ffff; margin-bottom:15px;"><i class="fas fa-users"></i> Онлайн</h3>
-            <div id="membersList" style="flex:1; overflow-y:auto; padding:10px; background:rgba(0,0,0,0.2); border-radius:8px;">
-                <div style="text-align:center; padding:20px; color:#888;">Нет пользователей</div>
+                
+                <div class="input-area">
+                    <div class="input-box">
+                        <input type="text" id="messageInput" placeholder="Напиши сообщение..." autocomplete="off"
+                               onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }">
+                        <button onclick="sendMessage()" class="send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div class="actions">
+                        <button onclick="addEmoji('😂')" class="action-btn">😂</button>
+                        <button onclick="addEmoji('🔥')" class="action-btn">🔥</button>
+                        <button onclick="addEmoji('❤️')" class="action-btn">❤️</button>
+                        <button onclick="addEmoji('😎')" class="action-btn">😎</button>
+                        <button onclick="addEmoji('👍')" class="action-btn">👍</button>
+                        <button onclick="addEmoji('🇷🇺')" class="action-btn">🇷🇺</button>
+                    </div>
+                </div>
             </div>
             
-            <div style="margin-top:20px;">
-                <h4 style="color:#00ffff;"><i class="fas fa-info-circle"></i> Информация</h4>
-                <div style="background:rgba(0,0,0,0.2); padding:12px; border-radius:8px; margin-top:10px;">
-                    <strong>NeonChat v1.2</strong>
-                    <p style="font-size:0.9em; margin-top:5px; color:#ccccff;">Российский чат 🇷🇺</p>
+            <!-- ПРАВАЯ ПАНЕЛЬ -->
+            <div class="right-sidebar">
+                <h3><i class="fas fa-users"></i> Сейчас онлайн</h3>
+                <div class="members-list" id="membersList">
+                    <div style="text-align:center; padding:30px; color:#888;">
+                        <i class="fas fa-user-slash"></i> Нет участников
+                    </div>
+                </div>
+                
+                <div class="news-box">
+                    <h4><i class="fas fa-info-circle"></i> Информация</h4>
+                    <div class="news-item">
+                        <strong>Pavel Durov <span style="text-decoration: line-through; color: #ff5555;">Ilya Durak</span></strong>
+                        <p>Основатель VK и Telegram</p>
+                        <small id="lastUpdate">Загрузка...</small>
+                    </div>
+                    <div class="news-item">
+                        <strong>NeonChat v1.3 🚀</strong>
+                        <p>Российский чат с синхронизацией</p>
+                        <small>🇷🇺 Сделано в России</small>
+                    </div>
+                </div>
+                
+                <div class="system-info">
+                    <p><i class="fas fa-comment"></i> Сообщений: <span id="messageCount">0</span></p>
+                    <p><i class="fas fa-wifi"></i> Статус: <span id="connectionStatus" style="color:#888">●</span></p>
+                    <p><i class="fas fa-server"></i> Сервер: <span style="color:#00ff80">Россия</span></p>
+                    <p><i class="fas fa-clock"></i> Время: <span id="currentTime">00:00</span></p>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <script>
         // Firebase config
         const firebaseConfig = {
@@ -349,8 +780,10 @@
         if (typeof firebase !== 'undefined') {
             try {
                 firebase.initializeApp(firebaseConfig);
-                console.log('Firebase OK');
-            } catch (e) {}
+                console.log('✅ Firebase инициализирован');
+            } catch (e) {
+                console.log('Firebase уже инициализирован');
+            }
         }
         const database = firebase.database ? firebase.database() : null;
 
@@ -364,6 +797,12 @@
 
         // ========== ИНИЦИАЛИЗАЦИЯ ==========
         window.onload = function() {
+            console.log('🚀 Запускаем NeonChat...');
+            
+            // Обновляем время
+            updateTime();
+            setInterval(updateTime, 60000);
+            
             // Проверяем сохраненного пользователя
             const savedUser = localStorage.getItem('neonchat_user');
             if (savedUser) {
@@ -372,66 +811,106 @@
                     myUserId = currentUser.id;
                     
                     if (currentUser && currentUser.name) {
+                        // Показываем кнопку выхода
                         document.getElementById('logoutFromLoginButton').style.display = 'block';
-                        document.getElementById('username').value = currentUser.name;
                         
-                        // Автовход
-                        setTimeout(autoLogin, 100);
+                        // Автозаполняем поле
+                        const usernameInput = document.getElementById('username');
+                        usernameInput.value = currentUser.name;
+                        usernameInput.focus();
+                        usernameInput.select();
+                        
+                        console.log('Найден сохраненный пользователь:', currentUser.name);
                     }
-                } catch (e) {}
+                } catch (e) {
+                    console.error('Ошибка загрузки пользователя:', e);
+                }
             }
         };
 
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = 
+                now.getHours().toString().padStart(2, '0') + ':' + 
+                now.getMinutes().toString().padStart(2, '0');
+        }
+
         // ========== ВХОД В ЧАТ ==========
         function enterChat() {
-            const username = document.getElementById('username').value.trim();
+            const usernameInput = document.getElementById('username');
+            const username = usernameInput.value.trim();
+            const loginButton = document.getElementById('loginButton');
+            
             if (!username) {
-                alert('Введи ник!');
+                alert('Введи крутой ник!');
+                usernameInput.focus();
                 return;
             }
             
-            const loginButton = document.getElementById('loginButton');
-            loginButton.disabled = true;
-            loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Входим...';
+            // Блокируем кнопку
+            if (loginButton) {
+                loginButton.disabled = true;
+                loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Входим...';
+            }
             
             setTimeout(() => {
+                // Создаем пользователя
                 myUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                const avatars = ['🦊', '🐯', '🐼', '🐨', '🦁', '🐲', '🐵', '🐸', '🦄', '🐙'];
+                const avatar = avatars[Math.floor(Math.random() * avatars.length)];
+                
                 currentUser = {
                     id: myUserId,
                     name: username,
-                    avatar: '👤',
+                    avatar: avatar,
                     lastSeen: Date.now()
                 };
                 
+                // Сохраняем
                 localStorage.setItem('neonchat_user', JSON.stringify(currentUser));
-                autoLogin();
+                
+                // Показываем чат
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('chatScreen').style.display = 'flex';
+                
+                // Обновляем UI
+                document.getElementById('currentUserName').textContent = currentUser.name;
+                document.getElementById('userAvatar').textContent = currentUser.avatar;
+                
+                // Разблокируем поле ввода
+                const messageInput = document.getElementById('messageInput');
+                messageInput.disabled = false;
+                messageInput.placeholder = "Напиши сообщение...";
+                setTimeout(() => messageInput.focus(), 300);
+                
+                // Проверка админ статуса
+                if (username === 'Артур Пирожков') {
+                    setTimeout(activateAdminMode, 500);
+                }
+                
+                // Инициализируем Firebase
+                setTimeout(initFirebaseListeners, 300);
+                
+                console.log('✅ Успешный вход:', username);
+                
             }, 300);
-        }
-
-        function autoLogin() {
-            document.getElementById('loginScreen').classList.remove('active');
-            document.getElementById('chatScreen').style.display = 'flex';
-            
-            document.getElementById('currentUserName').textContent = currentUser.name;
-            document.getElementById('messageInput').disabled = false;
-            
-            if (currentUser.name === 'Артур Пирожков') {
-                document.getElementById('adminChannel').style.display = 'block';
-            }
-            
-            setTimeout(initFirebaseListeners, 300);
         }
 
         // ========== FIREBASE ==========
         function initFirebaseListeners() {
             if (!database) {
-                alert('Firebase не загружен!');
+                alert('❌ Firebase не загружен!');
                 return;
             }
             
             // Подключение
             database.ref('.info/connected').on('value', (snap) => {
                 isConnected = snap.val() === true;
+                const status = document.getElementById('connectionStatus');
+                if (status) {
+                    status.textContent = isConnected ? '✓' : '✗';
+                    status.style.color = isConnected ? '#00ff80' : '#ff5555';
+                }
                 if (isConnected && currentUser) updateMyOnlineStatus();
             });
             
@@ -441,12 +920,26 @@
                 allMessages = data ? Object.values(data) : [];
                 allMessages.sort((a, b) => a.timestamp - b.timestamp);
                 updateMessagesDisplay();
+                document.getElementById('messageCount').textContent = allMessages.length;
+                document.getElementById('lastUpdate').textContent = 'только что';
+                document.getElementById('syncStatus').textContent = '✓';
+                document.getElementById('syncStatus').style.color = '#00ff80';
             });
             
             // Пользователи
             database.ref('users').on('value', (snapshot) => {
                 const data = snapshot.val();
                 onlineUsers = data ? new Map(Object.entries(data)) : new Map();
+                
+                // Фильтруем неактивных
+                const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+                for (const [userId, user] of onlineUsers.entries()) {
+                    if (user.lastSeen < fiveMinutesAgo) {
+                        onlineUsers.delete(userId);
+                        database.ref('users/' + userId).remove();
+                    }
+                }
+                
                 updateOnlineList();
                 document.getElementById('onlineCount').textContent = onlineUsers.size;
             });
@@ -470,7 +963,15 @@
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             
-            if (!text || !currentUser || !database) return;
+            if (!text || !currentUser) {
+                input.focus();
+                return;
+            }
+            
+            if (!database || !isConnected) {
+                alert('❌ Нет подключения к Firebase');
+                return;
+            }
             
             const message = {
                 id: Date.now().toString(),
@@ -489,15 +990,26 @@
                     input.focus();
                     scrollToBottom();
                     updateMyOnlineStatus();
+                })
+                .catch(error => {
+                    console.error('Ошибка отправки:', error);
+                    alert('❌ Ошибка отправки: ' + error.message);
                 });
         }
 
         function updateMessagesDisplay() {
             const container = document.getElementById('messagesContainer');
+            if (!container) return;
+            
+            const loading = document.getElementById('loadingMessages');
+            if (loading && container.contains(loading)) {
+                loading.remove();
+            }
+            
             const channelMessages = allMessages.filter(msg => msg.channel === currentChannel);
             
             if (channelMessages.length === 0) {
-                container.innerHTML = '<div style="text-align:center; padding:40px; color:#666;">Нет сообщений</div>';
+                container.innerHTML = '<div style="text-align:center; padding:40px; color:#666;"><i class="fas fa-comments"></i><br>Нет сообщений</div>';
                 return;
             }
             
@@ -507,45 +1019,18 @@
                 const div = document.createElement('div');
                 div.className = `message ${isOwn ? 'own' : ''}`;
                 div.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; color:#00ffff; font-weight:bold; font-size:0.9em;">
-                        <span>${msg.userAvatar} ${msg.userName}</span>
-                        <span style="color:#888;">${msg.time}</span>
+                    <div class="message-header">
+                        <span class="message-user">
+                            ${msg.userAvatar} ${msg.userName}
+                        </span>
+                        <span class="message-time">${msg.time}</span>
                     </div>
-                    <div style="margin-top:5px;">${msg.text}</div>
+                    <div class="message-content">${msg.text}</div>
                 `;
                 container.appendChild(div);
             });
             
             scrollToBottom();
-        }
-
-        function updateOnlineList() {
-            const container = document.getElementById('membersList');
-            const users = Array.from(onlineUsers.entries())
-                .sort((a, b) => b[1].lastSeen - a[1].lastSeen)
-                .slice(0, 15);
-            
-            if (users.length === 0) {
-                container.innerHTML = '<div style="text-align:center; padding:20px; color:#888;">Нет пользователей</div>';
-                return;
-            }
-            
-            container.innerHTML = '';
-            users.forEach(([userId, user]) => {
-                const isYou = userId === myUserId;
-                const div = document.createElement('div');
-                div.style.cssText = 'display:flex; align-items:center; padding:8px; margin:4px 0; background:rgba(255,255,255,0.05); border-radius:6px;';
-                div.innerHTML = `
-                    <div style="width:32px; height:32px; border-radius:50%; background:linear-gradient(45deg,#ff0080,#ff8c00); display:flex; align-items:center; justify-content:center; font-size:1em; margin-right:10px;">
-                        ${user.avatar}
-                    </div>
-                    <div>
-                        <div style="font-weight:bold; color:#00ffff; font-size:0.9em;">${user.name} ${isYou ? '(Вы)' : ''}</div>
-                        <div style="font-size:0.75em; color:#88aaff;">Online</div>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
         }
 
         function scrollToBottom() {
@@ -557,6 +1042,44 @@
             }
         }
 
+        // ========== СПИСОК ОНЛАЙН ==========
+        function updateOnlineList() {
+            const container = document.getElementById('membersList');
+            if (!container) return;
+            
+            const sortedUsers = Array.from(onlineUsers.entries())
+                .sort((a, b) => b[1].lastSeen - a[1].lastSeen)
+                .slice(0, 20);
+            
+            if (sortedUsers.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding:30px; color:#888;"><i class="fas fa-user-slash"></i><br>Нет участников</div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            sortedUsers.forEach(([userId, user]) => {
+                const isYou = userId === myUserId;
+                const minutesAgo = Math.floor((Date.now() - user.lastSeen) / 60000);
+                let status = 'Online';
+                if (minutesAgo > 0) {
+                    status = minutesAgo < 2 ? 'Только что' : `${minutesAgo} мин назад`;
+                }
+                
+                const div = document.createElement('div');
+                div.className = 'member';
+                div.innerHTML = `
+                    <div class="member-avatar">${user.avatar}</div>
+                    <div>
+                        <div class="member-name">
+                            ${user.name} ${isYou ? '<span style="color:#00ff80;">(Вы)</span>' : ''}
+                        </div>
+                        <div style="color:#88aaff; font-size:0.8em;">${status}</div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
         // ========== УТИЛИТЫ ==========
         function addEmoji(emoji) {
             const input = document.getElementById('messageInput');
@@ -566,48 +1089,191 @@
 
         function switchChannel(channel) {
             currentChannel = channel;
-            document.querySelectorAll('.channel').forEach(el => el.style.background = '');
-            event.target.closest('.channel').style.background = 'rgba(0,255,255,0.1)';
+            document.querySelectorAll('.channel').forEach(el => el.classList.remove('active'));
+            event.target.closest('.channel').classList.add('active');
             
             const channelNames = {
                 'main': 'Основной чат',
                 'news': 'Новости',
                 'memes': 'Мемы',
-                'admin': 'Админ-чат'
+                'games': 'Игры',
+                'admin': '👑 Админ-чат'
             };
             document.getElementById('channelName').textContent = channelNames[channel] || channel;
             
             updateMessagesDisplay();
-            
-            // Закрываем меню на мобилках
-            if (window.innerWidth <= 768) {
-                toggleSidebar();
-            }
         }
 
         function forceSync() {
             updateMyOnlineStatus();
+            const btn = document.querySelector('.refresh-btn');
+            if (btn) {
+                btn.style.transform = 'rotate(360deg)';
+                setTimeout(() => btn.style.transform = 'rotate(0deg)', 300);
+            }
+        }
+
+        function startCall() {
+            if (!database || !isConnected) {
+                alert('❌ Нет подключения к Firebase');
+                return;
+            }
+            
+            const roomName = `neonchat-${Date.now()}`;
+            const jitsiUrl = `https://meet.jit.si/${roomName}`;
+            
+            const message = {
+                id: Date.now().toString(),
+                userId: 'system',
+                userName: '📞 Система',
+                userAvatar: '📞',
+                text: `🚀 <div style="background:linear-gradient(45deg,rgba(255,0,128,0.2),rgba(255,140,0,0.2)); padding:20px; border-radius:15px; border:2px solid #ff0080; text-align:center; margin:10px 0;">
+                       <strong style="color:#00ffff; font-size:1.3em;">📢 ВСЕ НА ЗВОНОК!</strong><br><br>
+                       <a href="${jitsiUrl}" target="_blank" style="display:inline-block; background:linear-gradient(45deg,#ff0080,#ff5500); color:white; padding:15px 30px; border-radius:15px; text-decoration:none; font-weight:bold; font-size:1.1em; border:2px solid #ff0080; box-shadow:0 0 20px rgba(255,0,128,0.5);">
+                       <i class="fas fa-phone-alt"></i> НАЖМИ ДЛЯ ПОДКЛЮЧЕНИЯ
+                       </a>
+                       </div>`,
+                channel: currentChannel,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                timestamp: Date.now()
+            };
+            
+            database.ref('messages/' + message.id).set(message);
+            window.open(jitsiUrl, '_blank');
         }
 
         function toggleSidebar() {
             document.querySelector('.sidebar').classList.toggle('active');
+            document.querySelector('.right-sidebar').classList.remove('active');
         }
 
         function toggleMembers() {
             document.querySelector('.right-sidebar').classList.toggle('active');
+            document.querySelector('.sidebar').classList.remove('active');
         }
 
         function logout() {
-            if (confirm('Выйти из чата?')) {
+            if (confirm('Точно выйти из чата?')) {
                 localStorage.removeItem('neonchat_user');
                 location.reload();
             }
         }
 
         function logoutFromLogin() {
-            if (confirm('Сменить пользователя?')) {
+            if (confirm('Выйти и ввести новый ник?')) {
                 localStorage.removeItem('neonchat_user');
                 location.reload();
+            }
+        }
+
+        // ========== АДМИН ФУНКЦИИ ==========
+        function activateAdminMode() {
+            console.log('🎯 Активация админ-режима');
+            document.getElementById('adminChannel').style.display = 'flex';
+            document.getElementById('adminPanel').style.display = 'block';
+            document.getElementById('userAvatar').textContent = '👑';
+            document.getElementById('userAvatar').style.background = 'linear-gradient(45deg, #ff0000, #ff8800)';
+            
+            // Системное сообщение
+            if (database) {
+                const message = {
+                    id: Date.now().toString(),
+                    userId: 'system',
+                    userName: '👑 АДМИНИСТРАТОР',
+                    userAvatar: '👑',
+                    text: '👑 Администратор <strong style="color:#ff0000;">Артур Пирожков</strong> в сети!',
+                    channel: 'main',
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    timestamp: Date.now()
+                };
+                database.ref('messages/' + message.id).set(message);
+            }
+        }
+
+        async function adminClearChat() {
+            if (!confirm('💀 ОЧИСТИТЬ ВЕСЬ ЧАТ?')) return;
+            if (!database) return;
+            
+            try {
+                await database.ref('messages').remove();
+                alert('✅ Чат очищен');
+            } catch (error) {
+                alert('❌ Ошибка: ' + error.message);
+            }
+        }
+
+        async function adminBanUser() {
+            const userName = prompt('Введите ник для бана:');
+            if (!userName || !database) return;
+            
+            const reason = prompt('Причина бана:') || 'Нарушение правил';
+            
+            try {
+                // Ищем пользователя
+                for (const [userId, user] of onlineUsers.entries()) {
+                    if (user.name === userName) {
+                        await database.ref('users/' + userId).remove();
+                        
+                        // Сообщение о бане
+                        const banMessage = {
+                            id: Date.now().toString(),
+                            userId: 'system',
+                            userName: '🚫 АДМИН',
+                            userAvatar: '🚫',
+                            text: `🚨 Пользователь <strong style="color:#ff0000;">${userName}</strong> забанен!<br>Причина: ${reason}`,
+                            channel: 'main',
+                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            timestamp: Date.now()
+                        };
+                        await database.ref('messages/' + banMessage.id).set(banMessage);
+                        
+                        alert(`✅ ${userName} забанен`);
+                        return;
+                    }
+                }
+                alert('❌ Пользователь не найден');
+            } catch (error) {
+                alert('❌ Ошибка: ' + error.message);
+            }
+        }
+
+        async function adminSendAnnouncement() {
+            const text = prompt('Текст объявления:');
+            if (!text || !database) return;
+            
+            const message = {
+                id: Date.now().toString(),
+                userId: 'system',
+                userName: '📢 ОБЪЯВЛЕНИЕ',
+                userAvatar: '📢',
+                text: `📣 <div style="background:linear-gradient(45deg,#ff9900,#ffff00); padding:20px; border-radius:15px; color:#000; text-align:center; border:3px solid #ff5500; margin:10px 0;">
+                       <div style="font-size:1.4em; color:#ff0000; margin-bottom:15px;">⚡ ВНИМАНИЕ ВСЕМ!</div>
+                       ${text}
+                       <div style="margin-top:15px; font-size:0.9em; color:#666;">👑 От администратора</div>
+                       </div>`,
+                channel: 'main',
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                timestamp: Date.now()
+            };
+            
+            await database.ref('messages/' + message.id).set(message);
+            alert('✅ Объявление отправлено');
+        }
+
+        async function adminTestMessage() {
+            const message = {
+                id: Date.now().toString(),
+                userId: myUserId,
+                userName: currentUser.name,
+                userAvatar: '👑',
+                text: '🔧 <span style="color:#00ffff;">[ТЕСТОВОЕ СООБЩЕНИЕ АДМИНИСТРАТОРА]</span> 🌟 Всё работает отлично! 👑',
+                channel: currentChannel,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                timestamp: Date.now()
+            };
+            
+            if (database) {
+                await database.ref('messages/' + message.id).set(message);
             }
         }
     </script>
