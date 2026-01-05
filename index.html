@@ -556,7 +556,7 @@
             gap: 8px;
         }
         
-        /* СПИСОК УЧАСТНИКОВ */
+        /* СПИСОК ОНЛАЙН ПОЛЬЗОВАТЕЛЕЙ */
         .members-list {
             background: rgba(10, 10, 25, 0.5);
             border-radius: 12px;
@@ -597,6 +597,24 @@
             font-weight: 500;
             color: rgba(255, 255, 255, 0.9);
             font-size: 0.95em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .online-dot {
+            width: 8px;
+            height: 8px;
+            background: #00ffaa;
+            border-radius: 50%;
+            margin-left: 4px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
         
         /* TELEGRAM ПАНЕЛЬ - КОМПАКТНАЯ */
@@ -901,10 +919,7 @@
             <div class="right-sidebar">
                 <h3><i class="fas fa-users"></i> Сейчас онлайн</h3>
                 <div class="members-list" id="membersList">
-                    <div class="member">
-                        <div class="member-avatar">👤</div>
-                        <div class="member-name">Вы</div>
-                    </div>
+                    <!-- Онлайн пользователи загружаются сюда -->
                 </div>
                 
                 <!-- TELEGRAM ПАНЕЛЬ -->
@@ -941,7 +956,7 @@
             measurementId: "G-9PC37HF1MJ"
         };
 
-        // Telegram - КОРОТКИЕ УВЕДОМЛЕНИЯ
+        // Telegram
         const TELEGRAM_BOT_TOKEN = '8375108387:AAEVrbh4T-vrSzaK5M2OSNeHaNppsCdpfW0';
         const TELEGRAM_CHAT_ID = '1474901393';
         
@@ -951,6 +966,9 @@
         let currentUser = null;
         let currentChannel = 'main';
         let messages = [];
+        let onlineUsers = new Map(); // ТОЛЬКО ОНЛАЙН ПОЛЬЗОВАТЕЛИ
+        let myUserId = null;
+        let onlineTimeout = null;
 
         // ==================== ИНИЦИАЛИЗАЦИЯ ====================
         window.onload = function() {
@@ -1065,6 +1083,107 @@
             }
         }
 
+        // ==================== СИСТЕМА ОНЛАЙН ПОЛЬЗОВАТЕЛЕЙ ====================
+        function updateOnlineStatus() {
+            if (!database || !currentUser || !myUserId) return;
+            
+            // Обновляем свой статус онлайн
+            const userRef = database.ref('online/' + myUserId);
+            userRef.set({
+                id: myUserId,
+                name: currentUser.name,
+                avatar: currentUser.avatar,
+                lastSeen: Date.now()
+            });
+            
+            // Автоматическое удаление при отключении
+            userRef.onDisconnect().remove();
+        }
+
+        function monitorOnlineUsers() {
+            if (!database) return;
+            
+            // Слушаем изменения онлайн пользователей
+            database.ref('online').on('value', (snapshot) => {
+                const data = snapshot.val();
+                onlineUsers.clear();
+                
+                if (data) {
+                    const now = Date.now();
+                    const tenSecondsAgo = now - 10000; // 10 секунд - макс время онлайн
+                    
+                    // Фильтруем только активных пользователей (последние 10 секунд)
+                    Object.entries(data).forEach(([userId, user]) => {
+                        if (user.lastSeen > tenSecondsAgo) {
+                            onlineUsers.set(userId, user);
+                        } else {
+                            // Удаляем неактивных
+                            database.ref('online/' + userId).remove();
+                        }
+                    });
+                }
+                
+                updateOnlineDisplay();
+            });
+        }
+
+        function updateOnlineDisplay() {
+            const container = document.getElementById('membersList');
+            const onlineCount = document.getElementById('onlineCount');
+            
+            if (!container) return;
+            
+            // Создаем список
+            container.innerHTML = '';
+            
+            // Добавляем себя первым
+            if (currentUser && myUserId) {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'member';
+                userDiv.innerHTML = `
+                    <div class="member-avatar">${currentUser.avatar}</div>
+                    <div class="member-name">
+                        ${currentUser.name}
+                        <span style="color: #00ff80;">(Вы)</span>
+                        <div class="online-dot"></div>
+                    </div>
+                `;
+                container.appendChild(userDiv);
+            }
+            
+            // Добавляем других онлайн пользователей
+            onlineUsers.forEach((user, userId) => {
+                if (userId === myUserId) return; // Пропускаем себя
+                
+                const userDiv = document.createElement('div');
+                userDiv.className = 'member';
+                userDiv.innerHTML = `
+                    <div class="member-avatar">${user.avatar}</div>
+                    <div class="member-name">
+                        ${user.name}
+                        <div class="online-dot"></div>
+                    </div>
+                `;
+                container.appendChild(userDiv);
+            });
+            
+            // Обновляем счетчик
+            onlineCount.textContent = onlineUsers.size;
+            
+            // Если онлайн только вы
+            if (onlineUsers.size === 1) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.style.textAlign = 'center';
+                emptyDiv.style.padding = '20px';
+                emptyDiv.style.color = 'rgba(255,255,255,0.5)';
+                emptyDiv.innerHTML = `
+                    <i class="fas fa-user-friends" style="font-size: 2em; margin-bottom: 10px; display: block;"></i>
+                    Пока ты один в сети
+                `;
+                container.appendChild(emptyDiv);
+            }
+        }
+
         // ==================== ОСНОВНЫЕ ФУНКЦИИ ЧАТА ====================
         function enterChat() {
             const usernameInput = document.getElementById('username');
@@ -1076,13 +1195,14 @@
                 return;
             }
             
-            // Создаем пользователя
-            const userId = 'user_' + Date.now();
+            // Создаем уникальный ID пользователя
+            myUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            
             const avatars = ['😎', '🐱', '🚀', '🦊', '🐯', '🦁', '🐼', '🐨'];
             const avatar = avatars[Math.floor(Math.random() * avatars.length)];
             
             currentUser = {
-                id: userId,
+                id: myUserId,
                 name: username,
                 avatar: avatar
             };
@@ -1122,10 +1242,19 @@
                 statusEl.textContent = isConnected ? '✓' : '✗';
                 statusEl.style.color = isConnected ? '#00ff80' : '#ff6666';
                 
-                if (!isConnected) {
-                    showStatus('Подключение...', '#ffaa00');
-                } else {
+                if (isConnected) {
                     showStatus('✓ Подключено', '#00ff80');
+                    // Начинаем отслеживать онлайн статус
+                    updateOnlineStatus();
+                    monitorOnlineUsers();
+                    
+                    // Периодически обновляем статус онлайн
+                    onlineTimeout = setInterval(() => {
+                        updateOnlineStatus();
+                    }, 5000); // Каждые 5 секунд
+                } else {
+                    showStatus('Подключение...', '#ffaa00');
+                    if (onlineTimeout) clearInterval(onlineTimeout);
                 }
             });
             
@@ -1137,9 +1266,6 @@
                 
                 updateMessagesDisplay();
                 document.getElementById('messageCount').textContent = messages.length;
-                
-                // Обновляем онлайн пользователей
-                updateOnlineUsers();
             });
             
             showStatus('Загрузка чата...', '#ffaa00');
@@ -1181,46 +1307,6 @@
             }, 100);
         }
 
-        function updateOnlineUsers() {
-            const container = document.getElementById('membersList');
-            const uniqueUsers = {};
-            
-            messages.forEach(msg => {
-                if (!uniqueUsers[msg.userId]) {
-                    uniqueUsers[msg.userId] = msg;
-                }
-            });
-            
-            const users = Object.values(uniqueUsers);
-            container.innerHTML = '';
-            
-            // Добавляем текущего пользователя
-            if (currentUser) {
-                const userDiv = document.createElement('div');
-                userDiv.className = 'member';
-                userDiv.innerHTML = `
-                    <div class="member-avatar">${currentUser.avatar}</div>
-                    <div class="member-name">${currentUser.name} (Вы)</div>
-                `;
-                container.appendChild(userDiv);
-            }
-            
-            // Добавляем других пользователей
-            users.forEach(user => {
-                if (currentUser && user.userId === currentUser.id) return;
-                
-                const userDiv = document.createElement('div');
-                userDiv.className = 'member';
-                userDiv.innerHTML = `
-                    <div class="member-avatar">${user.userAvatar}</div>
-                    <div class="member-name">${user.userName}</div>
-                `;
-                container.appendChild(userDiv);
-            });
-            
-            document.getElementById('onlineCount').textContent = users.length + 1;
-        }
-
         async function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
@@ -1254,6 +1340,9 @@
             try {
                 // Сохраняем в Firebase
                 await database.ref('messages/' + message.id).set(message);
+                
+                // Обновляем свой статус онлайн
+                updateOnlineStatus();
                 
                 // Отправляем в Telegram
                 if (telegramEnabled) {
@@ -1342,6 +1431,10 @@
             btn.style.transform = 'rotate(180deg)';
             setTimeout(() => btn.style.transform = 'rotate(0deg)', 300);
             
+            // Обновляем онлайн статус
+            updateOnlineStatus();
+            
+            // Обновляем сообщения
             if (database) {
                 database.ref('messages').once('value').then(snapshot => {
                     const data = snapshot.val();
@@ -1354,6 +1447,14 @@
 
         function logout() {
             if (confirm('Выйти из чата?')) {
+                // Удаляем из онлайн
+                if (database && myUserId) {
+                    database.ref('online/' + myUserId).remove();
+                }
+                
+                // Очищаем таймер
+                if (onlineTimeout) clearInterval(onlineTimeout);
+                
                 localStorage.removeItem('neonchat_user');
                 location.reload();
             }
