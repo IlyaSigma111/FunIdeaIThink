@@ -496,12 +496,6 @@
             gap: 8px;
         }
         
-        .news-author {
-            color: #00ccff;
-            font-size: 0.9em;
-            font-weight: 500;
-        }
-        
         .news-date {
             color: rgba(255, 255, 255, 0.4);
             font-size: 0.85em;
@@ -512,6 +506,16 @@
             font-size: 1em;
             color: rgba(255, 255, 255, 0.9);
             margin-bottom: 10px;
+        }
+        
+        .news-author {
+            color: #00ccff;
+            font-size: 0.9em;
+            font-weight: 500;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         
         .news-tag {
@@ -979,9 +983,6 @@
                     <div class="channel" onclick="switchChannel('fun')">
                         <i class="fas fa-gamepad"></i> Игры
                     </div>
-                    <div class="channel" onclick="switchChannel('media')">
-                        <i class="fas fa-photo-video"></i> Медиа
-                    </div>
                 </div>
                 
                 <div class="sidebar-buttons">
@@ -1060,6 +1061,9 @@
                     <button onclick="refreshDiscordNews()" class="discord-btn">
                         <i class="fas fa-sync-alt"></i> Обновить новости
                     </button>
+                    <button onclick="addTestNews()" class="discord-btn" style="background: rgba(255, 193, 7, 0.1); border-color: rgba(255, 193, 7, 0.3);">
+                        <i class="fas fa-plus"></i> Тестовая новость
+                    </button>
                     <div style="font-size: 0.8em; color: #7289da; margin-top: 10px; text-align: center;">
                         <i class="fas fa-lock"></i> Только для чтения
                     </div>
@@ -1103,8 +1107,8 @@
         const TELEGRAM_BOT_TOKEN = '8375108387:AAEVrbh4T-vrSzaK5M2OSNeHaNppsCdpfW0';
         const TELEGRAM_CHAT_ID = '1474901393';
         
-        // Discord Webhook для новостей (ТВОЙ URL)
-        const DISCORD_NEWS_WEBHOOK = 'https://discord.com/api/webhooks/1458009111038918787/cLSk_jZxRWV1l0jpBZid1Uh-Glpyk1ITN4A1NVEujsGUZC7HLWqlVeIkVmT7vpCXXn1N';
+        // Discord Webhook
+        const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1458009111038918787/cLSk_jZxRWV1l0jpBZid1Uh-Glpyk1ITN4A1NVEujsGUZC7HLWqlVeIkVmT7vpCXXn1N';
         
         // Глобальные переменные
         let telegramEnabled = false;
@@ -1224,17 +1228,6 @@
         }
 
         // ==================== DISCORD НОВОСТИ ====================
-        async function fetchDiscordNews() {
-            try {
-                const response = await fetch('https://api.github.com/gists/a3b2c1d4e5f6g7h8i9j0'); // Тут нужен сервер
-                const data = await response.json();
-                return data.files ? JSON.parse(data.files.news.content) : [];
-            } catch (error) {
-                console.log('❌ GitHub API не доступен, используем Firebase');
-                return [];
-            }
-        }
-
         async function loadDiscordNews() {
             if (!database) return;
             
@@ -1250,10 +1243,15 @@
                 // Обновляем статус Discord
                 const status = document.getElementById('discordStatus');
                 if (status) {
-                    status.textContent = news.length > 0 ? 
-                        `✅ ${news.length} новостей загружено` : 
-                        '📭 Нет новостей';
-                    status.style.color = news.length > 0 ? '#00ff80' : '#ffaa00';
+                    if (news.length > 0) {
+                        const latest = news[0];
+                        const timeAgo = formatTimeAgo(latest.timestamp);
+                        status.textContent = `✅ ${news.length} новостей (последняя: ${timeAgo})`;
+                        status.style.color = '#00ff80';
+                    } else {
+                        status.textContent = '📭 Нет новостей';
+                        status.style.color = '#ffaa00';
+                    }
                 }
             });
         }
@@ -1266,9 +1264,9 @@
                 container.innerHTML = `
                     <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.4);">
                         <i class="fas fa-newspaper" style="font-size: 3em; margin-bottom: 15px; display: block;"></i>
-                        Нет новостей от Discord
+                        Пока нет новостей от Discord
                         <div style="font-size: 0.9em; margin-top: 10px; color: #7289da;">
-                            Напиши в Discord канале "Новости"
+                            Чтобы добавить новость, используй кнопку "Тестовая новость"
                         </div>
                     </div>
                 `;
@@ -1277,20 +1275,20 @@
             
             container.innerHTML = '';
             
-            news.forEach((item, index) => {
+            news.forEach((item) => {
                 const newsDiv = document.createElement('div');
                 newsDiv.className = 'news-item';
                 newsDiv.innerHTML = `
                     <div class="news-header">
                         <div class="news-title">
-                            <i class="fab fa-discord"></i> ${item.title || 'Новость от Discord'}
+                            <i class="fab fa-discord"></i> ${item.title}
                         </div>
                         <div class="news-date">${formatNewsDate(item.timestamp)}</div>
                     </div>
-                    <div class="news-author">
-                        <i class="fas fa-user-tag"></i> ${item.author || 'Администратор Discord'}
-                    </div>
                     <div class="news-content">${item.content}</div>
+                    <div class="news-author">
+                        <i class="fas fa-user-tag"></i> ${item.author}
+                    </div>
                     ${item.tag ? `<div class="news-tag">${item.tag}</div>` : ''}
                 `;
                 container.appendChild(newsDiv);
@@ -1302,16 +1300,70 @@
             const now = new Date();
             const diff = now - date;
             
-            // Если сегодня
-            if (diff < 24 * 60 * 60 * 1000) {
-                return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            if (diff < 60 * 1000) return 'только что';
+            if (diff < 60 * 60 * 1000) return `${Math.floor(diff / (60 * 1000))} мин назад`;
+            if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff / (60 * 60 * 1000))} ч назад`;
+            
+            return date.toLocaleDateString('ru-RU', { 
+                day: 'numeric', 
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function formatTimeAgo(timestamp) {
+            const now = Date.now();
+            const diff = now - timestamp;
+            
+            if (diff < 60 * 1000) return 'только что';
+            if (diff < 60 * 60 * 1000) return `${Math.floor(diff / (60 * 1000))} мин назад`;
+            if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff / (60 * 60 * 1000))} ч назад`;
+            return `${Math.floor(diff / (24 * 60 * 60 * 1000))} дн назад`;
+        }
+
+        async function addTestNews() {
+            if (!database) {
+                alert('Firebase не подключен!');
+                return;
             }
-            // Если вчера
-            if (diff < 48 * 60 * 60 * 1000) {
-                return 'Вчера';
+            
+            const newsText = prompt('Введи текст новости:');
+            if (!newsText) return;
+            
+            const newsTitle = prompt('Заголовок новости (опционально):', 'Новая новость');
+            
+            try {
+                const newsId = Date.now().toString();
+                const newsItem = {
+                    id: newsId,
+                    title: newsTitle || 'Новая новость',
+                    content: newsText,
+                    author: currentUser ? currentUser.name : 'Администратор',
+                    timestamp: Date.now(),
+                    tag: 'Тест'
+                };
+                
+                await database.ref('news/' + newsId).set(newsItem);
+                
+                // Отправляем в Discord через вебхук
+                if (DISCORD_WEBHOOK_URL) {
+                    await fetch(DISCORD_WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            content: `📰 **${newsItem.title}**\n${newsItem.content}\n\n👤 ${newsItem.author}`
+                        })
+                    });
+                }
+                
+                alert('✅ Новость добавлена и отправлена в Discord!');
+                refreshDiscordNews();
+                
+            } catch (error) {
+                console.error('❌ Ошибка добавления новости:', error);
+                alert('❌ Ошибка: ' + error.message);
             }
-            // Иначе дата
-            return date.toLocaleDateString('ru-RU');
         }
 
         function refreshDiscordNews() {
@@ -1331,7 +1383,11 @@
                         status.textContent = `✅ Обновлено: ${news.length} новостей`;
                         status.style.color = '#00ff80';
                         setTimeout(() => {
-                            status.textContent = '';
+                            if (news.length > 0) {
+                                const latest = news[0];
+                                const timeAgo = formatTimeAgo(latest.timestamp);
+                                status.textContent = `✅ ${news.length} новостей (последняя: ${timeAgo})`;
+                            }
                         }, 2000);
                     }
                 });
@@ -1604,13 +1660,11 @@
             const channelNames = {
                 'main': 'Основной чат',
                 'news': 'Новости Discord',
-                'fun': 'Игры',
-                'media': 'Медиа'
+                'fun': 'Игры'
             };
             
             document.getElementById('channelName').textContent = channelNames[channel] || channel;
             
-            // Показываем/скрываем соответствующий контент
             if (channel === 'news') {
                 document.getElementById('messagesContainer').style.display = 'none';
                 document.getElementById('newsContainer').style.display = 'block';
