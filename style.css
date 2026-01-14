@@ -450,6 +450,12 @@ html, body {
     border-left: 4px solid gold;
 }
 
+.message.ai {
+    background: rgba(106, 13, 173, 0.2);
+    border-color: rgba(157, 78, 221, 0.3);
+    border-left: 4px solid #9d4edd;
+}
+
 .message-header {
     display: flex;
     justify-content: space-between;
@@ -472,6 +478,10 @@ html, body {
     color: gold;
 }
 
+.message-user.ai {
+    color: #9d4edd;
+}
+
 .message-time {
     color: rgba(255, 255, 255, 0.5);
     font-size: 0.85em;
@@ -482,6 +492,29 @@ html, body {
     line-height: 1.5;
     font-size: 1em;
     color: rgba(255, 255, 255, 0.9);
+}
+
+/* Анимация набора AI */
+.ai-typing {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #9d4edd;
+    font-style: italic;
+    padding: 10px;
+    background: rgba(106, 13, 173, 0.1);
+    border-radius: 10px;
+    margin: 5px;
+    border-left: 3px solid #9d4edd;
+}
+
+.ai-typing i {
+    animation: typing 1.5s infinite;
+}
+
+@keyframes typing {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
 }
 
 /* ПОЛЕ ВВОДА */
