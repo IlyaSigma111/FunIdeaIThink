@@ -14,6 +14,10 @@ const firebaseConfig = {
 const ADMIN_USERNAME = "ArturPirozhkov";
 const ADMIN_PASSWORD = "JojoTop1";
 
+// Яндекс Телемост конфигурация
+const TELEMOST_BASE_URL = "https://telemost.yandex.ru";
+const TELEMOST_MEETING_PASSWORD = "neonchat123"; // Опциональный пароль для встречи
+
 // Глобальные переменные
 let isRegisterMode = false;
 let telegramEnabled = true; // Всегда включено
@@ -588,6 +592,12 @@ function handleCommand(command) {
             }
             break;
             
+        case '/call':
+        case '/телефон':
+        case '/теле':
+            startCall();
+            break;
+            
         default:
             sendSystemMessage(`❌ Неизвестная команда. Введи /help для списка команд`);
     }
@@ -599,6 +609,7 @@ function showHelp() {
     helpText += '/help - Показать это сообщение<br>';
     helpText += '/online - Показать кто онлайн<br>';
     helpText += '/me [действие] - Отправить действие<br>';
+    helpText += '/call - Создать видеозвонок (Яндекс Телемост)<br>';
     
     if (isAdmin) {
         helpText += '<br><strong style="color:gold;">👑 Админ команды:</strong><br>';
@@ -645,6 +656,119 @@ function sendActionMessage(action) {
     };
     
     database.ref('messages/' + message.id).set(message);
+}
+
+// ==================== ЯНДЕКС ТЕЛЕМОСТ ====================
+function startCall() {
+    if (!database || !isConnected) {
+        alert('❌ Нет подключения к Firebase для создания звонка');
+        return;
+    }
+    
+    // Генерируем уникальный ID для встречи
+    const meetingId = generateMeetingId();
+    const telemostUrl = `${TELEMOST_BASE_URL}/${meetingId}`;
+    
+    // Создаем красивое сообщение о звонке
+    const callMessage = {
+        id: Date.now().toString(),
+        userId: 'system',
+        userName: '🎥 Яндекс Телемост',
+        userAvatar: '🎥',
+        text: `📞 <div class="call-announcement" style="
+            background: linear-gradient(135deg, rgba(255, 0, 128, 0.15), rgba(255, 102, 0, 0.15));
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid rgba(255, 0, 128, 0.3);
+            margin: 10px 0;
+            text-align: center;
+        ">
+            <div style="color: #ff0080; font-size: 1.4em; font-weight: bold; margin-bottom: 15px;">
+                <i class="fas fa-video"></i> СОЗДАН ВИДЕОЗВОНОК
+            </div>
+            
+            <a href="${telemostUrl}" target="_blank" style="
+                display: inline-block;
+                background: linear-gradient(135deg, #ff0080, #ff5500);
+                color: white;
+                padding: 15px 30px;
+                border-radius: 12px;
+                text-decoration: none;
+                font-weight: bold;
+                font-size: 1.1em;
+                margin: 15px 0;
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                box-shadow: 0 0 20px rgba(255, 0, 128, 0.4);
+                transition: all 0.3s;
+                animation: pulse-call 1.5s infinite;
+            " onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 25px rgba(255, 0, 128, 0.6)'" 
+               onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 0 20px rgba(255, 0, 128, 0.4)'">
+                <i class="fas fa-video"></i> ПРИСОЕДИНИТЬСЯ К ЗВОНКУ
+            </a>
+            
+            <div style="margin-top: 20px; font-size: 0.9em; color: #aaa;">
+                <div style="margin-bottom: 8px;">
+                    <strong>Ссылка для подключения:</strong>
+                </div>
+                <div style="
+                    background: rgba(0, 0, 0, 0.3);
+                    padding: 12px;
+                    border-radius: 8px;
+                    font-family: monospace;
+                    word-break: break-all;
+                    font-size: 0.85em;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    margin-bottom: 10px;
+                ">
+                    ${telemostUrl}
+                </div>
+                
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div><strong>Создатель:</strong> ${currentUser.name}</div>
+                    <div><strong>Платформа:</strong> Яндекс Телемост 🇷🇺</div>
+                    <div><strong>Время:</strong> ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
+                
+                <div style="margin-top: 15px; font-size: 0.85em; color: #88aaff;">
+                    <i class="fas fa-info-circle"></i> Просто нажми на кнопку выше или скопируй ссылку
+                </div>
+            </div>
+        </div>`,
+        channel: currentChannel,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: Date.now()
+    };
+    
+    // Отправляем сообщение в чат
+    database.ref('messages/' + callMessage.id).set(callMessage)
+        .then(() => {
+            console.log('✅ Сообщение о звонке отправлено');
+            
+            // Открываем звонок в новом окне
+            window.open(telemostUrl, '_blank', 'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no');
+            
+            // Показываем уведомление
+            if (Notification.permission === "granted") {
+                new Notification("🎥 Яндекс Телемост", {
+                    body: `Звонок создан! Нажмите, чтобы присоединиться`,
+                    icon: "https://telemost.yandex.ru/favicon.ico"
+                });
+            }
+        })
+        .catch(error => {
+            console.error('❌ Ошибка отправки сообщения о звонке:', error);
+            alert('❌ Не удалось создать звонок. Попробуйте позже.');
+        });
+}
+
+function generateMeetingId() {
+    // Генерируем случайный ID для встречи
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let result = 'j/';
+    for (let i = 0; i < 12; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
 }
 
 // ==================== АДМИН ФУНКЦИИ ====================
@@ -804,41 +928,6 @@ function switchChannel(channel) {
     hideMobilePanels();
 }
 
-function startCall() {
-    const roomName = `neonchat-${Date.now()}`;
-    const jitsiUrl = `https://meet.jit.si/${roomName}`;
-    
-    if (database && currentUser) {
-        const message = {
-            id: Date.now().toString(),
-            userId: 'system',
-            userName: '📞',
-            userAvatar: '📞',
-            text: `📞 <b>Создан видеозвонок</b><br>
-                   <a href="${jitsiUrl}" target="_blank" style="
-                       display: inline-block;
-                       background: linear-gradient(135deg, #ff3366, #ff9966);
-                       color: white;
-                       padding: 10px 20px;
-                       border-radius: 10px;
-                       text-decoration: none;
-                       font-weight: 600;
-                       margin-top: 10px;
-                       border: 1px solid rgba(255,255,255,0.2);
-                   ">
-                       Присоединиться
-                   </a>`,
-            channel: currentChannel,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            timestamp: Date.now()
-        };
-        
-        database.ref('messages/' + message.id).set(message);
-    }
-    
-    window.open(jitsiUrl, '_blank');
-}
-
 function toggleSidebar() {
     document.querySelector('.sidebar').classList.toggle('active');
     document.querySelector('.right-sidebar').classList.remove('active');
@@ -877,6 +966,14 @@ function logout() {
     }
 }
 
+// Проверяем подключение к Firebase
+let isConnected = false;
+if (database) {
+    database.ref('.info/connected').on('value', (snap) => {
+        isConnected = snap.val() === true;
+    });
+}
+
 // Обработка Enter для отправки
 document.addEventListener('DOMContentLoaded', function() {
     const messageInput = document.getElementById('messageInput');
@@ -887,5 +984,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 sendMessage();
             }
         });
+    }
+    
+    // Запрашиваем разрешение на уведомления
+    if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
     }
 });
