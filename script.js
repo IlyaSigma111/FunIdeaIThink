@@ -1,4 +1,4 @@
-// ==================== FIREBASE КОНФИГ ====================
+// ==================== КОНФИГУРАЦИЯ ====================
 const firebaseConfig = {
     apiKey: "AIzaSyBBpRh7B5qZdyd66Q4KxsUBhH2qcwshI7g",
     authDomain: "funideaithink-3206d.firebaseapp.com",
@@ -10,40 +10,44 @@ const firebaseConfig = {
     measurementId: "G-9PC37HF1MJ"
 };
 
-// АДМИН
+// Админ аккаунт (ник: ArturPirozhkov, пароль: JojoTop1)
 const ADMIN_USERNAME = "ArturPirozhkov";
 const ADMIN_PASSWORD = "JojoTop1";
 
-// Яндекс Телемост
+// Яндекс Телемост конфигурация
 const TELEMOST_BASE_URL = "https://telemost.yandex.ru";
 
-// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+// Hugging Face AI
+const HF_API_KEY = "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"; // Твой API ключ
+const HF_MODEL = "microsoft/DialoGPT-medium"; // Бесплатная модель для чата
+
+// Глобальные переменные
 let isRegisterMode = false;
+let telegramEnabled = true;
 let database = null;
 let currentUser = null;
 let currentChannel = 'main';
 let messages = [];
 let onlineUsers = new Map();
 let myUserId = null;
+let onlineTimeout = null;
 let isAdmin = false;
+let aiConversations = new Map();
+let isAITyping = false;
 
 // ==================== ИНИЦИАЛИЗАЦИЯ ====================
 window.onload = function() {
-    console.log('🚀 NeonChat ЗАПУЩЕН!');
+    console.log('🚀 NeonChat запущен');
     
-    // FIREBASE
-    try {
-        if (typeof firebase !== 'undefined') {
+    // Инициализация Firebase
+    if (typeof firebase !== 'undefined') {
+        try {
             firebase.initializeApp(firebaseConfig);
             database = firebase.database();
             console.log('✅ Firebase подключен');
-        } else {
-            console.error('Firebase SDK не загружен!');
-            alert('❌ Firebase SDK не загружен! Обнови страницу!');
+        } catch (e) {
+            database = firebase.database();
         }
-    } catch (e) {
-        console.error('Ошибка Firebase:', e);
-        alert('❌ Ошибка Firebase: ' + e.message);
     }
     
     // Проверяем сохраненного пользователя
@@ -53,64 +57,53 @@ window.onload = function() {
             currentUser = JSON.parse(savedUser);
             myUserId = currentUser.id;
             
+            // Автозаполняем поле логина
             const usernameInput = document.getElementById('username');
-            if (usernameInput) {
-                usernameInput.value = currentUser.name || '';
+            if (usernameInput && currentUser.name) {
+                usernameInput.value = currentUser.name;
                 document.getElementById('password').focus();
             }
             
-            console.log('Найден пользователь:', currentUser.name);
+            console.log('Найден сохраненный пользователь:', currentUser.name);
         } catch (e) {
-            console.error('Ошибка загрузки:', e);
+            console.error('Ошибка загрузки пользователя:', e);
         }
     }
     
-    // Автофокус на логин
+    // Автофокус
     setTimeout(() => {
         const input = document.getElementById('username');
-        if (input) {
-            input.focus();
-            input.select();
-        }
-    }, 500);
+        if (input) input.focus();
+    }, 300);
     
-    // Настройка Enter
+    // Обновление времени
+    updateTime();
+    setInterval(updateTime, 60000);
+    
+    // Настройка обработчиков
     setupEventListeners();
 };
 
 function setupEventListeners() {
     const messageInput = document.getElementById('messageInput');
     if (messageInput) {
-        messageInput.addEventListener('keypress', function(e) {
+        messageInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
             }
         });
     }
-    
-    const usernameInput = document.getElementById('username');
-    if (usernameInput) {
-        usernameInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                document.getElementById('password').focus();
-            }
-        });
-    }
-    
-    const passwordInput = document.getElementById('password');
-    if (passwordInput) {
-        passwordInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAuth();
-            }
-        });
-    }
 }
 
-// ==================== АВТОРИЗАЦИЯ (ИСПРАВЛЕНА) ====================
+function updateTime() {
+    const now = new Date();
+    const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
+                   now.getMinutes().toString().padStart(2, '0');
+    document.getElementById('currentTime').textContent = timeStr;
+}
+
+// ==================== АВТОРИЗАЦИЯ ====================
 function toggleRegister() {
     isRegisterMode = true;
     document.getElementById('confirmPasswordGroup').style.display = 'flex';
@@ -147,83 +140,78 @@ function handleAuth() {
         return;
     }
     
-    // УБИРАЕМ ДИЗЕЙБЛ С КНОПКИ
-    button.disabled = false;
+    // Блокируем кнопку
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + 
+                      (isRegisterMode ? 'Регистрируем...' : 'Входим...');
     
     if (isRegisterMode) {
-        // РЕГИСТРАЦИЯ
+        // Регистрация
         if (!password) {
             alert('Придумай пароль!');
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-user-plus"></i> Зарегистрироваться';
             document.getElementById('password').focus();
             return;
         }
         
         if (password.length < 4) {
             alert('Пароль должен быть минимум 4 символа!');
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-user-plus"></i> Зарегистрироваться';
             document.getElementById('password').focus();
             return;
         }
         
         if (password !== confirmPassword) {
             alert('Пароли не совпадают!');
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-user-plus"></i> Зарегистрироваться';
             document.getElementById('confirmPassword').focus();
             document.getElementById('confirmPassword').value = '';
             return;
         }
         
+        // Проверяем, не занят ли ник
         if (localStorage.getItem('neonchat_user_' + username.toLowerCase())) {
-            alert('Этот ник уже занят!');
+            alert('Этот ник уже занят! Выбери другой.');
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-user-plus"></i> Зарегистрироваться';
             document.getElementById('username').focus();
             document.getElementById('username').select();
             return;
         }
         
-        // Блокируем кнопку только сейчас
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Регистрируем...';
-        
-        // Запускаем регистрацию
-        setTimeout(() => {
-            registerUser(username, password);
-        }, 100);
+        // Регистрируем
+        registerUser(username, password);
         
     } else {
-        // ВХОД
+        // Вход
         if (!password) {
             alert('Введи пароль!');
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
             document.getElementById('password').focus();
             return;
         }
         
         // Проверяем админ аккаунт
         if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-            console.log('👑 Вход как админ');
+            console.log('👑 Вход как администратор');
             isAdmin = true;
-            
-            button.disabled = true;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Входим...';
-            
-            setTimeout(() => {
-                createAdminUser();
-            }, 100);
+            createAdminUser();
             return;
         }
         
-        // Блокируем кнопку
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Входим...';
-        
-        // Запускаем вход
-        setTimeout(() => {
-            loginUser(username, password);
-        }, 100);
+        // Обычный вход
+        loginUser(username, password);
     }
 }
 
 function registerUser(username, password) {
     myUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     
-    const avatars = ['😎', '🐱', '🚀', '🦊', '🐯', '🦁', '🐼', '🐨', '👽', '🤖'];
+    const avatars = ['😎', '🐱', '🚀', '🦊', '🐯', '🦁', '🐼', '🐨'];
     const avatar = avatars[Math.floor(Math.random() * avatars.length)];
     
     currentUser = {
@@ -259,6 +247,7 @@ function loginUser(username, password) {
         const inputHash = simpleHash(password);
         
         if (!user.passwordHash) {
+            // Старый пользователь без пароля - сохраняем
             user.passwordHash = inputHash;
             localStorage.setItem('neonchat_user_' + username.toLowerCase(), JSON.stringify(user));
         } else if (user.passwordHash !== inputHash) {
@@ -300,7 +289,7 @@ function createAdminUser() {
     
     localStorage.setItem('neonchat_current_user', JSON.stringify(currentUser));
     
-    console.log('✅ Вход как админ');
+    console.log('✅ Вход как администратор');
     showChatInterface();
 }
 
@@ -314,28 +303,28 @@ function simpleHash(str) {
     return hash.toString(36);
 }
 
-// ==================== ПОКАЗ ЧАТА ====================
+// ==================== ОТОБРАЖЕНИЕ ЧАТА ====================
 function showChatInterface() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('chatScreen').style.display = 'flex';
     
+    // Обновляем UI
     document.getElementById('currentUserName').textContent = currentUser.name;
     document.getElementById('userAvatar').textContent = currentUser.avatar;
     
+    // Если админ - меняем стили
     if (isAdmin) {
         document.getElementById('userAvatar').classList.add('admin-avatar');
         document.getElementById('currentUserName').classList.add('admin-name');
         document.getElementById('currentUserName').innerHTML = currentUser.name + ' <span style="color:gold; font-size:0.8em;">👑</span>';
+        
+        // Показываем админ-панель
         document.getElementById('adminPanel').style.display = 'block';
     }
     
+    // Фокус на поле ввода
     setTimeout(() => {
-        const messageInput = document.getElementById('messageInput');
-        if (messageInput) {
-            messageInput.disabled = false;
-            messageInput.placeholder = "Напиши сообщение...";
-            messageInput.focus();
-        }
+        document.getElementById('messageInput').focus();
     }, 300);
     
     initFirebase();
@@ -343,33 +332,30 @@ function showChatInterface() {
 
 function initFirebase() {
     if (!database) {
-        alert('❌ Firebase не работает!');
+        console.error('Firebase не инициализирован');
+        showFirebaseError();
         return;
     }
     
-    // Проверка подключения
+    // Мониторинг подключения
     database.ref('.info/connected').on('value', (snap) => {
         const isConnected = snap.val() === true;
-        const statusEl = document.getElementById('connectionStatus');
-        if (statusEl) {
-            statusEl.textContent = isConnected ? '✓' : '✗';
-            statusEl.style.color = isConnected ? '#00ff80' : '#ff6666';
-        }
+        document.getElementById('connectionStatus').textContent = isConnected ? '✓' : '✗';
+        document.getElementById('connectionStatus').style.color = isConnected ? '#00ff80' : '#ff6666';
         
         if (isConnected) {
-            console.log('✅ Подключено к Firebase');
             updateOnlineStatus();
             monitorOnlineUsers();
-            loadMessages();
-        } else {
-            console.log('❌ Отключено от Firebase');
+            
+            onlineTimeout = setInterval(() => {
+                updateOnlineStatus();
+            }, 5000);
+        } else if (onlineTimeout) {
+            clearInterval(onlineTimeout);
         }
     });
-}
-
-function loadMessages() {
-    if (!database) return;
     
+    // Загрузка сообщений
     database.ref('messages').on('value', (snapshot) => {
         const data = snapshot.val();
         messages = data ? Object.values(data) : [];
@@ -380,7 +366,24 @@ function loadMessages() {
     });
 }
 
-// ==================== ОНЛАЙН СИСТЕМА ====================
+function showFirebaseError() {
+    const container = document.getElementById('messagesContainer');
+    if (container) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:40px 20px; color:#ff5555;">
+                <i class="fas fa-exclamation-triangle" style="font-size:3em; margin-bottom:15px;"></i>
+                <strong>Ошибка Firebase</strong><br>
+                <span style="color:#ff8888;">Нет подключения к базе данных.</span><br>
+                <div style="margin-top:20px; font-size:0.9em; color:#aaa;">
+                    Чат работает в локальном режиме<br>
+                    Сообщения сохраняются только у вас
+                </div>
+            </div>
+        `;
+    }
+}
+
+// ==================== СИСТЕМА ОНЛАЙН ====================
 function updateOnlineStatus() {
     if (!database || !currentUser || !myUserId) return;
     
@@ -429,6 +432,7 @@ function updateOnlineDisplay() {
     
     container.innerHTML = '';
     
+    // Добавляем себя
     if (currentUser && myUserId) {
         const userDiv = document.createElement('div');
         userDiv.className = 'member';
@@ -444,6 +448,7 @@ function updateOnlineDisplay() {
         container.appendChild(userDiv);
     }
     
+    // Добавляем остальных
     onlineUsers.forEach((user, userId) => {
         if (userId === myUserId) return;
         
@@ -461,8 +466,8 @@ function updateOnlineDisplay() {
     });
     
     const totalOnline = onlineUsers.size;
-    if (onlineCount) onlineCount.textContent = totalOnline;
-    if (onlineCount2) onlineCount2.textContent = totalOnline;
+    onlineCount.textContent = totalOnline;
+    onlineCount2.textContent = totalOnline;
     
     if (totalOnline === 1) {
         const emptyDiv = document.createElement('div');
@@ -480,8 +485,6 @@ function updateOnlineDisplay() {
 // ==================== СООБЩЕНИЯ ====================
 function updateMessagesDisplay() {
     const container = document.getElementById('messagesContainer');
-    if (!container) return;
-    
     const filteredMessages = messages.filter(msg => msg.channel === currentChannel);
     
     if (filteredMessages.length === 0) {
@@ -531,10 +534,34 @@ function displayMessage(msg) {
     container.appendChild(messageDiv);
 }
 
+function addMessageToDisplay(message) {
+    const container = document.getElementById('messagesContainer');
+    const isOwn = currentUser && message.userId === currentUser.id;
+    const isSystem = message.userId === 'system';
+    const isAdminMsg = message.isAdmin || message.userId.includes('admin');
+    const isAI = message.isAI || message.userId.includes('ai');
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''} ${isAdminMsg ? 'admin' : ''} ${isAI ? 'ai' : ''}`;
+    messageDiv.style.animation = 'fadeIn 0.3s ease';
+    
+    messageDiv.innerHTML = `
+        <div class="message-header">
+            <span class="message-user ${isAdminMsg ? 'admin' : ''} ${isAI ? 'ai' : ''}">
+                ${message.userAvatar || ''} ${message.userName}
+                ${isAdminMsg ? '👑' : ''}
+            </span>
+            <span class="message-time">${message.time}</span>
+        </div>
+        <div class="message-content">${message.text}</div>
+    `;
+    
+    container.appendChild(messageDiv);
+    container.scrollTop = container.scrollHeight;
+}
+
 async function sendMessage() {
     const input = document.getElementById('messageInput');
-    if (!input) return;
-    
     const text = input.value.trim();
     
     if (!text) {
@@ -547,11 +574,7 @@ async function sendMessage() {
         return;
     }
     
-    if (!database) {
-        alert('Нет подключения к базе данных!');
-        return;
-    }
-    
+    // Проверка на команды
     if (text.startsWith('/')) {
         handleCommand(text);
         input.value = '';
@@ -559,6 +582,7 @@ async function sendMessage() {
         return;
     }
     
+    // Если в канале AI
     if (currentChannel === 'ai') {
         await handleAIChat(text);
         input.value = '';
@@ -566,6 +590,7 @@ async function sendMessage() {
         return;
     }
     
+    // Обычное сообщение
     const message = {
         id: Date.now().toString(),
         userId: myUserId,
@@ -579,7 +604,14 @@ async function sendMessage() {
     };
     
     try {
-        await database.ref('messages/' + message.id).set(message);
+        if (database) {
+            await database.ref('messages/' + message.id).set(message);
+        } else {
+            // Локальное сохранение если Firebase недоступен
+            messages.push(message);
+            addMessageToDisplay(message);
+        }
+        
         updateOnlineStatus();
         input.value = '';
         input.focus();
@@ -592,26 +624,30 @@ async function sendMessage() {
 
 // ==================== ЯНДЕКС ТЕЛЕМОСТ ====================
 function startCall() {
+    // Проверяем есть ли пользователь
     if (!currentUser) {
-        alert('❌ Сначала войди в чат!');
+        alert('❌ Сначала войдите в чат!');
         return;
     }
     
+    // Проверяем подключение к интернету
     if (!navigator.onLine) {
         alert('❌ Нет подключения к интернету!');
         return;
     }
     
+    // Генерируем уникальный ID для встречи
     const meetingId = generateMeetingId();
     const telemostUrl = `${TELEMOST_BASE_URL}/${meetingId}`;
     
+    // Создаем сообщение о звонке
     const callMessage = {
         id: Date.now().toString(),
         userId: 'system',
         userName: '🎥 Яндекс Телемост',
         userAvatar: '🎥',
-        text: `📞 <div style="
-            background: linear-gradient(135deg, rgba(255, 0, 128, 0.2), rgba(255, 102, 0, 0.2));
+        text: `📞 <div class="call-announcement" style="
+            background: linear-gradient(135deg, rgba(255, 0, 128, 0.15), rgba(255, 102, 0, 0.15));
             padding: 20px;
             border-radius: 15px;
             border: 2px solid rgba(255, 0, 128, 0.3);
@@ -634,16 +670,35 @@ function startCall() {
                 margin: 15px 0;
                 border: 2px solid rgba(255, 255, 255, 0.3);
                 box-shadow: 0 0 20px rgba(255, 0, 128, 0.4);
-                cursor: pointer;
                 transition: all 0.3s;
+                animation: pulse 1.5s infinite;
             " onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 25px rgba(255, 0, 128, 0.6)'" 
                onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 0 20px rgba(255, 0, 128, 0.4)'">
-                <i class="fas fa-video"></i> ПРИСОЕДИНИТЬСЯ
+                <i class="fas fa-video"></i> ПРИСОЕДИНИТЬСЯ К ЗВОНКУ
             </a>
             
             <div style="margin-top: 20px; font-size: 0.9em; color: #aaa;">
-                <div><strong>Создатель:</strong> ${currentUser.name}</div>
-                <div><strong>Время:</strong> ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                <div style="margin-bottom: 8px;">
+                    <strong>Ссылка для подключения:</strong>
+                </div>
+                <div style="
+                    background: rgba(0, 0, 0, 0.3);
+                    padding: 12px;
+                    border-radius: 8px;
+                    font-family: monospace;
+                    word-break: break-all;
+                    font-size: 0.85em;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    margin-bottom: 10px;
+                ">
+                    ${telemostUrl}
+                </div>
+                
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div><strong>Создатель:</strong> ${currentUser.name}</div>
+                    <div><strong>Платформа:</strong> Яндекс Телемост 🇷🇺</div>
+                    <div><strong>Время:</strong> ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
             </div>
         </div>`,
         channel: currentChannel,
@@ -651,24 +706,43 @@ function startCall() {
         timestamp: Date.now()
     };
     
-    database.ref('messages/' + callMessage.id).set(callMessage);
+    // Показываем сообщение сразу
+    addMessageToDisplay(callMessage);
     
-    window.open(telemostUrl, '_blank', 'width=1200,height=800');
+    // Сохраняем в Firebase если доступен
+    if (database) {
+        database.ref('messages/' + callMessage.id).set(callMessage).catch(() => {
+            console.log('Firebase недоступен, сообщение только локально');
+        });
+    }
+    
+    // Открываем звонок в новом окне
+    window.open(telemostUrl, '_blank', 'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no');
+    
+    // Показываем уведомление
+    showNotification('🎥 Яндекс Телемост', 'Звонок создан! Нажмите, чтобы присоединиться');
 }
 
 function generateMeetingId() {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
+    let result = 'j/';
     for (let i = 0; i < 12; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
 }
 
-// ==================== AI БОТ ====================
+function showNotification(title, body) {
+    if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(title, { body, icon: "https://telemost.yandex.ru/favicon.ico" });
+    }
+}
+
+// ==================== HUGGING FACE AI ====================
 async function handleAIChat(text) {
     if (!text.trim()) return;
     
+    // Сразу показываем сообщение пользователя
     const userMessage = {
         id: Date.now().toString(),
         userId: myUserId,
@@ -681,15 +755,16 @@ async function handleAIChat(text) {
         isAI: false
     };
     
-    database.ref('messages/' + userMessage.id).set(userMessage);
+    addMessageToDisplay(userMessage);
     
+    // Показываем индикатор набора
     showAITyping();
     
-    setTimeout(async () => {
+    try {
+        const aiResponse = await chatWithHuggingFace(text, myUserId);
         hideAITyping();
         
-        const aiResponse = await getAIResponse(text);
-        
+        // Показываем ответ AI
         const aiMessage = {
             id: (Date.now() + 1).toString(),
             userId: 'ai_assistant',
@@ -702,78 +777,102 @@ async function handleAIChat(text) {
             isAI: true
         };
         
-        database.ref('messages/' + aiMessage.id).set(aiMessage);
-    }, 800 + Math.random() * 1200);
+        addMessageToDisplay(aiMessage);
+        
+    } catch (error) {
+        hideAITyping();
+        console.error('Ошибка AI:', error);
+        
+        // Показываем сообщение об ошибке
+        const errorMessage = {
+            id: (Date.now() + 1).toString(),
+            userId: 'ai_assistant',
+            userName: '🤖 AI Помощник',
+            userAvatar: '🤖',
+            text: 'Извините, я временно недоступен 😔<br><small style="color:#888;">Попробуйте позже или используйте обычный чат</small>',
+            channel: 'ai',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: Date.now(),
+            isAI: true
+        };
+        
+        addMessageToDisplay(errorMessage);
+    }
 }
 
-async function getAIResponse(message) {
-    const lowerMsg = message.toLowerCase().trim();
+async function chatWithHuggingFace(message, userId) {
+    // Инициализируем историю если нужно
+    if (!aiConversations.has(userId)) {
+        aiConversations.set(userId, []);
+    }
     
-    // Математика
-    if (/(сколько будет|посчитай|реши|сколько)/i.test(lowerMsg)) {
-        try {
-            const clean = message.replace(/[^\d+\-*/().,]/g, '').replace(/,/g, '.');
-            if (clean && /[\+\-\*\/\(\)]/.test(clean)) {
-                const result = eval(clean);
-                return `🧮 ${message} = ${result}`;
+    const history = aiConversations.get(userId);
+    
+    // Добавляем новое сообщение в историю
+    history.push({ role: "user", content: message });
+    
+    // Ограничиваем историю
+    if (history.length > 10) {
+        history.splice(0, history.length - 5);
+    }
+    
+    try {
+        const response = await fetch(
+            `https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${HF_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    inputs: {
+                        past_user_inputs: history.slice(-5).filter(h => h.role === "user").map(h => h.content),
+                        generated_responses: history.slice(-5).filter(h => h.role === "assistant").map(h => h.content),
+                        text: message
+                    },
+                    parameters: {
+                        max_length: 100,
+                        temperature: 0.7,
+                        repetition_penalty: 1.2
+                    }
+                })
             }
-        } catch (e) {}
+        );
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        let aiText = data.generated_text || "Извините, не могу сгенерировать ответ.";
+        
+        // Если ответ слишком короткий, добавляем вариант
+        if (aiText.length < 10) {
+            const fallbackResponses = [
+                "Интересный вопрос! Можете уточнить?",
+                "Я пока учусь отвечать на такие вопросы!",
+                "Попробуйте задать вопрос по-другому.",
+                "Это сложный вопрос, дайте подумать...",
+                "Мне нужно больше информации чтобы ответить."
+            ];
+            aiText = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+        }
+        
+        // Сохраняем ответ в историю
+        history.push({ role: "assistant", content: aiText });
+        
+        return aiText;
+        
+    } catch (error) {
+        console.error('Hugging Face ошибка:', error);
+        return "Произошла ошибка при обработке запроса. Попробуйте позже.";
     }
-    
-    // Время
-    if (/(который час|сколько времени|time)/i.test(lowerMsg)) {
-        return `🕐 Сейчас ${new Date().toLocaleTimeString('ru-RU')}`;
-    }
-    
-    // Приветствия
-    if (/(привет|здравств|hi|hello|хай)/i.test(lowerMsg)) {
-        const responses = [
-            "Привет! 👋 Рад тебя видеть!",
-            "Здравствуй! 😊 Чем могу помочь?",
-            "Приветствую! 🌟 Задавай вопросы!",
-            "О, привет! 🤖 Я твой AI-помощник!"
-        ];
-        return responses[Math.floor(Math.random() * responses.length)];
-    }
-    
-    // Как дела
-    if (/(как дела|как ты|how are)/i.test(lowerMsg)) {
-        return "У меня всё отлично! Спасибо что спрашиваешь! 😄";
-    }
-    
-    // Шутки
-    if (/(шутк|анекдот|пошути|joke)/i.test(lowerMsg)) {
-        const jokes = [
-            "Почему программист не спит? Он отлаживает код! 😂",
-            "Что сказал один сервер другому? У меня для тебя пакет! 📦",
-            "Почему компьютер пошел к врачу? У него был вирус! 🦠"
-        ];
-        return jokes[Math.floor(Math.random() * jokes.length)];
-    }
-    
-    // Помощь
-    if (/(помощь|help|что ты умеешь)/i.test(lowerMsg)) {
-        return "Я могу: считать, отвечать на вопросы, шутить, говорить время! Используй команды: /help, /call, /online";
-    }
-    
-    // Обычные ответы
-    const responses = [
-        "Интересный вопрос! 🤔",
-        "Хорошая тема для разговора! 💭",
-        "Спасибо что делишься мыслями! 🌟",
-        "Давай обсудим это подробнее? 💬",
-        "Это заставляет задуматься... 🧠",
-        "Отличный повод для дискуссии! 📚",
-        "Я запомнил твою мысль! 📝"
-    ];
-    
-    return responses[Math.floor(Math.random() * responses.length)];
 }
 
 function showAITyping() {
     const container = document.getElementById('messagesContainer');
-    if (!container) return;
-    
     const typingDiv = document.createElement('div');
     typingDiv.className = 'ai-typing';
     typingDiv.id = 'aiTypingIndicator';
@@ -804,6 +903,7 @@ function handleCommand(command) {
             break;
             
         case '/clean':
+        case '/clear':
             if (isAdmin) {
                 adminClearChat();
             } else {
@@ -812,10 +912,13 @@ function handleCommand(command) {
             break;
             
         case '/announce':
+        case '/announcement':
             if (isAdmin) {
                 const text = args.join(' ');
                 if (text) {
                     adminSendAnnouncement(text);
+                } else {
+                    adminAnnouncement();
                 }
             } else {
                 sendSystemMessage('❌ Только администратор может делать объявления');
@@ -831,7 +934,7 @@ function handleCommand(command) {
             break;
             
         case '/online':
-            sendSystemMessage(`👥 Сейчас онлайн: ${onlineUsers.size} пользователей`);
+            sendSystemMessage(`👥 Сейчас онлайн: ${onlineUsers.size} пользователь(ей)`);
             break;
             
         case '/me':
@@ -842,17 +945,24 @@ function handleCommand(command) {
             break;
             
         case '/call':
+        case '/телефон':
             startCall();
             break;
             
         case '/ai':
             if (args.length > 0) {
                 handleAIChat(args.join(' '));
+            } else {
+                sendSystemMessage('Используйте: /ai [ваш вопрос]');
             }
             break;
             
+        case '/time':
+            sendSystemMessage(`🕐 Текущее время: ${new Date().toLocaleTimeString()}`);
+            break;
+            
         default:
-            sendSystemMessage('❌ Неизвестная команда. Введи /help для списка команд');
+            sendSystemMessage(`❌ Неизвестная команда. Введи /help для списка команд`);
     }
 }
 
@@ -862,8 +972,9 @@ function showHelp() {
     helpText += '/help - Показать это сообщение<br>';
     helpText += '/online - Показать кто онлайн<br>';
     helpText += '/me [действие] - Отправить действие<br>';
-    helpText += '/call - Создать видеозвонок<br>';
-    helpText += '/ai [вопрос] - Задать вопрос AI<br>';
+    helpText += '/time - Показать время<br>';
+    helpText += '/call - Создать видеозвонок (Яндекс Телемост)<br>';
+    helpText += '/ai [вопрос] - Задать вопрос AI (или перейти в канал AI)<br>';
     
     if (isAdmin) {
         helpText += '<br><strong style="color:gold;">👑 Админ команды:</strong><br>';
@@ -889,8 +1000,12 @@ function sendSystemMessage(text) {
         timestamp: Date.now()
     };
     
+    addMessageToDisplay(message);
+    
     if (database) {
-        database.ref('messages/' + message.id).set(message);
+        database.ref('messages/' + message.id).set(message).catch(() => {
+            // Игнорируем ошибку если Firebase недоступен
+        });
     }
 }
 
@@ -907,30 +1022,73 @@ function sendActionMessage(action) {
         isAction: true
     };
     
+    addMessageToDisplay(message);
+    
     if (database) {
-        database.ref('messages/' + message.id).set(message);
+        database.ref('messages/' + message.id).set(message).catch(() => {
+            // Игнорируем ошибку если Firebase недоступен
+        });
     }
 }
 
 // ==================== АДМИН ФУНКЦИИ ====================
 async function adminClearChat() {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+        alert('❌ Только администратор может очищать чат');
+        return;
+    }
     
-    if (!confirm('💀 Очистить весь чат?')) return;
+    if (!confirm('💀 ТОЧНО ОЧИСТИТЬ ВЕСЬ ЧАТ?\nЭто удалит ВСЕ сообщения у всех пользователей!')) {
+        return;
+    }
+    
+    if (!database) {
+        alert('❌ Нет подключения к Firebase');
+        return;
+    }
     
     try {
         await database.ref('messages').remove();
-        sendSystemMessage('🧹 Чат очищен администратором');
+        
+        const message = {
+            id: Date.now().toString(),
+            userId: 'system',
+            userName: '👑 АДМИНИСТРАТОР',
+            userAvatar: '👑',
+            text: '🧹 <strong style="color:#ff0000;">ЧАТ ОЧИЩЕН АДМИНИСТРАТОРОМ!</strong> Все сообщения удалены.',
+            channel: 'main',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: Date.now()
+        };
+        
+        await database.ref('messages/' + message.id).set(message);
+        
+        console.log('✅ Чат очищен админом');
+        alert('✅ Чат полностью очищен!');
+        
     } catch (error) {
+        console.error('Ошибка очистки чата:', error);
         alert('❌ Ошибка: ' + error.message);
     }
+}
+
+function adminAnnouncement() {
+    if (!isAdmin) {
+        alert('❌ Только администратор может делать объявления');
+        return;
+    }
+    
+    const text = prompt('Текст объявления для всех пользователей:');
+    if (!text) return;
+    
+    adminSendAnnouncement(text);
 }
 
 async function adminSendAnnouncement(text) {
     const message = {
         id: Date.now().toString(),
         userId: 'system',
-        userName: '📢 Админ-объявление',
+        userName: '📢 АДМИН-ОБЪЯВЛЕНИЕ',
         userAvatar: '📢',
         text: `📣 <div style="
             background: linear-gradient(45deg, rgba(255, 153, 0, 0.2), rgba(255, 255, 0, 0.2));
@@ -953,18 +1111,58 @@ async function adminSendAnnouncement(text) {
         timestamp: Date.now()
     };
     
-    await database.ref('messages/' + message.id).set(message);
+    addMessageToDisplay(message);
+    
+    if (database) {
+        await database.ref('messages/' + message.id).set(message);
+    }
+    
+    console.log('✅ Объявление отправлено');
+    alert('✅ Объявление отправлено всем пользователям!');
 }
 
 async function adminKickAll() {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+        alert('❌ Только администратор может кикать пользователей');
+        return;
+    }
     
-    if (!confirm('🚨 Кикнуть всех пользователей?')) return;
+    if (!confirm('🚨 КИКНУТЬ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ?\nВсе онлайн пользователи будут отключены!')) {
+        return;
+    }
+    
+    if (!database) {
+        alert('❌ Нет подключения к Firebase');
+        return;
+    }
     
     try {
         await database.ref('online').remove();
-        sendSystemMessage('🚪 Все пользователи отключены администратором');
+        
+        const message = {
+            id: Date.now().toString(),
+            userId: 'system',
+            userName: '👑 АДМИНИСТРАТОР',
+            userAvatar: '👑',
+            text: `🚨 <div style="background: linear-gradient(45deg, rgba(255,0,0,0.2), rgba(255,68,0,0.2)); padding: 20px; border-radius: 12px; border: 2px solid #ff0000; text-align: center;">
+                   <strong style="color:#ff0000; font-size:1.3em;">⚠️ ВСЕ ПОЛЬЗОВАТЕЛИ ОТКЛЮЧЕНЫ!</strong><br><br>
+                   🔥 Администратор <strong>${currentUser.name}</strong> отключил всех пользователей!<br><br>
+                   <div style="font-size:0.9em; color:#ffaaaa;">
+                   Перезайдите в чат для продолжения общения
+                   </div>
+                   </div>`,
+            channel: 'main',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: Date.now()
+        };
+        
+        await database.ref('messages/' + message.id).set(message);
+        
+        console.log('✅ Все пользователи отключены');
+        alert('✅ Все онлайн пользователи отключены!');
+        
     } catch (error) {
+        console.error('Ошибка кика всех:', error);
         alert('❌ Ошибка: ' + error.message);
     }
 }
@@ -990,6 +1188,7 @@ function switchChannel(channel) {
     
     document.getElementById('channelName').textContent = channelNames[channel] || channel;
     updateMessagesDisplay();
+    hideMobilePanels();
 }
 
 function toggleSidebar() {
@@ -1004,13 +1203,22 @@ function toggleMembers() {
 
 function forceSync() {
     const btn = document.querySelector('.refresh-btn');
-    if (btn) {
-        btn.style.transform = 'rotate(180deg)';
-        setTimeout(() => btn.style.transform = 'rotate(0deg)', 300);
-    }
+    btn.style.transform = 'rotate(180deg)';
+    setTimeout(() => btn.style.transform = 'rotate(0deg)', 300);
     
     updateOnlineStatus();
     updateMessagesDisplay();
+    updateOnlineDisplay();
+    
+    if (database) {
+        sendSystemMessage('🔄 Синхронизация выполнена');
+    }
+}
+
+function hideMobilePanels() {
+    document.querySelectorAll('.sidebar, .right-sidebar').forEach(panel => {
+        panel.classList.remove('active');
+    });
 }
 
 function logout() {
@@ -1019,19 +1227,14 @@ function logout() {
             database.ref('online/' + myUserId).remove();
         }
         
+        if (onlineTimeout) clearInterval(onlineTimeout);
+        
         localStorage.removeItem('neonchat_current_user');
         location.reload();
     }
 }
 
-// Добавляем обработку времени
-function updateTime() {
-    const now = new Date();
-    const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
-                   now.getMinutes().toString().padStart(2, '0');
-    const timeEl = document.getElementById('currentTime');
-    if (timeEl) timeEl.textContent = timeStr;
+// Запрос разрешения на уведомления
+if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
 }
-
-setInterval(updateTime, 60000);
-updateTime();
