@@ -16,11 +16,14 @@ const ADMIN_PASSWORD = "JojoTop1";
 
 // Яндекс Телемост конфигурация
 const TELEMOST_BASE_URL = "https://telemost.yandex.ru";
-const TELEMOST_MEETING_PASSWORD = "neonchat123"; // Опциональный пароль для встречи
+
+// Hugging Face AI
+const HF_API_KEY = "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"; // Твой API ключ
+const HF_MODEL = "microsoft/DialoGPT-medium"; // Бесплатная модель для чата
 
 // Глобальные переменные
 let isRegisterMode = false;
-let telegramEnabled = true; // Всегда включено
+let telegramEnabled = true;
 let database = null;
 let currentUser = null;
 let currentChannel = 'main';
@@ -29,6 +32,8 @@ let onlineUsers = new Map();
 let myUserId = null;
 let onlineTimeout = null;
 let isAdmin = false;
+let aiConversations = new Map();
+let isAITyping = false;
 
 // ==================== ИНИЦИАЛИЗАЦИЯ ====================
 window.onload = function() {
@@ -74,7 +79,29 @@ window.onload = function() {
     // Обновление времени
     updateTime();
     setInterval(updateTime, 60000);
+    
+    // Настройка обработчиков
+    setupEventListeners();
 };
+
+function setupEventListeners() {
+    const messageInput = document.getElementById('messageInput');
+    if (messageInput) {
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    }
+}
+
+function updateTime() {
+    const now = new Date();
+    const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
+                   now.getMinutes().toString().padStart(2, '0');
+    document.getElementById('currentTime').textContent = timeStr;
+}
 
 // ==================== АВТОРИЗАЦИЯ ====================
 function toggleRegister() {
@@ -257,7 +284,7 @@ function createAdminUser() {
         name: ADMIN_USERNAME,
         avatar: '👑',
         isAdmin: true,
-        isSpecialAdmin: true // Флаг специального админа
+        isSpecialAdmin: true
     };
     
     localStorage.setItem('neonchat_current_user', JSON.stringify(currentUser));
@@ -306,6 +333,7 @@ function showChatInterface() {
 function initFirebase() {
     if (!database) {
         console.error('Firebase не инициализирован');
+        showFirebaseError();
         return;
     }
     
@@ -338,11 +366,21 @@ function initFirebase() {
     });
 }
 
-function updateTime() {
-    const now = new Date();
-    const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
-                   now.getMinutes().toString().padStart(2, '0');
-    document.getElementById('currentTime').textContent = timeStr;
+function showFirebaseError() {
+    const container = document.getElementById('messagesContainer');
+    if (container) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:40px 20px; color:#ff5555;">
+                <i class="fas fa-exclamation-triangle" style="font-size:3em; margin-bottom:15px;"></i>
+                <strong>Ошибка Firebase</strong><br>
+                <span style="color:#ff8888;">Нет подключения к базе данных.</span><br>
+                <div style="margin-top:20px; font-size:0.9em; color:#aaa;">
+                    Чат работает в локальном режиме<br>
+                    Сообщения сохраняются только у вас
+                </div>
+            </div>
+        `;
+    }
 }
 
 // ==================== СИСТЕМА ОНЛАЙН ====================
@@ -462,30 +500,64 @@ function updateMessagesDisplay() {
     container.innerHTML = '';
     
     filteredMessages.forEach(msg => {
-        const isOwn = currentUser && msg.userId === currentUser.id;
-        const isSystem = msg.userId === 'system';
-        const isAdminMsg = msg.isAdmin || msg.userId.includes('admin');
-        
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''} ${isAdminMsg ? 'admin' : ''}`;
-        
-        messageDiv.innerHTML = `
-            <div class="message-header">
-                <span class="message-user ${isAdminMsg ? 'admin' : ''}">
-                    ${msg.userAvatar || ''} ${msg.userName}
-                    ${isAdminMsg ? '👑' : ''}
-                </span>
-                <span class="message-time">${msg.time}</span>
-            </div>
-            <div class="message-content">${msg.text}</div>
-        `;
-        
-        container.appendChild(messageDiv);
+        displayMessage(msg);
     });
     
     setTimeout(() => {
         container.scrollTop = container.scrollHeight;
     }, 100);
+}
+
+function displayMessage(msg) {
+    const container = document.getElementById('messagesContainer');
+    if (!container) return;
+    
+    const isOwn = currentUser && msg.userId === currentUser.id;
+    const isSystem = msg.userId === 'system';
+    const isAdminMsg = msg.isAdmin || msg.userId.includes('admin');
+    const isAI = msg.isAI || msg.userId.includes('ai');
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''} ${isAdminMsg ? 'admin' : ''} ${isAI ? 'ai' : ''}`;
+    
+    messageDiv.innerHTML = `
+        <div class="message-header">
+            <span class="message-user ${isAdminMsg ? 'admin' : ''} ${isAI ? 'ai' : ''}">
+                ${msg.userAvatar || ''} ${msg.userName}
+                ${isAdminMsg ? '👑' : ''}
+            </span>
+            <span class="message-time">${msg.time}</span>
+        </div>
+        <div class="message-content">${msg.text}</div>
+    `;
+    
+    container.appendChild(messageDiv);
+}
+
+function addMessageToDisplay(message) {
+    const container = document.getElementById('messagesContainer');
+    const isOwn = currentUser && message.userId === currentUser.id;
+    const isSystem = message.userId === 'system';
+    const isAdminMsg = message.isAdmin || message.userId.includes('admin');
+    const isAI = message.isAI || message.userId.includes('ai');
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''} ${isAdminMsg ? 'admin' : ''} ${isAI ? 'ai' : ''}`;
+    messageDiv.style.animation = 'fadeIn 0.3s ease';
+    
+    messageDiv.innerHTML = `
+        <div class="message-header">
+            <span class="message-user ${isAdminMsg ? 'admin' : ''} ${isAI ? 'ai' : ''}">
+                ${message.userAvatar || ''} ${message.userName}
+                ${isAdminMsg ? '👑' : ''}
+            </span>
+            <span class="message-time">${message.time}</span>
+        </div>
+        <div class="message-content">${message.text}</div>
+    `;
+    
+    container.appendChild(messageDiv);
+    container.scrollTop = container.scrollHeight;
 }
 
 async function sendMessage() {
@@ -502,11 +574,6 @@ async function sendMessage() {
         return;
     }
     
-    if (!database) {
-        alert('Нет подключения к базе данных');
-        return;
-    }
-    
     // Проверка на команды
     if (text.startsWith('/')) {
         handleCommand(text);
@@ -515,6 +582,15 @@ async function sendMessage() {
         return;
     }
     
+    // Если в канале AI
+    if (currentChannel === 'ai') {
+        await handleAIChat(text);
+        input.value = '';
+        input.focus();
+        return;
+    }
+    
+    // Обычное сообщение
     const message = {
         id: Date.now().toString(),
         userId: myUserId,
@@ -528,7 +604,14 @@ async function sendMessage() {
     };
     
     try {
-        await database.ref('messages/' + message.id).set(message);
+        if (database) {
+            await database.ref('messages/' + message.id).set(message);
+        } else {
+            // Локальное сохранение если Firebase недоступен
+            messages.push(message);
+            addMessageToDisplay(message);
+        }
+        
         updateOnlineStatus();
         input.value = '';
         input.focus();
@@ -536,6 +619,275 @@ async function sendMessage() {
     } catch (error) {
         console.error('Ошибка отправки:', error);
         alert('❌ Ошибка отправки сообщения');
+    }
+}
+
+// ==================== ЯНДЕКС ТЕЛЕМОСТ ====================
+function startCall() {
+    // Проверяем есть ли пользователь
+    if (!currentUser) {
+        alert('❌ Сначала войдите в чат!');
+        return;
+    }
+    
+    // Проверяем подключение к интернету
+    if (!navigator.onLine) {
+        alert('❌ Нет подключения к интернету!');
+        return;
+    }
+    
+    // Генерируем уникальный ID для встречи
+    const meetingId = generateMeetingId();
+    const telemostUrl = `${TELEMOST_BASE_URL}/${meetingId}`;
+    
+    // Создаем сообщение о звонке
+    const callMessage = {
+        id: Date.now().toString(),
+        userId: 'system',
+        userName: '🎥 Яндекс Телемост',
+        userAvatar: '🎥',
+        text: `📞 <div class="call-announcement" style="
+            background: linear-gradient(135deg, rgba(255, 0, 128, 0.15), rgba(255, 102, 0, 0.15));
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid rgba(255, 0, 128, 0.3);
+            margin: 10px 0;
+            text-align: center;
+        ">
+            <div style="color: #ff0080; font-size: 1.4em; font-weight: bold; margin-bottom: 15px;">
+                <i class="fas fa-video"></i> СОЗДАН ВИДЕОЗВОНОК
+            </div>
+            
+            <a href="${telemostUrl}" target="_blank" style="
+                display: inline-block;
+                background: linear-gradient(135deg, #ff0080, #ff5500);
+                color: white;
+                padding: 15px 30px;
+                border-radius: 12px;
+                text-decoration: none;
+                font-weight: bold;
+                font-size: 1.1em;
+                margin: 15px 0;
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                box-shadow: 0 0 20px rgba(255, 0, 128, 0.4);
+                transition: all 0.3s;
+                animation: pulse 1.5s infinite;
+            " onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 25px rgba(255, 0, 128, 0.6)'" 
+               onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 0 20px rgba(255, 0, 128, 0.4)'">
+                <i class="fas fa-video"></i> ПРИСОЕДИНИТЬСЯ К ЗВОНКУ
+            </a>
+            
+            <div style="margin-top: 20px; font-size: 0.9em; color: #aaa;">
+                <div style="margin-bottom: 8px;">
+                    <strong>Ссылка для подключения:</strong>
+                </div>
+                <div style="
+                    background: rgba(0, 0, 0, 0.3);
+                    padding: 12px;
+                    border-radius: 8px;
+                    font-family: monospace;
+                    word-break: break-all;
+                    font-size: 0.85em;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    margin-bottom: 10px;
+                ">
+                    ${telemostUrl}
+                </div>
+                
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div><strong>Создатель:</strong> ${currentUser.name}</div>
+                    <div><strong>Платформа:</strong> Яндекс Телемост 🇷🇺</div>
+                    <div><strong>Время:</strong> ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
+            </div>
+        </div>`,
+        channel: currentChannel,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: Date.now()
+    };
+    
+    // Показываем сообщение сразу
+    addMessageToDisplay(callMessage);
+    
+    // Сохраняем в Firebase если доступен
+    if (database) {
+        database.ref('messages/' + callMessage.id).set(callMessage).catch(() => {
+            console.log('Firebase недоступен, сообщение только локально');
+        });
+    }
+    
+    // Открываем звонок в новом окне
+    window.open(telemostUrl, '_blank', 'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no');
+    
+    // Показываем уведомление
+    showNotification('🎥 Яндекс Телемост', 'Звонок создан! Нажмите, чтобы присоединиться');
+}
+
+function generateMeetingId() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let result = 'j/';
+    for (let i = 0; i < 12; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
+
+function showNotification(title, body) {
+    if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(title, { body, icon: "https://telemost.yandex.ru/favicon.ico" });
+    }
+}
+
+// ==================== HUGGING FACE AI ====================
+async function handleAIChat(text) {
+    if (!text.trim()) return;
+    
+    // Сразу показываем сообщение пользователя
+    const userMessage = {
+        id: Date.now().toString(),
+        userId: myUserId,
+        userName: currentUser.name,
+        userAvatar: currentUser.avatar,
+        text: text,
+        channel: 'ai',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: Date.now(),
+        isAI: false
+    };
+    
+    addMessageToDisplay(userMessage);
+    
+    // Показываем индикатор набора
+    showAITyping();
+    
+    try {
+        const aiResponse = await chatWithHuggingFace(text, myUserId);
+        hideAITyping();
+        
+        // Показываем ответ AI
+        const aiMessage = {
+            id: (Date.now() + 1).toString(),
+            userId: 'ai_assistant',
+            userName: '🤖 AI Помощник',
+            userAvatar: '🤖',
+            text: aiResponse,
+            channel: 'ai',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: Date.now(),
+            isAI: true
+        };
+        
+        addMessageToDisplay(aiMessage);
+        
+    } catch (error) {
+        hideAITyping();
+        console.error('Ошибка AI:', error);
+        
+        // Показываем сообщение об ошибке
+        const errorMessage = {
+            id: (Date.now() + 1).toString(),
+            userId: 'ai_assistant',
+            userName: '🤖 AI Помощник',
+            userAvatar: '🤖',
+            text: 'Извините, я временно недоступен 😔<br><small style="color:#888;">Попробуйте позже или используйте обычный чат</small>',
+            channel: 'ai',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: Date.now(),
+            isAI: true
+        };
+        
+        addMessageToDisplay(errorMessage);
+    }
+}
+
+async function chatWithHuggingFace(message, userId) {
+    // Инициализируем историю если нужно
+    if (!aiConversations.has(userId)) {
+        aiConversations.set(userId, []);
+    }
+    
+    const history = aiConversations.get(userId);
+    
+    // Добавляем новое сообщение в историю
+    history.push({ role: "user", content: message });
+    
+    // Ограничиваем историю
+    if (history.length > 10) {
+        history.splice(0, history.length - 5);
+    }
+    
+    try {
+        const response = await fetch(
+            `https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${HF_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    inputs: {
+                        past_user_inputs: history.slice(-5).filter(h => h.role === "user").map(h => h.content),
+                        generated_responses: history.slice(-5).filter(h => h.role === "assistant").map(h => h.content),
+                        text: message
+                    },
+                    parameters: {
+                        max_length: 100,
+                        temperature: 0.7,
+                        repetition_penalty: 1.2
+                    }
+                })
+            }
+        );
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        let aiText = data.generated_text || "Извините, не могу сгенерировать ответ.";
+        
+        // Если ответ слишком короткий, добавляем вариант
+        if (aiText.length < 10) {
+            const fallbackResponses = [
+                "Интересный вопрос! Можете уточнить?",
+                "Я пока учусь отвечать на такие вопросы!",
+                "Попробуйте задать вопрос по-другому.",
+                "Это сложный вопрос, дайте подумать...",
+                "Мне нужно больше информации чтобы ответить."
+            ];
+            aiText = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+        }
+        
+        // Сохраняем ответ в историю
+        history.push({ role: "assistant", content: aiText });
+        
+        return aiText;
+        
+    } catch (error) {
+        console.error('Hugging Face ошибка:', error);
+        return "Произошла ошибка при обработке запроса. Попробуйте позже.";
+    }
+}
+
+function showAITyping() {
+    const container = document.getElementById('messagesContainer');
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'ai-typing';
+    typingDiv.id = 'aiTypingIndicator';
+    typingDiv.innerHTML = `
+        <i class="fas fa-robot"></i>
+        <span>🤖 AI набирает ответ...</span>
+    `;
+    container.appendChild(typingDiv);
+    container.scrollTop = container.scrollHeight;
+}
+
+function hideAITyping() {
+    const typingDiv = document.getElementById('aiTypingIndicator');
+    if (typingDiv) {
+        typingDiv.remove();
     }
 }
 
@@ -594,8 +946,19 @@ function handleCommand(command) {
             
         case '/call':
         case '/телефон':
-        case '/теле':
             startCall();
+            break;
+            
+        case '/ai':
+            if (args.length > 0) {
+                handleAIChat(args.join(' '));
+            } else {
+                sendSystemMessage('Используйте: /ai [ваш вопрос]');
+            }
+            break;
+            
+        case '/time':
+            sendSystemMessage(`🕐 Текущее время: ${new Date().toLocaleTimeString()}`);
             break;
             
         default:
@@ -609,7 +972,9 @@ function showHelp() {
     helpText += '/help - Показать это сообщение<br>';
     helpText += '/online - Показать кто онлайн<br>';
     helpText += '/me [действие] - Отправить действие<br>';
+    helpText += '/time - Показать время<br>';
     helpText += '/call - Создать видеозвонок (Яндекс Телемост)<br>';
+    helpText += '/ai [вопрос] - Задать вопрос AI (или перейти в канал AI)<br>';
     
     if (isAdmin) {
         helpText += '<br><strong style="color:gold;">👑 Админ команды:</strong><br>';
@@ -624,8 +989,6 @@ function showHelp() {
 }
 
 function sendSystemMessage(text) {
-    if (!database) return;
-    
     const message = {
         id: Date.now().toString(),
         userId: 'system',
@@ -637,12 +1000,16 @@ function sendSystemMessage(text) {
         timestamp: Date.now()
     };
     
-    database.ref('messages/' + message.id).set(message);
+    addMessageToDisplay(message);
+    
+    if (database) {
+        database.ref('messages/' + message.id).set(message).catch(() => {
+            // Игнорируем ошибку если Firebase недоступен
+        });
+    }
 }
 
 function sendActionMessage(action) {
-    if (!database || !currentUser) return;
-    
     const message = {
         id: Date.now().toString(),
         userId: myUserId,
@@ -655,120 +1022,13 @@ function sendActionMessage(action) {
         isAction: true
     };
     
-    database.ref('messages/' + message.id).set(message);
-}
-
-// ==================== ЯНДЕКС ТЕЛЕМОСТ ====================
-function startCall() {
-    if (!database || !isConnected) {
-        alert('❌ Нет подключения к Firebase для создания звонка');
-        return;
-    }
+    addMessageToDisplay(message);
     
-    // Генерируем уникальный ID для встречи
-    const meetingId = generateMeetingId();
-    const telemostUrl = `${TELEMOST_BASE_URL}/${meetingId}`;
-    
-    // Создаем красивое сообщение о звонке
-    const callMessage = {
-        id: Date.now().toString(),
-        userId: 'system',
-        userName: '🎥 Яндекс Телемост',
-        userAvatar: '🎥',
-        text: `📞 <div class="call-announcement" style="
-            background: linear-gradient(135deg, rgba(255, 0, 128, 0.15), rgba(255, 102, 0, 0.15));
-            padding: 20px;
-            border-radius: 15px;
-            border: 2px solid rgba(255, 0, 128, 0.3);
-            margin: 10px 0;
-            text-align: center;
-        ">
-            <div style="color: #ff0080; font-size: 1.4em; font-weight: bold; margin-bottom: 15px;">
-                <i class="fas fa-video"></i> СОЗДАН ВИДЕОЗВОНОК
-            </div>
-            
-            <a href="${telemostUrl}" target="_blank" style="
-                display: inline-block;
-                background: linear-gradient(135deg, #ff0080, #ff5500);
-                color: white;
-                padding: 15px 30px;
-                border-radius: 12px;
-                text-decoration: none;
-                font-weight: bold;
-                font-size: 1.1em;
-                margin: 15px 0;
-                border: 2px solid rgba(255, 255, 255, 0.3);
-                box-shadow: 0 0 20px rgba(255, 0, 128, 0.4);
-                transition: all 0.3s;
-                animation: pulse-call 1.5s infinite;
-            " onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 25px rgba(255, 0, 128, 0.6)'" 
-               onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 0 20px rgba(255, 0, 128, 0.4)'">
-                <i class="fas fa-video"></i> ПРИСОЕДИНИТЬСЯ К ЗВОНКУ
-            </a>
-            
-            <div style="margin-top: 20px; font-size: 0.9em; color: #aaa;">
-                <div style="margin-bottom: 8px;">
-                    <strong>Ссылка для подключения:</strong>
-                </div>
-                <div style="
-                    background: rgba(0, 0, 0, 0.3);
-                    padding: 12px;
-                    border-radius: 8px;
-                    font-family: monospace;
-                    word-break: break-all;
-                    font-size: 0.85em;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    margin-bottom: 10px;
-                ">
-                    ${telemostUrl}
-                </div>
-                
-                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-                    <div><strong>Создатель:</strong> ${currentUser.name}</div>
-                    <div><strong>Платформа:</strong> Яндекс Телемост 🇷🇺</div>
-                    <div><strong>Время:</strong> ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                </div>
-                
-                <div style="margin-top: 15px; font-size: 0.85em; color: #88aaff;">
-                    <i class="fas fa-info-circle"></i> Просто нажми на кнопку выше или скопируй ссылку
-                </div>
-            </div>
-        </div>`,
-        channel: currentChannel,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timestamp: Date.now()
-    };
-    
-    // Отправляем сообщение в чат
-    database.ref('messages/' + callMessage.id).set(callMessage)
-        .then(() => {
-            console.log('✅ Сообщение о звонке отправлено');
-            
-            // Открываем звонок в новом окне
-            window.open(telemostUrl, '_blank', 'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no');
-            
-            // Показываем уведомление
-            if (Notification.permission === "granted") {
-                new Notification("🎥 Яндекс Телемост", {
-                    body: `Звонок создан! Нажмите, чтобы присоединиться`,
-                    icon: "https://telemost.yandex.ru/favicon.ico"
-                });
-            }
-        })
-        .catch(error => {
-            console.error('❌ Ошибка отправки сообщения о звонке:', error);
-            alert('❌ Не удалось создать звонок. Попробуйте позже.');
+    if (database) {
+        database.ref('messages/' + message.id).set(message).catch(() => {
+            // Игнорируем ошибку если Firebase недоступен
         });
-}
-
-function generateMeetingId() {
-    // Генерируем случайный ID для встречи
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let result = 'j/';
-    for (let i = 0; i < 12; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    return result;
 }
 
 // ==================== АДМИН ФУНКЦИИ ====================
@@ -825,8 +1085,6 @@ function adminAnnouncement() {
 }
 
 async function adminSendAnnouncement(text) {
-    if (!database) return;
-    
     const message = {
         id: Date.now().toString(),
         userId: 'system',
@@ -853,7 +1111,12 @@ async function adminSendAnnouncement(text) {
         timestamp: Date.now()
     };
     
-    await database.ref('messages/' + message.id).set(message);
+    addMessageToDisplay(message);
+    
+    if (database) {
+        await database.ref('messages/' + message.id).set(message);
+    }
+    
     console.log('✅ Объявление отправлено');
     alert('✅ Объявление отправлено всем пользователям!');
 }
@@ -920,7 +1183,7 @@ function switchChannel(channel) {
         'main': 'Основной чат',
         'games': 'Игры',
         'music': 'Музыка',
-        'memes': 'Мемы'
+        'ai': '🤖 Нейросеть'
     };
     
     document.getElementById('channelName').textContent = channelNames[channel] || channel;
@@ -945,6 +1208,11 @@ function forceSync() {
     
     updateOnlineStatus();
     updateMessagesDisplay();
+    updateOnlineDisplay();
+    
+    if (database) {
+        sendSystemMessage('🔄 Синхронизация выполнена');
+    }
 }
 
 function hideMobilePanels() {
@@ -966,28 +1234,7 @@ function logout() {
     }
 }
 
-// Проверяем подключение к Firebase
-let isConnected = false;
-if (database) {
-    database.ref('.info/connected').on('value', (snap) => {
-        isConnected = snap.val() === true;
-    });
+// Запрос разрешения на уведомления
+if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
 }
-
-// Обработка Enter для отправки
-document.addEventListener('DOMContentLoaded', function() {
-    const messageInput = document.getElementById('messageInput');
-    if (messageInput) {
-        messageInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-    }
-    
-    // Запрашиваем разрешение на уведомления
-    if ("Notification" in window && Notification.permission === "default") {
-        Notification.requestPermission();
-    }
-});
