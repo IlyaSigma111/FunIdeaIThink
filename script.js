@@ -1,1184 +1,325 @@
-// ==================== КОНФИГУРАЦИЯ ====================
+/* ========== КОНФИГУРАЦИЯ FIREBASE ========== */
 const firebaseConfig = {
-    apiKey: "AIzaSyBBpRh7B5qZdyd66Q4KxsUBhH2qcwshI7g",
-    authDomain: "funideaithink-3206d.firebaseapp.com",
-    databaseURL: "https://funideaithink-3206d-default-rtdb.firebaseio.com",
-    projectId: "funideaithink-3206d",
-    storageBucket: "funideaithink-3206d.firebasestorage.app",
-    messagingSenderId: "475113847634",
-    appId: "1:475113847634:web:ec38afbcb33b5bde57588b",
-    measurementId: "G-9PC37HF1MJ"
+    apiKey: "AIzaSyA2z8k8J5t7vQh5q5L8k7M6n5J4k3L2m1N0",
+    authDomain: "neonchat-12345.firebaseapp.com",
+    databaseURL: "https://neonchat-12345-default-rtdb.firebaseio.com",
+    projectId: "neonchat-12345",
+    storageBucket: "neonchat-12345.appspot.com",
+    messagingSenderId: "123456789012",
+    appId: "1:123456789012:web:abcdef1234567890"
 };
 
-// Админ аккаунт (ник: ArturPirozhkov, пароль: JojoTop1)
-const ADMIN_USERNAME = "ArturPirozhkov";
-const ADMIN_PASSWORD = "JojoTop1";
+// Инициализация Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
 
-// Яндекс Телемост конфигурация
-const TELEMOST_BASE_URL = "https://telemost.yandex.ru";
-
-// Hugging Face AI
-const HF_API_KEY = "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"; // Твой API ключ
-const HF_MODEL = "microsoft/DialoGPT-medium"; // Бесплатная модель для чата
-
-// Глобальные переменные
-let isRegisterMode = false;
-let telegramEnabled = true;
-let database = null;
+/* ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ========== */
 let currentUser = null;
 let currentChannel = 'main';
-let messages = [];
-let onlineUsers = new Map();
-let myUserId = null;
-let onlineTimeout = null;
 let isAdmin = false;
-let aiConversations = new Map();
-let isAITyping = false;
+let isRegisteredMode = false;
+let onlineUsers = {};
+let messageCount = 0;
 
-// ==================== ИНИЦИАЛИЗАЦИЯ ====================
-window.onload = function() {
-    console.log('🚀 NeonChat запущен');
-    
-    // Инициализация Firebase
-    if (typeof firebase !== 'undefined') {
-        try {
-            firebase.initializeApp(firebaseConfig);
-            database = firebase.database();
-            console.log('✅ Firebase подключен');
-        } catch (e) {
-            database = firebase.database();
-        }
-    }
-    
-    // Проверяем сохраненного пользователя
-    const savedUser = localStorage.getItem('neonchat_current_user');
+/* ========== ИНИЦИАЛИЗАЦИЯ ========== */
+document.addEventListener('DOMContentLoaded', function() {
+    initApp();
+    updateTime();
+    setInterval(updateTime, 60000); // Обновлять время каждую минуту
+});
+
+function initApp() {
+    // Проверка сохраненной сессии
+    const savedUser = localStorage.getItem('neonchat_user');
     if (savedUser) {
         try {
             currentUser = JSON.parse(savedUser);
-            myUserId = currentUser.id;
-            
-            // Автозаполняем поле логина
-            const usernameInput = document.getElementById('username');
-            if (usernameInput && currentUser.name) {
-                usernameInput.value = currentUser.name;
-                document.getElementById('password').focus();
-            }
-            
-            console.log('Найден сохраненный пользователь:', currentUser.name);
+            isAdmin = currentUser.name.toLowerCase() === 'admin';
+            showChatScreen();
+            loadMessages();
+            startPresence();
         } catch (e) {
-            console.error('Ошибка загрузки пользователя:', e);
+            console.error('Ошибка загрузки сессии:', e);
+            localStorage.removeItem('neonchat_user');
         }
     }
     
-    // Автофокус
-    setTimeout(() => {
-        const input = document.getElementById('username');
-        if (input) input.focus();
-    }, 300);
+    // События ввода
+    document.getElementById('messageInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') sendMessage();
+    });
     
-    // Обновление времени
-    updateTime();
-    setInterval(updateTime, 60000);
+    document.getElementById('username').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') document.getElementById('password').focus();
+    });
     
-    // Настройка обработчиков
-    setupEventListeners();
-};
+    document.getElementById('password').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') handleAuth();
+    });
+    
+    // Начальный фокус
+    document.getElementById('username').focus();
+}
 
-function setupEventListeners() {
-    const messageInput = document.getElementById('messageInput');
-    if (messageInput) {
-        messageInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
+/* ========== АУТЕНТИФИКАЦИЯ ========== */
+function toggleRegister() {
+    isRegisteredMode = !isRegisteredMode;
+    const confirmGroup = document.getElementById('confirmPasswordGroup');
+    const authButton = document.getElementById('authButton');
+    const registerBtn = document.getElementById('registerToggleBtn');
+    const loginHint = document.getElementById('loginHint');
+    
+    if (isRegisteredMode) {
+        confirmGroup.style.display = 'flex';
+        authButton.innerHTML = '<i class="fas fa-user-plus"></i> Зарегистрироваться';
+        registerBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти в аккаунт';
+        loginHint.style.display = 'block';
+    } else {
+        confirmGroup.style.display = 'none';
+        authButton.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
+        registerBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
+        loginHint.style.display = 'none';
     }
 }
 
-function updateTime() {
-    const now = new Date();
-    const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
-                   now.getMinutes().toString().padStart(2, '0');
-    document.getElementById('currentTime').textContent = timeStr;
-}
-
-// ==================== АВТОРИЗАЦИЯ ====================
-function toggleRegister() {
-    isRegisterMode = true;
-    document.getElementById('confirmPasswordGroup').style.display = 'flex';
-    document.getElementById('authButton').innerHTML = '<i class="fas fa-user-plus"></i> Зарегистрироваться';
-    document.getElementById('registerToggleBtn').style.display = 'none';
-    document.getElementById('loginHint').style.display = 'block';
-    
-    setTimeout(() => {
-        document.getElementById('password').focus();
-    }, 100);
-}
-
 function toggleLogin() {
-    isRegisterMode = false;
-    document.getElementById('confirmPasswordGroup').style.display = 'none';
-    document.getElementById('authButton').innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
-    document.getElementById('registerToggleBtn').style.display = 'block';
-    document.getElementById('loginHint').style.display = 'none';
-    
-    setTimeout(() => {
-        document.getElementById('username').focus();
-    }, 100);
+    isRegisteredMode = false;
+    toggleRegister();
 }
 
 function handleAuth() {
     const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
-    const button = document.getElementById('authButton');
+    const password = document.getElementById('password').value.trim();
+    const confirmPassword = document.getElementById('confirmPassword').value.trim();
     
     if (!username) {
-        alert('Введи никнейм!');
-        document.getElementById('username').focus();
+        showAlert('Введите никнейм!', 'error');
         return;
     }
     
-    // Блокируем кнопку
-    button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + 
-                      (isRegisterMode ? 'Регистрируем...' : 'Входим...');
+    if (username.length < 3) {
+        showAlert('Никнейм должен быть минимум 3 символа!', 'error');
+        return;
+    }
     
-    if (isRegisterMode) {
+    if (!password) {
+        showAlert('Введите пароль!', 'error');
+        return;
+    }
+    
+    if (isRegisteredMode) {
         // Регистрация
-        if (!password) {
-            alert('Придумай пароль!');
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-user-plus"></i> Зарегистрироваться';
-            document.getElementById('password').focus();
-            return;
-        }
-        
-        if (password.length < 4) {
-            alert('Пароль должен быть минимум 4 символа!');
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-user-plus"></i> Зарегистрироваться';
-            document.getElementById('password').focus();
+        if (password.length < 6) {
+            showAlert('Пароль должен быть минимум 6 символов!', 'error');
             return;
         }
         
         if (password !== confirmPassword) {
-            alert('Пароли не совпадают!');
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-user-plus"></i> Зарегистрироваться';
-            document.getElementById('confirmPassword').focus();
-            document.getElementById('confirmPassword').value = '';
+            showAlert('Пароли не совпадают!', 'error');
             return;
         }
         
-        // Проверяем, не занят ли ник
-        if (localStorage.getItem('neonchat_user_' + username.toLowerCase())) {
-            alert('Этот ник уже занят! Выбери другой.');
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-user-plus"></i> Зарегистрироваться';
-            document.getElementById('username').focus();
-            document.getElementById('username').select();
-            return;
-        }
-        
-        // Регистрируем
         registerUser(username, password);
-        
     } else {
         // Вход
-        if (!password) {
-            alert('Введи пароль!');
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
-            document.getElementById('password').focus();
-            return;
-        }
-        
-        // Проверяем админ аккаунт
-        if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-            console.log('👑 Вход как администратор');
-            isAdmin = true;
-            createAdminUser();
-            return;
-        }
-        
-        // Обычный вход
         loginUser(username, password);
     }
 }
 
 function registerUser(username, password) {
-    myUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const userRef = database.ref('users/' + username.toLowerCase());
     
-    const avatars = ['😎', '🐱', '🚀', '🦊', '🐯', '🦁', '🐼', '🐨'];
-    const avatar = avatars[Math.floor(Math.random() * avatars.length)];
-    
-    currentUser = {
-        id: myUserId,
-        name: username,
-        avatar: avatar,
-        passwordHash: simpleHash(password),
-        registeredAt: Date.now(),
-        isAdmin: false
-    };
-    
-    // Сохраняем
-    localStorage.setItem('neonchat_user_' + username.toLowerCase(), JSON.stringify(currentUser));
-    localStorage.setItem('neonchat_current_user', JSON.stringify(currentUser));
-    
-    console.log('✅ Новый пользователь:', username);
-    showChatInterface();
+    userRef.once('value').then((snapshot) => {
+        if (snapshot.exists()) {
+            showAlert('Пользователь уже существует!', 'error');
+        } else {
+            // Сохраняем пользователя
+            const userData = {
+                name: username,
+                password: btoa(password), // Простое шифрование (в реальном приложении используй хеширование)
+                createdAt: Date.now(),
+                isAdmin: username.toLowerCase() === 'admin'
+            };
+            
+            userRef.set(userData).then(() => {
+                showAlert('Регистрация успешна!', 'success');
+                completeAuth(userData);
+            });
+        }
+    });
 }
 
 function loginUser(username, password) {
-    const userData = localStorage.getItem('neonchat_user_' + username.toLowerCase());
+    const userRef = database.ref('users/' + username.toLowerCase());
     
-    if (!userData) {
-        document.getElementById('authButton').disabled = false;
-        document.getElementById('authButton').innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
-        alert('Пользователь не найден! Зарегистрируйся сначала.');
-        toggleRegister();
-        return;
-    }
-    
-    try {
-        const user = JSON.parse(userData);
-        const inputHash = simpleHash(password);
-        
-        if (!user.passwordHash) {
-            // Старый пользователь без пароля - сохраняем
-            user.passwordHash = inputHash;
-            localStorage.setItem('neonchat_user_' + username.toLowerCase(), JSON.stringify(user));
-        } else if (user.passwordHash !== inputHash) {
-            document.getElementById('authButton').disabled = false;
-            document.getElementById('authButton').innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
-            alert('Неверный пароль!');
-            document.getElementById('password').value = '';
-            document.getElementById('password').focus();
+    userRef.once('value').then((snapshot) => {
+        if (!snapshot.exists()) {
+            showAlert('Пользователь не найден!', 'error');
             return;
         }
         
-        myUserId = user.id;
-        currentUser = user;
-        isAdmin = user.isAdmin || false;
+        const userData = snapshot.val();
+        if (btoa(password) !== userData.password) {
+            showAlert('Неверный пароль!', 'error');
+            return;
+        }
         
-        localStorage.setItem('neonchat_current_user', JSON.stringify(currentUser));
-        
-        console.log('✅ Успешный вход:', username);
-        showChatInterface();
-        
-    } catch (error) {
-        console.error('Ошибка входа:', error);
-        document.getElementById('authButton').disabled = false;
-        document.getElementById('authButton').innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
-        alert('Ошибка входа. Попробуй снова.');
-    }
+        completeAuth(userData);
+    });
 }
 
-function createAdminUser() {
-    myUserId = 'admin_' + ADMIN_USERNAME;
-    
+function completeAuth(userData) {
     currentUser = {
-        id: myUserId,
-        name: ADMIN_USERNAME,
-        avatar: '👑',
-        isAdmin: true,
-        isSpecialAdmin: true
+        name: userData.name,
+        isAdmin: userData.name.toLowerCase() === 'admin'
     };
     
-    localStorage.setItem('neonchat_current_user', JSON.stringify(currentUser));
+    isAdmin = currentUser.isAdmin;
     
-    console.log('✅ Вход как администратор');
-    showChatInterface();
-}
-
-function simpleHash(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-    }
-    return hash.toString(36);
-}
-
-// ==================== ОТОБРАЖЕНИЕ ЧАТА ====================
-function showChatInterface() {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('chatScreen').style.display = 'flex';
+    // Сохраняем в localStorage
+    localStorage.setItem('neonchat_user', JSON.stringify(currentUser));
     
-    // Обновляем UI
-    document.getElementById('currentUserName').textContent = currentUser.name;
-    document.getElementById('userAvatar').textContent = currentUser.avatar;
+    // Показываем чат
+    showChatScreen();
     
-    // Если админ - меняем стили
-    if (isAdmin) {
-        document.getElementById('userAvatar').classList.add('admin-avatar');
-        document.getElementById('currentUserName').classList.add('admin-name');
-        document.getElementById('currentUserName').innerHTML = currentUser.name + ' <span style="color:gold; font-size:0.8em;">👑</span>';
-        
-        // Показываем админ-панель
-        document.getElementById('adminPanel').style.display = 'block';
-    }
+    // Загружаем сообщения
+    loadMessages();
     
-    // Фокус на поле ввода
+    // Запускаем отслеживание присутствия
+    startPresence();
+    
+    // Показываем приветствие
     setTimeout(() => {
-        document.getElementById('messageInput').focus();
+        addSystemMessage(`Добро пожаловать, ${currentUser.name}!`);
+    }, 500);
+}
+
+/* ========== УПРАВЛЕНИЕ ЭКРАНАМИ ========== */
+function showChatScreen() {
+    const loginScreen = document.getElementById('loginScreen');
+    const chatScreen = document.getElementById('chatScreen');
+    const userNameElement = document.getElementById('currentUserName');
+    const userAvatar = document.getElementById('userAvatar');
+    const adminPanel = document.getElementById('adminPanel');
+    
+    // Обновляем информацию о пользователе
+    userNameElement.textContent = currentUser.name;
+    
+    if (currentUser.isAdmin) {
+        userNameElement.classList.add('admin-name');
+        userAvatar.classList.add('admin-avatar');
+        userAvatar.textContent = '👑';
+        adminPanel.style.display = 'block';
+    } else {
+        userNameElement.classList.remove('admin-name');
+        userAvatar.classList.remove('admin-avatar');
+        userAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
+    }
+    
+    // Переключаем экраны с анимацией
+    loginScreen.style.opacity = '0';
+    loginScreen.style.pointerEvents = 'none';
+    
+    setTimeout(() => {
+        loginScreen.style.display = 'none';
+        chatScreen.style.display = 'flex';
+        
+        setTimeout(() => {
+            chatScreen.style.opacity = '1';
+            chatScreen.style.transform = 'translateY(0)';
+        }, 50);
+    }, 300);
+}
+
+function logout() {
+    if (currentUser) {
+        // Удаляем из онлайн
+        const userStatusRef = database.ref('status/' + currentUser.name);
+        userStatusRef.remove();
+    }
+    
+    // Сбрасываем состояние
+    currentUser = null;
+    isAdmin = false;
+    localStorage.removeItem('neonchat_user');
+    
+    // Показываем экран логина
+    const loginScreen = document.getElementById('loginScreen');
+    const chatScreen = document.getElementById('chatScreen');
+    
+    chatScreen.style.opacity = '0';
+    chatScreen.style.transform = 'translateY(10px)';
+    
+    setTimeout(() => {
+        chatScreen.style.display = 'none';
+        loginScreen.style.display = 'flex';
+        
+        setTimeout(() => {
+            loginScreen.style.opacity = '1';
+            loginScreen.style.pointerEvents = 'all';
+        }, 50);
+        
+        // Очищаем поля
+        document.getElementById('password').value = '';
+        document.getElementById('confirmPassword').value = '';
+        document.getElementById('username').value = '';
+        document.getElementById('username').focus();
     }, 300);
     
-    initFirebase();
+    // Очищаем сообщения
+    document.getElementById('messagesContainer').innerHTML = '';
 }
 
-function initFirebase() {
-    if (!database) {
-        console.error('Firebase не инициализирован');
-        showFirebaseError();
-        return;
-    }
-    
-    // Мониторинг подключения
-    database.ref('.info/connected').on('value', (snap) => {
-        const isConnected = snap.val() === true;
-        document.getElementById('connectionStatus').textContent = isConnected ? '✓' : '✗';
-        document.getElementById('connectionStatus').style.color = isConnected ? '#00ff80' : '#ff6666';
-        
-        if (isConnected) {
-            updateOnlineStatus();
-            monitorOnlineUsers();
-            
-            onlineTimeout = setInterval(() => {
-                updateOnlineStatus();
-            }, 5000);
-        } else if (onlineTimeout) {
-            clearInterval(onlineTimeout);
-        }
-    });
-    
-    // Загрузка сообщений
-    database.ref('messages').on('value', (snapshot) => {
-        const data = snapshot.val();
-        messages = data ? Object.values(data) : [];
-        messages.sort((a, b) => a.timestamp - b.timestamp);
-        
-        updateMessagesDisplay();
-        document.getElementById('messageCount').textContent = messages.length;
-    });
-}
-
-function showFirebaseError() {
-    const container = document.getElementById('messagesContainer');
-    if (container) {
-        container.innerHTML = `
-            <div style="text-align:center; padding:40px 20px; color:#ff5555;">
-                <i class="fas fa-exclamation-triangle" style="font-size:3em; margin-bottom:15px;"></i>
-                <strong>Ошибка Firebase</strong><br>
-                <span style="color:#ff8888;">Нет подключения к базе данных.</span><br>
-                <div style="margin-top:20px; font-size:0.9em; color:#aaa;">
-                    Чат работает в локальном режиме<br>
-                    Сообщения сохраняются только у вас
-                </div>
-            </div>
-        `;
-    }
-}
-
-// ==================== СИСТЕМА ОНЛАЙН ====================
-function updateOnlineStatus() {
-    if (!database || !currentUser || !myUserId) return;
-    
-    const userRef = database.ref('online/' + myUserId);
-    userRef.set({
-        id: myUserId,
-        name: currentUser.name,
-        avatar: currentUser.avatar,
-        isAdmin: isAdmin,
-        lastSeen: Date.now()
-    });
-    
-    userRef.onDisconnect().remove();
-}
-
-function monitorOnlineUsers() {
-    if (!database) return;
-    
-    database.ref('online').on('value', (snapshot) => {
-        const data = snapshot.val();
-        onlineUsers.clear();
-        
-        if (data) {
-            const now = Date.now();
-            const tenSecondsAgo = now - 10000;
-            
-            Object.entries(data).forEach(([userId, user]) => {
-                if (user.lastSeen > tenSecondsAgo) {
-                    onlineUsers.set(userId, user);
-                } else {
-                    database.ref('online/' + userId).remove();
-                }
-            });
-        }
-        
-        updateOnlineDisplay();
-    });
-}
-
-function updateOnlineDisplay() {
-    const container = document.getElementById('membersList');
-    const onlineCount = document.getElementById('onlineCount');
-    const onlineCount2 = document.getElementById('onlineCount2');
-    
-    if (!container) return;
-    
-    container.innerHTML = '';
-    
-    // Добавляем себя
-    if (currentUser && myUserId) {
-        const userDiv = document.createElement('div');
-        userDiv.className = 'member';
-        userDiv.innerHTML = `
-            <div class="member-avatar">${currentUser.avatar}</div>
-            <div class="member-name">
-                ${currentUser.name}
-                <span style="color: #00ff80;">(Вы)</span>
-                ${isAdmin ? '<span class="admin-badge">👑</span>' : ''}
-                <div class="online-dot"></div>
-            </div>
-        `;
-        container.appendChild(userDiv);
-    }
-    
-    // Добавляем остальных
-    onlineUsers.forEach((user, userId) => {
-        if (userId === myUserId) return;
-        
-        const userDiv = document.createElement('div');
-        userDiv.className = 'member';
-        userDiv.innerHTML = `
-            <div class="member-avatar">${user.avatar}</div>
-            <div class="member-name">
-                ${user.name}
-                ${user.isAdmin ? '<span class="admin-badge">👑</span>' : ''}
-                <div class="online-dot"></div>
-            </div>
-        `;
-        container.appendChild(userDiv);
-    });
-    
-    const totalOnline = onlineUsers.size;
-    onlineCount.textContent = totalOnline;
-    onlineCount2.textContent = totalOnline;
-    
-    if (totalOnline === 1) {
-        const emptyDiv = document.createElement('div');
-        emptyDiv.style.textAlign = 'center';
-        emptyDiv.style.padding = '20px';
-        emptyDiv.style.color = 'rgba(255,255,255,0.5)';
-        emptyDiv.innerHTML = `
-            <i class="fas fa-user-friends" style="font-size: 2em; margin-bottom: 10px; display: block;"></i>
-            Пока ты один в сети
-        `;
-        container.appendChild(emptyDiv);
-    }
-}
-
-// ==================== СООБЩЕНИЯ ====================
-function updateMessagesDisplay() {
-    const container = document.getElementById('messagesContainer');
-    const filteredMessages = messages.filter(msg => msg.channel === currentChannel);
-    
-    if (filteredMessages.length === 0) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.4);">
-                <i class="fas fa-comment-alt" style="font-size: 3em; margin-bottom: 15px; display: block;"></i>
-                Начни общение первым
-            </div>
-        `;
-        return;
-    }
-    
-    container.innerHTML = '';
-    
-    filteredMessages.forEach(msg => {
-        displayMessage(msg);
-    });
-    
-    setTimeout(() => {
-        container.scrollTop = container.scrollHeight;
-    }, 100);
-}
-
-function displayMessage(msg) {
-    const container = document.getElementById('messagesContainer');
-    if (!container) return;
-    
-    const isOwn = currentUser && msg.userId === currentUser.id;
-    const isSystem = msg.userId === 'system';
-    const isAdminMsg = msg.isAdmin || msg.userId.includes('admin');
-    const isAI = msg.isAI || msg.userId.includes('ai');
-    
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''} ${isAdminMsg ? 'admin' : ''} ${isAI ? 'ai' : ''}`;
-    
-    messageDiv.innerHTML = `
-        <div class="message-header">
-            <span class="message-user ${isAdminMsg ? 'admin' : ''} ${isAI ? 'ai' : ''}">
-                ${msg.userAvatar || ''} ${msg.userName}
-                ${isAdminMsg ? '👑' : ''}
-            </span>
-            <span class="message-time">${msg.time}</span>
-        </div>
-        <div class="message-content">${msg.text}</div>
-    `;
-    
-    container.appendChild(messageDiv);
-}
-
-function addMessageToDisplay(message) {
-    const container = document.getElementById('messagesContainer');
-    const isOwn = currentUser && message.userId === currentUser.id;
-    const isSystem = message.userId === 'system';
-    const isAdminMsg = message.isAdmin || message.userId.includes('admin');
-    const isAI = message.isAI || message.userId.includes('ai');
-    
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''} ${isAdminMsg ? 'admin' : ''} ${isAI ? 'ai' : ''}`;
-    messageDiv.style.animation = 'fadeIn 0.3s ease';
-    
-    messageDiv.innerHTML = `
-        <div class="message-header">
-            <span class="message-user ${isAdminMsg ? 'admin' : ''} ${isAI ? 'ai' : ''}">
-                ${message.userAvatar || ''} ${message.userName}
-                ${isAdminMsg ? '👑' : ''}
-            </span>
-            <span class="message-time">${message.time}</span>
-        </div>
-        <div class="message-content">${message.text}</div>
-    `;
-    
-    container.appendChild(messageDiv);
-    container.scrollTop = container.scrollHeight;
-}
-
-async function sendMessage() {
-    const input = document.getElementById('messageInput');
-    const text = input.value.trim();
-    
-    if (!text) {
-        input.focus();
-        return;
-    }
-    
-    if (!currentUser) {
-        alert('Сначала войди в чат!');
-        return;
-    }
-    
-    // Проверка на команды
-    if (text.startsWith('/')) {
-        handleCommand(text);
-        input.value = '';
-        input.focus();
-        return;
-    }
-    
-    // Если в канале AI
-    if (currentChannel === 'ai') {
-        await handleAIChat(text);
-        input.value = '';
-        input.focus();
-        return;
-    }
-    
-    // Обычное сообщение
-    const message = {
-        id: Date.now().toString(),
-        userId: myUserId,
-        userName: currentUser.name,
-        userAvatar: currentUser.avatar,
-        text: text,
-        channel: currentChannel,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timestamp: Date.now(),
-        isAdmin: isAdmin
-    };
-    
-    try {
-        if (database) {
-            await database.ref('messages/' + message.id).set(message);
-        } else {
-            // Локальное сохранение если Firebase недоступен
-            messages.push(message);
-            addMessageToDisplay(message);
-        }
-        
-        updateOnlineStatus();
-        input.value = '';
-        input.focus();
-        
-    } catch (error) {
-        console.error('Ошибка отправки:', error);
-        alert('❌ Ошибка отправки сообщения');
-    }
-}
-
-// ==================== ЯНДЕКС ТЕЛЕМОСТ ====================
+/* ========== ЯНДЕКС ТЕЛЕМОСТ ========== */
 function startCall() {
-    // Проверяем есть ли пользователь
-    if (!currentUser) {
-        alert('❌ Сначала войдите в чат!');
-        return;
-    }
+    if (!currentUser) return;
     
-    // Проверяем подключение к интернету
-    if (!navigator.onLine) {
-        alert('❌ Нет подключения к интернету!');
-        return;
-    }
+    // Создаем уникальный ID комнаты
+    const roomId = generateRoomId();
     
-    // Генерируем уникальный ID для встречи
-    const meetingId = generateMeetingId();
-    const telemostUrl = `${TELEMOST_BASE_URL}/${meetingId}`;
+    // Два варианта ссылок (оба рабочие)
+    const telemostLink = `https://telemost.yandex.ru/j/${roomId}`;
+    // Альтернатива: https://telemost.yandex.ru/${roomId}
     
-    // Создаем сообщение о звонке
-    const callMessage = {
-        id: Date.now().toString(),
-        userId: 'system',
-        userName: '🎥 Яндекс Телемост',
-        userAvatar: '🎥',
-        text: `📞 <div class="call-announcement" style="
-            background: linear-gradient(135deg, rgba(255, 0, 128, 0.15), rgba(255, 102, 0, 0.15));
-            padding: 20px;
-            border-radius: 15px;
-            border: 2px solid rgba(255, 0, 128, 0.3);
-            margin: 10px 0;
-            text-align: center;
-        ">
-            <div style="color: #ff0080; font-size: 1.4em; font-weight: bold; margin-bottom: 15px;">
-                <i class="fas fa-video"></i> СОЗДАН ВИДЕОЗВОНОК
-            </div>
-            
-            <a href="${telemostUrl}" target="_blank" style="
-                display: inline-block;
-                background: linear-gradient(135deg, #ff0080, #ff5500);
-                color: white;
-                padding: 15px 30px;
-                border-radius: 12px;
-                text-decoration: none;
-                font-weight: bold;
-                font-size: 1.1em;
-                margin: 15px 0;
-                border: 2px solid rgba(255, 255, 255, 0.3);
-                box-shadow: 0 0 20px rgba(255, 0, 128, 0.4);
-                transition: all 0.3s;
-                animation: pulse 1.5s infinite;
-            " onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 25px rgba(255, 0, 128, 0.6)'" 
-               onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 0 20px rgba(255, 0, 128, 0.4)'">
-                <i class="fas fa-video"></i> ПРИСОЕДИНИТЬСЯ К ЗВОНКУ
-            </a>
-            
-            <div style="margin-top: 20px; font-size: 0.9em; color: #aaa;">
-                <div style="margin-bottom: 8px;">
-                    <strong>Ссылка для подключения:</strong>
-                </div>
-                <div style="
-                    background: rgba(0, 0, 0, 0.3);
-                    padding: 12px;
-                    border-radius: 8px;
-                    font-family: monospace;
-                    word-break: break-all;
-                    font-size: 0.85em;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    margin-bottom: 10px;
-                ">
-                    ${telemostUrl}
-                </div>
-                
-                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-                    <div><strong>Создатель:</strong> ${currentUser.name}</div>
-                    <div><strong>Платформа:</strong> Яндекс Телемост 🇷🇺</div>
-                    <div><strong>Время:</strong> ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                </div>
-            </div>
-        </div>`,
-        channel: currentChannel,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    // Создаем сообщение со ссылкой
+    const message = {
+        text: `🎥 ${currentUser.name} создал видеозвонок! Присоединяйтесь: ${telemostLink}`,
+        user: 'system',
         timestamp: Date.now()
     };
     
-    // Показываем сообщение сразу
-    addMessageToDisplay(callMessage);
+    // Отправляем в чат
+    database.ref('messages/' + currentChannel).push(message);
     
-    // Сохраняем в Firebase если доступен
-    if (database) {
-        database.ref('messages/' + callMessage.id).set(callMessage).catch(() => {
-            console.log('Firebase недоступен, сообщение только локально');
-        });
-    }
-    
-    // Открываем звонок в новом окне
-    window.open(telemostUrl, '_blank', 'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no');
+    // Открываем ссылку в новом окне
+    window.open(telemostLink, '_blank', 'noopener,noreferrer');
     
     // Показываем уведомление
-    showNotification('🎥 Яндекс Телемост', 'Звонок создан! Нажмите, чтобы присоединиться');
+    showAlert('Ссылка на видеозвонок отправлена в чат!', 'success');
 }
 
-function generateMeetingId() {
+function generateRoomId() {
+    // Генерируем случайную строку для комнаты
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let result = 'j/';
+    let result = '';
     for (let i = 0; i < 12; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
 }
 
-function showNotification(title, body) {
-    if ("Notification" in window && Notification.permission === "granted") {
-        new Notification(title, { body, icon: "https://telemost.yandex.ru/favicon.ico" });
-    }
-}
-
-// ==================== HUGGING FACE AI ====================
-async function handleAIChat(text) {
-    if (!text.trim()) return;
-    
-    // Сразу показываем сообщение пользователя
-    const userMessage = {
-        id: Date.now().toString(),
-        userId: myUserId,
-        userName: currentUser.name,
-        userAvatar: currentUser.avatar,
-        text: text,
-        channel: 'ai',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timestamp: Date.now(),
-        isAI: false
-    };
-    
-    addMessageToDisplay(userMessage);
-    
-    // Показываем индикатор набора
-    showAITyping();
-    
-    try {
-        const aiResponse = await chatWithHuggingFace(text, myUserId);
-        hideAITyping();
-        
-        // Показываем ответ AI
-        const aiMessage = {
-            id: (Date.now() + 1).toString(),
-            userId: 'ai_assistant',
-            userName: '🤖 AI Помощник',
-            userAvatar: '🤖',
-            text: aiResponse,
-            channel: 'ai',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            timestamp: Date.now(),
-            isAI: true
-        };
-        
-        addMessageToDisplay(aiMessage);
-        
-    } catch (error) {
-        hideAITyping();
-        console.error('Ошибка AI:', error);
-        
-        // Показываем сообщение об ошибке
-        const errorMessage = {
-            id: (Date.now() + 1).toString(),
-            userId: 'ai_assistant',
-            userName: '🤖 AI Помощник',
-            userAvatar: '🤖',
-            text: 'Извините, я временно недоступен 😔<br><small style="color:#888;">Попробуйте позже или используйте обычный чат</small>',
-            channel: 'ai',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            timestamp: Date.now(),
-            isAI: true
-        };
-        
-        addMessageToDisplay(errorMessage);
-    }
-}
-
-async function chatWithHuggingFace(message, userId) {
-    // Инициализируем историю если нужно
-    if (!aiConversations.has(userId)) {
-        aiConversations.set(userId, []);
-    }
-    
-    const history = aiConversations.get(userId);
-    
-    // Добавляем новое сообщение в историю
-    history.push({ role: "user", content: message });
-    
-    // Ограничиваем историю
-    if (history.length > 10) {
-        history.splice(0, history.length - 5);
-    }
-    
-    try {
-        const response = await fetch(
-            `https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium`,
-            {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${HF_API_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    inputs: {
-                        past_user_inputs: history.slice(-5).filter(h => h.role === "user").map(h => h.content),
-                        generated_responses: history.slice(-5).filter(h => h.role === "assistant").map(h => h.content),
-                        text: message
-                    },
-                    parameters: {
-                        max_length: 100,
-                        temperature: 0.7,
-                        repetition_penalty: 1.2
-                    }
-                })
-            }
-        );
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        let aiText = data.generated_text || "Извините, не могу сгенерировать ответ.";
-        
-        // Если ответ слишком короткий, добавляем вариант
-        if (aiText.length < 10) {
-            const fallbackResponses = [
-                "Интересный вопрос! Можете уточнить?",
-                "Я пока учусь отвечать на такие вопросы!",
-                "Попробуйте задать вопрос по-другому.",
-                "Это сложный вопрос, дайте подумать...",
-                "Мне нужно больше информации чтобы ответить."
-            ];
-            aiText = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
-        }
-        
-        // Сохраняем ответ в историю
-        history.push({ role: "assistant", content: aiText });
-        
-        return aiText;
-        
-    } catch (error) {
-        console.error('Hugging Face ошибка:', error);
-        return "Произошла ошибка при обработке запроса. Попробуйте позже.";
-    }
-}
-
-function showAITyping() {
-    const container = document.getElementById('messagesContainer');
-    const typingDiv = document.createElement('div');
-    typingDiv.className = 'ai-typing';
-    typingDiv.id = 'aiTypingIndicator';
-    typingDiv.innerHTML = `
-        <i class="fas fa-robot"></i>
-        <span>🤖 AI набирает ответ...</span>
-    `;
-    container.appendChild(typingDiv);
-    container.scrollTop = container.scrollHeight;
-}
-
-function hideAITyping() {
-    const typingDiv = document.getElementById('aiTypingIndicator');
-    if (typingDiv) {
-        typingDiv.remove();
-    }
-}
-
-// ==================== КОМАНДЫ ====================
-function handleCommand(command) {
-    const parts = command.split(' ');
-    const cmd = parts[0].toLowerCase();
-    const args = parts.slice(1);
-    
-    switch(cmd) {
-        case '/help':
-            showHelp();
-            break;
-            
-        case '/clean':
-        case '/clear':
-            if (isAdmin) {
-                adminClearChat();
-            } else {
-                sendSystemMessage('❌ Только администратор может очищать чат');
-            }
-            break;
-            
-        case '/announce':
-        case '/announcement':
-            if (isAdmin) {
-                const text = args.join(' ');
-                if (text) {
-                    adminSendAnnouncement(text);
-                } else {
-                    adminAnnouncement();
-                }
-            } else {
-                sendSystemMessage('❌ Только администратор может делать объявления');
-            }
-            break;
-            
-        case '/kickall':
-            if (isAdmin) {
-                adminKickAll();
-            } else {
-                sendSystemMessage('❌ Только администратор может кикать пользователей');
-            }
-            break;
-            
-        case '/online':
-            sendSystemMessage(`👥 Сейчас онлайн: ${onlineUsers.size} пользователь(ей)`);
-            break;
-            
-        case '/me':
-            const action = args.join(' ');
-            if (action) {
-                sendActionMessage(action);
-            }
-            break;
-            
-        case '/call':
-        case '/телефон':
-            startCall();
-            break;
-            
-        case '/ai':
-            if (args.length > 0) {
-                handleAIChat(args.join(' '));
-            } else {
-                sendSystemMessage('Используйте: /ai [ваш вопрос]');
-            }
-            break;
-            
-        case '/time':
-            sendSystemMessage(`🕐 Текущее время: ${new Date().toLocaleTimeString()}`);
-            break;
-            
-        default:
-            sendSystemMessage(`❌ Неизвестная команда. Введи /help для списка команд`);
-    }
-}
-
-function showHelp() {
-    let helpText = '📋 <strong>Доступные команды:</strong><br>';
-    helpText += '<div style="margin-left: 15px; font-size: 0.9em;">';
-    helpText += '/help - Показать это сообщение<br>';
-    helpText += '/online - Показать кто онлайн<br>';
-    helpText += '/me [действие] - Отправить действие<br>';
-    helpText += '/time - Показать время<br>';
-    helpText += '/call - Создать видеозвонок (Яндекс Телемост)<br>';
-    helpText += '/ai [вопрос] - Задать вопрос AI (или перейти в канал AI)<br>';
-    
-    if (isAdmin) {
-        helpText += '<br><strong style="color:gold;">👑 Админ команды:</strong><br>';
-        helpText += '/clean - Очистить весь чат<br>';
-        helpText += '/announce [текст] - Сделать объявление<br>';
-        helpText += '/kickall - Кикнуть всех пользователей<br>';
-    }
-    
-    helpText += '</div>';
-    
-    sendSystemMessage(helpText);
-}
-
-function sendSystemMessage(text) {
-    const message = {
-        id: Date.now().toString(),
-        userId: 'system',
-        userName: '⚡ Система',
-        userAvatar: '⚡',
-        text: text,
-        channel: currentChannel,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timestamp: Date.now()
-    };
-    
-    addMessageToDisplay(message);
-    
-    if (database) {
-        database.ref('messages/' + message.id).set(message).catch(() => {
-            // Игнорируем ошибку если Firebase недоступен
-        });
-    }
-}
-
-function sendActionMessage(action) {
-    const message = {
-        id: Date.now().toString(),
-        userId: myUserId,
-        userName: currentUser.name,
-        userAvatar: currentUser.avatar,
-        text: `<i style="color: #88aaff;">* ${currentUser.name} ${action}</i>`,
-        channel: currentChannel,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timestamp: Date.now(),
-        isAction: true
-    };
-    
-    addMessageToDisplay(message);
-    
-    if (database) {
-        database.ref('messages/' + message.id).set(message).catch(() => {
-            // Игнорируем ошибку если Firebase недоступен
-        });
-    }
-}
-
-// ==================== АДМИН ФУНКЦИИ ====================
-async function adminClearChat() {
-    if (!isAdmin) {
-        alert('❌ Только администратор может очищать чат');
-        return;
-    }
-    
-    if (!confirm('💀 ТОЧНО ОЧИСТИТЬ ВЕСЬ ЧАТ?\nЭто удалит ВСЕ сообщения у всех пользователей!')) {
-        return;
-    }
-    
-    if (!database) {
-        alert('❌ Нет подключения к Firebase');
-        return;
-    }
-    
-    try {
-        await database.ref('messages').remove();
-        
-        const message = {
-            id: Date.now().toString(),
-            userId: 'system',
-            userName: '👑 АДМИНИСТРАТОР',
-            userAvatar: '👑',
-            text: '🧹 <strong style="color:#ff0000;">ЧАТ ОЧИЩЕН АДМИНИСТРАТОРОМ!</strong> Все сообщения удалены.',
-            channel: 'main',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            timestamp: Date.now()
-        };
-        
-        await database.ref('messages/' + message.id).set(message);
-        
-        console.log('✅ Чат очищен админом');
-        alert('✅ Чат полностью очищен!');
-        
-    } catch (error) {
-        console.error('Ошибка очистки чата:', error);
-        alert('❌ Ошибка: ' + error.message);
-    }
-}
-
-function adminAnnouncement() {
-    if (!isAdmin) {
-        alert('❌ Только администратор может делать объявления');
-        return;
-    }
-    
-    const text = prompt('Текст объявления для всех пользователей:');
-    if (!text) return;
-    
-    adminSendAnnouncement(text);
-}
-
-async function adminSendAnnouncement(text) {
-    const message = {
-        id: Date.now().toString(),
-        userId: 'system',
-        userName: '📢 АДМИН-ОБЪЯВЛЕНИЕ',
-        userAvatar: '📢',
-        text: `📣 <div style="
-            background: linear-gradient(45deg, rgba(255, 153, 0, 0.2), rgba(255, 255, 0, 0.2));
-            padding: 20px;
-            border-radius: 12px;
-            color: #ffcc00;
-            font-weight: bold;
-            border: 2px solid #ff9900;
-            text-align: center;
-            margin: 10px 0;
-        ">
-            <div style="font-size: 1.3em; margin-bottom: 10px; color: #ff9900;">⚡ ВНИМАНИЕ ВСЕМ!</div>
-            <div style="font-size: 1.1em; margin-bottom: 10px;">${text}</div>
-            <div style="margin-top: 10px; font-size: 0.9em; color: #ffcc88;">
-                👑 От администратора <strong>${currentUser.name}</strong>
-            </div>
-        </div>`,
-        channel: 'main',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timestamp: Date.now()
-    };
-    
-    addMessageToDisplay(message);
-    
-    if (database) {
-        await database.ref('messages/' + message.id).set(message);
-    }
-    
-    console.log('✅ Объявление отправлено');
-    alert('✅ Объявление отправлено всем пользователям!');
-}
-
-async function adminKickAll() {
-    if (!isAdmin) {
-        alert('❌ Только администратор может кикать пользователей');
-        return;
-    }
-    
-    if (!confirm('🚨 КИКНУТЬ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ?\nВсе онлайн пользователи будут отключены!')) {
-        return;
-    }
-    
-    if (!database) {
-        alert('❌ Нет подключения к Firebase');
-        return;
-    }
-    
-    try {
-        await database.ref('online').remove();
-        
-        const message = {
-            id: Date.now().toString(),
-            userId: 'system',
-            userName: '👑 АДМИНИСТРАТОР',
-            userAvatar: '👑',
-            text: `🚨 <div style="background: linear-gradient(45deg, rgba(255,0,0,0.2), rgba(255,68,0,0.2)); padding: 20px; border-radius: 12px; border: 2px solid #ff0000; text-align: center;">
-                   <strong style="color:#ff0000; font-size:1.3em;">⚠️ ВСЕ ПОЛЬЗОВАТЕЛИ ОТКЛЮЧЕНЫ!</strong><br><br>
-                   🔥 Администратор <strong>${currentUser.name}</strong> отключил всех пользователей!<br><br>
-                   <div style="font-size:0.9em; color:#ffaaaa;">
-                   Перезайдите в чат для продолжения общения
-                   </div>
-                   </div>`,
-            channel: 'main',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            timestamp: Date.now()
-        };
-        
-        await database.ref('messages/' + message.id).set(message);
-        
-        console.log('✅ Все пользователи отключены');
-        alert('✅ Все онлайн пользователи отключены!');
-        
-    } catch (error) {
-        console.error('Ошибка кика всех:', error);
-        alert('❌ Ошибка: ' + error.message);
-    }
-}
-
-// ==================== УТИЛИТЫ ====================
-function addEmoji(emoji) {
-    const input = document.getElementById('messageInput');
-    input.value += emoji;
-    input.focus();
-}
-
+/* ========== УПРАВЛЕНИЕ ЧАТОМ ========== */
 function switchChannel(channel) {
-    currentChannel = channel;
-    document.querySelectorAll('.channel').forEach(el => el.classList.remove('active'));
-    event.target.closest('.channel').classList.add('active');
+    if (channel === currentChannel) return;
     
+    // Обновляем активный канал
+    document.querySelectorAll('.channel').forEach(el => {
+        el.classList.remove('active');
+    });
+    
+    document.querySelector(`.channel[onclick*="${channel}"]`).classList.add('active');
+    
+    // Обновляем название канала
     const channelNames = {
         'main': 'Основной чат',
         'games': 'Игры',
@@ -1187,54 +328,506 @@ function switchChannel(channel) {
     };
     
     document.getElementById('channelName').textContent = channelNames[channel] || channel;
-    updateMessagesDisplay();
-    hideMobilePanels();
+    
+    // Меняем канал
+    currentChannel = channel;
+    
+    // Загружаем сообщения нового канала
+    loadMessages();
+    
+    // Закрываем боковые панели на мобильных
+    if (window.innerWidth <= 768) {
+        document.querySelector('.sidebar').classList.remove('active');
+        document.querySelector('.right-sidebar').classList.remove('active');
+    }
 }
 
+function sendMessage() {
+    if (!currentUser) return;
+    
+    const input = document.getElementById('messageInput');
+    const text = input.value.trim();
+    
+    if (!text) return;
+    
+    // Проверка команд
+    if (text.startsWith('/')) {
+        handleCommand(text);
+        input.value = '';
+        return;
+    }
+    
+    // Создаем сообщение
+    const message = {
+        text: text,
+        user: currentUser.name,
+        userId: currentUser.name.toLowerCase(),
+        timestamp: Date.now(),
+        isAdmin: currentUser.isAdmin
+    };
+    
+    // Отправляем в Firebase
+    database.ref('messages/' + currentChannel).push(message)
+        .then(() => {
+            input.value = '';
+            messageCount++;
+            updateMessageCount();
+        })
+        .catch((error) => {
+            showAlert('Ошибка отправки: ' + error.message, 'error');
+        });
+}
+
+function handleCommand(command) {
+    const parts = command.split(' ');
+    const cmd = parts[0].toLowerCase();
+    
+    switch(cmd) {
+        case '/help':
+            showCommandHelp();
+            break;
+        case '/clear':
+            clearMyMessages();
+            break;
+        case '/call':
+            startCall();
+            break;
+        case '/emoji':
+            if (parts[1]) addEmoji(parts[1]);
+            break;
+        case '/ai':
+            if (parts.slice(1).join(' ')) askAI(parts.slice(1).join(' '));
+            break;
+        case '/admin':
+            if (isAdmin) showAdminCommands();
+            else addSystemMessage('У вас нет прав администратора!');
+            break;
+        default:
+            addSystemMessage(`Неизвестная команда. Введите /help для списка команд.`);
+    }
+}
+
+function showCommandHelp() {
+    const helpMsg = `
+        📋 <strong>Доступные команды:</strong><br>
+        • <code>/help</code> - показать это сообщение<br>
+        • <code>/clear</code> - очистить свои сообщения<br>
+        • <code>/call</code> - создать видеозвонок<br>
+        • <code>/emoji 😊</code> - отправить эмодзи<br>
+        • <code>/ai вопрос</code> - спросить у ИИ<br>
+        • <code>/admin</code> - команды админа
+    `;
+    
+    addSystemMessage(helpMsg);
+}
+
+/* ========== РАБОТА С СООБЩЕНИЯМИ ========== */
+function loadMessages() {
+    const messagesContainer = document.getElementById('messagesContainer');
+    
+    // Очищаем контейнер
+    messagesContainer.innerHTML = '<div class="ai-typing" style="display:none;" id="aiTyping"><i class="fas fa-robot"></i> Нейросеть печатает...</div>';
+    
+    // Слушаем новые сообщения
+    database.ref('messages/' + currentChannel).limitToLast(50).on('value', (snapshot) => {
+        const messages = [];
+        snapshot.forEach((childSnapshot) => {
+            messages.push({
+                id: childSnapshot.key,
+                ...childSnapshot.val()
+            });
+        });
+        
+        // Сортируем по времени
+        messages.sort((a, b) => a.timestamp - b.timestamp);
+        
+        // Отображаем сообщения
+        messagesContainer.innerHTML = '<div class="ai-typing" style="display:none;" id="aiTyping"><i class="fas fa-robot"></i> Нейросеть печатает...</div>';
+        
+        messages.forEach(msg => {
+            addMessageToUI(msg);
+        });
+        
+        // Прокручиваем вниз
+        scrollToBottom();
+        
+        // Обновляем счетчик
+        messageCount = messages.length;
+        updateMessageCount();
+    });
+}
+
+function addMessageToUI(msg) {
+    const container = document.getElementById('messagesContainer');
+    const aiTyping = document.getElementById('aiTyping');
+    
+    // Пропускаем если это AI и он печатает
+    if (msg.user === 'AI' && aiTyping.style.display !== 'none') {
+        return;
+    }
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message';
+    
+    // Определяем тип сообщения
+    if (msg.user === 'system') {
+        messageDiv.classList.add('system');
+    } else if (msg.isAdmin) {
+        messageDiv.classList.add('admin');
+    } else if (msg.user === 'AI') {
+        messageDiv.classList.add('ai');
+    } else if (msg.user === currentUser?.name) {
+        messageDiv.classList.add('own');
+    }
+    
+    // Форматируем время
+    const time = new Date(msg.timestamp);
+    const timeStr = time.toLocaleTimeString('ru-RU', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+    
+    // Форматируем текст (заменяем переносы строк на <br>)
+    let formattedText = msg.text.replace(/\n/g, '<br>');
+    
+    // Распознаем ссылки
+    formattedText = formattedText.replace(
+        /(https?:\/\/[^\s]+)/g,
+        '<a href="$1" target="_blank" style="color: #00ccff;">$1</a>'
+    );
+    
+    // Определяем иконку пользователя
+    let userIcon = '👤';
+    if (msg.isAdmin) userIcon = '👑';
+    if (msg.user === 'AI') userIcon = '🤖';
+    if (msg.user === 'system') userIcon = '📢';
+    
+    messageDiv.innerHTML = `
+        <div class="message-header">
+            <div class="message-user ${msg.isAdmin ? 'admin' : ''} ${msg.user === 'AI' ? 'ai' : ''}">
+                ${userIcon} ${msg.user}
+            </div>
+            <div class="message-time">${timeStr}</div>
+        </div>
+        <div class="message-content">${formattedText}</div>
+    `;
+    
+    // Добавляем в контейнер, но перед индикатором набора AI
+    if (aiTyping && aiTyping.style.display !== 'none') {
+        container.insertBefore(messageDiv, aiTyping);
+    } else {
+        container.appendChild(messageDiv);
+    }
+}
+
+function addSystemMessage(text) {
+    const message = {
+        text: text,
+        user: 'system',
+        timestamp: Date.now()
+    };
+    
+    database.ref('messages/' + currentChannel).push(message);
+}
+
+function clearMyMessages() {
+    if (!currentUser) return;
+    
+    // Находим и удаляем свои сообщения
+    database.ref('messages/' + currentChannel).once('value').then((snapshot) => {
+        const updates = {};
+        
+        snapshot.forEach((childSnapshot) => {
+            const msg = childSnapshot.val();
+            if (msg.user === currentUser.name) {
+                updates[childSnapshot.key] = null;
+            }
+        });
+        
+        database.ref('messages/' + currentChannel).update(updates);
+        addSystemMessage(`${currentUser.name} очистил свои сообщения.`);
+    });
+}
+
+/* ========== ИНТЕГРАЦИЯ С ИИ ========== */
+function askAI(question) {
+    if (!question.trim()) return;
+    
+    const aiTyping = document.getElementById('aiTyping');
+    aiTyping.style.display = 'flex';
+    
+    // Имитация ответа ИИ (в реальном приложении здесь API запрос)
+    setTimeout(() => {
+        aiTyping.style.display = 'none';
+        
+        // Примеры ответов
+        const responses = [
+            `На ваш вопрос "${question}" я могу ответить, что это интересная тема для обсуждения в чате!`,
+            `🤖 Как ИИ, я рекомендую обсудить "${question}" с другими участниками чата.`,
+            `Мой ответ на "${question}": в нашем чате много экспертов, которые могут помочь!`,
+            `По теме "${question}" - советую создать отдельную комнату для обсуждения.`
+        ];
+        
+        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+        
+        const aiMessage = {
+            text: randomResponse,
+            user: 'AI',
+            timestamp: Date.now()
+        };
+        
+        database.ref('messages/' + currentChannel).push(aiMessage);
+    }, 1500 + Math.random() * 2000);
+}
+
+/* ========== ОНЛАЙН ПОЛЬЗОВАТЕЛИ ========== */
+function startPresence() {
+    if (!currentUser) return;
+    
+    const userId = currentUser.name.toLowerCase();
+    const userStatusRef = database.ref('status/' + currentUser.name);
+    
+    // Устанавливаем статус онлайн
+    userStatusRef.set({
+        name: currentUser.name,
+        isAdmin: currentUser.isAdmin,
+        lastSeen: Date.now(),
+        online: true
+    });
+    
+    // При отключении страницы - ставим оффлайн
+    window.addEventListener('beforeunload', () => {
+        userStatusRef.remove();
+    });
+    
+    // Слушаем изменения статусов
+    database.ref('status').on('value', (snapshot) => {
+        onlineUsers = {};
+        const membersList = document.getElementById('membersList');
+        membersList.innerHTML = '';
+        
+        let onlineCount = 0;
+        
+        snapshot.forEach((childSnapshot) => {
+            const user = childSnapshot.val();
+            onlineUsers[user.name] = user;
+            onlineCount++;
+            
+            // Добавляем в список онлайн
+            if (membersList) {
+                const memberDiv = document.createElement('div');
+                memberDiv.className = 'member';
+                
+                const avatarText = user.isAdmin ? '👑' : user.name.charAt(0).toUpperCase();
+                
+                memberDiv.innerHTML = `
+                    <div class="member-avatar">${avatarText}</div>
+                    <div class="member-name">
+                        ${user.name}
+                        ${user.isAdmin ? '<i class="fas fa-crown admin-badge"></i>' : ''}
+                        <div class="online-dot"></div>
+                    </div>
+                `;
+                
+                membersList.appendChild(memberDiv);
+            }
+        });
+        
+        // Обновляем счетчики онлайн
+        document.getElementById('onlineCount').textContent = onlineCount;
+        document.getElementById('onlineCount2').textContent = onlineCount;
+    });
+    
+    // Периодическое обновление времени присутствия
+    setInterval(() => {
+        if (currentUser) {
+            userStatusRef.update({
+                lastSeen: Date.now()
+            });
+        }
+    }, 30000);
+}
+
+/* ========== АДМИН ФУНКЦИИ ========== */
+function showAdminCommands() {
+    const commands = `
+        👑 <strong>Админ команды:</strong><br>
+        • <code>/admin clear all</code> - очистить весь чат<br>
+        • <code>/admin kick [имя]</code> - кикнуть пользователя<br>
+        • <code>/admin announcement текст</code> - объявление
+    `;
+    addSystemMessage(commands);
+}
+
+function adminClearChat() {
+    if (!isAdmin) {
+        addSystemMessage('У вас нет прав администратора!');
+        return;
+    }
+    
+    if (confirm('Вы уверены? Весь чат будет очищен!')) {
+        database.ref('messages/' + currentChannel).remove();
+        addSystemMessage('💥 Администратор очистил чат!');
+    }
+}
+
+function adminAnnouncement() {
+    if (!isAdmin) return;
+    
+    const text = prompt('Введите текст объявления:');
+    if (text) {
+        addSystemMessage(`📢 АДМИНИСТРАТОР: ${text}`);
+    }
+}
+
+function adminKickAll() {
+    if (!isAdmin) return;
+    
+    if (confirm('Кикнуть всех пользователей? Они смогут зайти снова.')) {
+        database.ref('status').remove();
+        addSystemMessage('⚡ Администратор кикнул всех пользователей!');
+    }
+}
+
+/* ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ========== */
 function toggleSidebar() {
-    document.querySelector('.sidebar').classList.toggle('active');
-    document.querySelector('.right-sidebar').classList.remove('active');
+    const sidebar = document.querySelector('.sidebar');
+    sidebar.classList.toggle('active');
+    
+    // Добавляем оверлей на мобильных
+    if (window.innerWidth <= 768) {
+        const overlay = document.createElement('div');
+        overlay.className = 'mobile-overlay';
+        overlay.onclick = () => {
+            sidebar.classList.remove('active');
+            overlay.remove();
+        };
+        
+        if (sidebar.classList.contains('active')) {
+            document.body.appendChild(overlay);
+        } else {
+            document.querySelector('.mobile-overlay')?.remove();
+        }
+    }
 }
 
 function toggleMembers() {
-    document.querySelector('.right-sidebar').classList.toggle('active');
-    document.querySelector('.sidebar').classList.remove('active');
+    const rightSidebar = document.querySelector('.right-sidebar');
+    rightSidebar.classList.toggle('active');
+    
+    if (window.innerWidth <= 768) {
+        const overlay = document.createElement('div');
+        overlay.className = 'mobile-overlay';
+        overlay.onclick = () => {
+            rightSidebar.classList.remove('active');
+            overlay.remove();
+        };
+        
+        if (rightSidebar.classList.contains('active')) {
+            document.body.appendChild(overlay);
+        } else {
+            document.querySelector('.mobile-overlay')?.remove();
+        }
+    }
 }
 
 function forceSync() {
     const btn = document.querySelector('.refresh-btn');
-    btn.style.transform = 'rotate(180deg)';
-    setTimeout(() => btn.style.transform = 'rotate(0deg)', 300);
+    btn.style.transform = 'rotate(360deg)';
     
-    updateOnlineStatus();
-    updateMessagesDisplay();
-    updateOnlineDisplay();
+    setTimeout(() => {
+        loadMessages();
+        btn.style.transform = '';
+    }, 500);
     
-    if (database) {
-        sendSystemMessage('🔄 Синхронизация выполнена');
-    }
+    showAlert('Чат обновлен!', 'success');
 }
 
-function hideMobilePanels() {
-    document.querySelectorAll('.sidebar, .right-sidebar').forEach(panel => {
-        panel.classList.remove('active');
+function addEmoji(emoji) {
+    const input = document.getElementById('messageInput');
+    input.value += ' ' + emoji;
+    input.focus();
+}
+
+function updateTime() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('ru-RU', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
     });
+    
+    document.getElementById('currentTime').textContent = timeStr;
 }
 
-function logout() {
-    if (confirm('Выйти из чата?')) {
-        if (database && myUserId) {
-            database.ref('online/' + myUserId).remove();
-        }
-        
-        if (onlineTimeout) clearInterval(onlineTimeout);
-        
-        localStorage.removeItem('neonchat_current_user');
-        location.reload();
+function updateMessageCount() {
+    document.getElementById('messageCount').textContent = messageCount;
+}
+
+function scrollToBottom() {
+    const container = document.getElementById('messagesContainer');
+    setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+    }, 100);
+}
+
+function showAlert(message, type) {
+    // Создаем элемент уведомления
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type}`;
+    alertDiv.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'error' ? 'rgba(255, 60, 60, 0.9)' : 'rgba(0, 200, 80, 0.9)'};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease;
+        ">
+            <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i>
+            ${message}
+        </div>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // Удаляем через 3 секунды
+    setTimeout(() => {
+        alertDiv.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 300);
+    }, 3000);
+}
+
+// Добавляем стили для анимации
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
     }
-}
-
-// Запрос разрешения на уведомления
-if ("Notification" in window && Notification.permission === "default") {
-    Notification.requestPermission();
-}
+    
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+    
+    .mobile-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 899;
+        backdrop-filter: blur(5px);
+    }
+`;
+document.head.appendChild(style);
