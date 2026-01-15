@@ -24,75 +24,10 @@ let onlineTimeout = null;
 let isAdmin = false;
 let messageSendLock = false;
 let lastMessageTime = 0;
-let eventListenersAdded = false;
-
-/* ========== МОБИЛЬНЫЕ ФИКСЫ ========== */
-function applyMobileFixes() {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    if (!isMobile) return;
-    
-    console.log('📱 Применяем мобильные фиксы...');
-    
-    // Фикс высоты на iOS
-    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-        const setAppHeight = () => {
-            const doc = document.documentElement;
-            doc.style.setProperty('--app-height', `${window.innerHeight}px`);
-        };
-        
-        window.addEventListener('resize', setAppHeight);
-        window.addEventListener('orientationchange', setAppHeight);
-        setAppHeight();
-        
-        // Добавляем стили для iOS
-        const style = document.createElement('style');
-        style.textContent = `
-            #loginScreen, #chatScreen {
-                height: var(--app-height, 100vh) !important;
-                min-height: var(--app-height, 100vh) !important;
-            }
-            
-            .login-box {
-                transform: translate3d(0,0,0);
-                will-change: transform;
-            }
-            
-            input, textarea {
-                font-size: 16px !important;
-            }
-        `;
-        document.head.appendChild(style);
-    }
-    
-    // Предотвращаем скрытие адресной строки
-    window.addEventListener('load', () => {
-        setTimeout(() => {
-            window.scrollTo(0, 0);
-        }, 100);
-    });
-    
-    // Фикс тапов на мобильных
-    document.addEventListener('touchstart', () => {}, {passive: true});
-    
-    // Фикс для скролла
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
-    document.body.style.height = '100%';
-    
-    // Оптимизация для слабых устройств
-    document.querySelectorAll('*').forEach(el => {
-        el.style.willChange = 'auto';
-    });
-}
 
 /* ========== ИНИЦИАЛИЗАЦИЯ ========== */
 window.onload = function() {
     console.log('🚀 NeonChat запущен');
-    
-    // Применяем мобильные фиксы
-    applyMobileFixes();
     
     // Проверяем загрузку Firebase
     if (typeof firebase === 'undefined') {
@@ -112,10 +47,7 @@ window.onload = function() {
     }
     
     // Назначаем обработчики событий
-    if (!eventListenersAdded) {
-        setupEventListeners();
-        eventListenersAdded = true;
-    }
+    setupEventListeners();
     
     // Проверяем сохраненного пользователя
     const savedUser = localStorage.getItem('neonchat_current_user');
@@ -905,7 +837,7 @@ async function sendMessage() {
 }
 
 /* ========== ВИДЕОЗВОНКИ ========== */
-function showCallPlatforms() {
+function startCall() {
     if (!currentUser) {
         showAlert('Сначала войди в чат!', 'error');
         return;
@@ -914,6 +846,24 @@ function showCallPlatforms() {
     const modal = document.getElementById('callPlatformsModal');
     if (modal) {
         modal.style.display = 'flex';
+        // Добавляем стили для анимации
+        if (!document.querySelector('#modal-animations')) {
+            const style = document.createElement('style');
+            style.id = 'modal-animations';
+            style.textContent = `
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(-20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                #callPlatformsModal > div {
+                    animation: fadeIn 0.3s ease;
+                }
+                #callPlatformsModal {
+                    display: flex !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
     }
 }
 
@@ -1277,7 +1227,7 @@ function handleCommand(command) {
             break;
             
         case '/call':
-            showCallPlatforms();
+            startCall();
             break;
             
         case '/time':
@@ -1710,7 +1660,7 @@ window.handleAuth = handleAuth;
 window.sendMessage = sendMessage;
 window.addEmoji = addEmoji;
 window.switchChannel = switchChannel;
-window.showCallPlatforms = showCallPlatforms;
+window.startCall = startCall;
 window.hideCallPlatforms = hideCallPlatforms;
 window.createDiscordCall = createDiscordCall;
 window.createGoogleMeetCall = createGoogleMeetCall;
