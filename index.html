@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>🚀 NeonChat</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -14,21 +14,21 @@
     <div id="loginScreen">
         <div class="login-box">
             <h1 class="neon-text">NeonChat</h1>
-            <p class="subtitle">Чат с ИИ-помощником и Яндекс Телемост</p>
+            <p class="subtitle">Чат с ИИ-помощником и видеозвонками</p>
             
             <div class="input-group">
                 <i class="fas fa-user"></i>
-                <input type="text" id="username" placeholder="Никнейм..." maxlength="20" autofocus>
+                <input type="text" id="username" placeholder="Никнейм..." maxlength="20" autocomplete="username">
             </div>
             
             <div class="input-group" id="passwordGroup">
                 <i class="fas fa-lock"></i>
-                <input type="password" id="password" placeholder="Пароль..." maxlength="30">
+                <input type="password" id="password" placeholder="Пароль..." maxlength="30" autocomplete="current-password">
             </div>
             
             <div class="input-group" id="confirmPasswordGroup" style="display: none;">
                 <i class="fas fa-lock"></i>
-                <input type="password" id="confirmPassword" placeholder="Повтори пароль..." maxlength="30">
+                <input type="password" id="confirmPassword" placeholder="Повтори пароль..." maxlength="30" autocomplete="new-password">
             </div>
             
             <button onclick="handleAuth()" class="neon-btn" id="authButton">
@@ -47,7 +47,7 @@
     </div>
     
     <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
-    <div id="chatScreen">
+    <div id="chatScreen" style="display: none;">
         <!-- МОБИЛЬНОЕ МЕНЮ -->
         <div class="mobile-menu">
             <button class="mobile-btn" onclick="toggleSidebar()">
@@ -62,9 +62,9 @@
                 <i class="fas fa-comments"></i>
                 <span>Чат</span>
             </button>
-            <button class="mobile-btn" onclick="switchChannel('games')">
-                <i class="fas fa-gamepad"></i>
-                <span>Игры</span>
+            <button class="mobile-btn" onclick="startCall()">
+                <i class="fas fa-video"></i>
+                <span>Звонок</span>
             </button>
         </div>
         
@@ -94,7 +94,7 @@
                 
                 <div class="sidebar-buttons">
                     <button onclick="startCall()" class="sidebar-btn">
-                        <i class="fas fa-phone-alt"></i> Видеозвонок
+                        <i class="fas fa-video"></i> Видеозвонок
                     </button>
                     <button onclick="logout()" class="sidebar-btn logout">
                         <i class="fas fa-sign-out-alt"></i> Выйти
