@@ -838,47 +838,167 @@ async function sendMessage() {
 
 /* ========== ВИДЕОЗВОНКИ ========== */
 function startCall() {
+    console.log('📞 Кнопка звонка нажата!');
+    
     if (!currentUser) {
         showAlert('Сначала войди в чат!', 'error');
         return;
     }
     
-    const modal = document.getElementById('callPlatformsModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        // Добавляем стили для анимации
-        if (!document.querySelector('#modal-animations')) {
-            const style = document.createElement('style');
-            style.id = 'modal-animations';
-            style.textContent = `
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(-20px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                #callPlatformsModal > div {
-                    animation: fadeIn 0.3s ease;
-                }
-                #callPlatformsModal {
-                    display: flex !important;
-                }
-            `;
-            document.head.appendChild(style);
-        }
-    }
+    // Создаем модальное окно для выбора платформы
+    createCallModal();
 }
 
-function hideCallPlatforms() {
-    const modal = document.getElementById('callPlatformsModal');
+function createCallModal() {
+    // Удаляем старые модалки
+    const oldModal = document.querySelector('.call-modal-overlay');
+    if (oldModal) oldModal.remove();
+    
+    // Создаем оверлей
+    const overlay = document.createElement('div');
+    overlay.className = 'call-modal-overlay';
+    
+    // Создаем контент модалки
+    const modalContent = document.createElement('div');
+    modalContent.className = 'call-modal-content';
+    
+    modalContent.innerHTML = `
+        <div style="text-align: center; margin-bottom: 30px;">
+            <div style="display: inline-flex; align-items: center; gap: 15px; background: rgba(0,200,255,0.1); padding: 15px 30px; border-radius: 50px; margin-bottom: 20px;">
+                <div style="background: linear-gradient(135deg, #0066ff, #00ccff); width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2em; color: white; box-shadow: 0 8px 25px rgba(0,200,255,0.5);">
+                    <i class="fas fa-video"></i>
+                </div>
+                <div style="text-align: left;">
+                    <h2 style="color: #00ccff; margin: 0; font-size: 2em; font-weight: 800;">Видеозвонок</h2>
+                    <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0;">Выберите платформу</p>
+                </div>
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+            <!-- Discord -->
+            <div class="call-platform-card" onclick="createDiscordCall()">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                    <div style="background: #5865F2; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8em; color: white; box-shadow: 0 6px 20px rgba(88,101,242,0.4);">
+                        <i class="fab fa-discord"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 1.3em; font-weight: 700; color: white; margin-bottom: 5px;">Discord</div>
+                        <div style="color: rgba(255,255,255,0.8); font-size: 0.9em;">Лучший вариант</div>
+                    </div>
+                    <div style="color: #00ffaa; font-weight: 700; font-size: 1.1em;">РЕКОМЕНДУЕМ</div>
+                </div>
+                <div style="color: rgba(255,255,255,0.9); margin-bottom: 20px; line-height: 1.5;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;"><i class="fas fa-check" style="color: #00ffaa;"></i><span>До 50 участников бесплатно</span></div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;"><i class="fas fa-check" style="color: #00ffaa;"></i><span>Отличное качество</span></div>
+                    <div style="display: flex; align-items: center; gap: 10px;"><i class="fas fa-check" style="color: #00ffaa;"></i><span>Экран, звук, видео</span></div>
+                </div>
+                <div style="background: rgba(88,101,242,0.3); color: white; text-align: center; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 1.1em; margin-top: 10px; border: 1px solid rgba(255,255,255,0.2);">
+                    Создать Discord звонок
+                </div>
+            </div>
+            
+            <!-- Google Meet -->
+            <div class="call-platform-card call-platform-card-google" onclick="createGoogleMeetCall()">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #4285f4, #34a853); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8em; color: white; box-shadow: 0 6px 20px rgba(66,133,244,0.4);">
+                        <i class="fab fa-google"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 1.3em; font-weight: 700; color: white; margin-bottom: 5px;">Google Meet</div>
+                        <div style="color: rgba(255,255,255,0.8); font-size: 0.9em;">Просто и надежно</div>
+                    </div>
+                </div>
+                <div style="color: rgba(255,255,255,0.9); margin-bottom: 20px; line-height: 1.5;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;"><i class="fas fa-check" style="color: #00ffaa;"></i><span>До 100 участников</span></div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;"><i class="fas fa-check" style="color: #00ffaa;"></i><span>60 минут бесплатно</span></div>
+                    <div style="display: flex; align-items: center; gap: 10px;"><i class="fas fa-check" style="color: #00ffaa;"></i><span>Работает в браузере</span></div>
+                </div>
+                <div style="background: linear-gradient(135deg, rgba(66,133,244,0.3), rgba(52,168,83,0.3)); color: white; text-align: center; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 1.1em; margin-top: 10px; border: 1px solid rgba(255,255,255,0.2);">
+                    Создать Google Meet
+                </div>
+            </div>
+            
+            <!-- Zoom -->
+            <div class="call-platform-card call-platform-card-zoom" onclick="createZoomCall()">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #2d8cff, #0066ff); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8em; color: white; box-shadow: 0 6px 20px rgba(45,140,255,0.4);">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 1.3em; font-weight: 700; color: white; margin-bottom: 5px;">Zoom</div>
+                        <div style="color: rgba(255,255,255,0.8); font-size: 0.9em;">Популярный вариант</div>
+                    </div>
+                </div>
+                <div style="color: rgba(255,255,255,0.9); margin-bottom: 20px; line-height: 1.5;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;"><i class="fas fa-check" style="color: #00ffaa;"></i><span>40 минут бесплатно</span></div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;"><i class="fas fa-check" style="color: #00ffaa;"></i><span>До 100 участников</span></div>
+                    <div style="display: flex; align-items: center; gap: 10px;"><i class="fas fa-exclamation-triangle" style="color: #ffaa00;"></i><span>Нужно установить приложение</span></div>
+                </div>
+                <div style="background: linear-gradient(135deg, rgba(45,140,255,0.3), rgba(0,102,255,0.3)); color: white; text-align: center; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 1.1em; margin-top: 10px; border: 1px solid rgba(255,255,255,0.2);">
+                    Создать Zoom
+                </div>
+            </div>
+            
+            <!-- Своя ссылка -->
+            <div class="call-platform-card call-platform-card-custom" onclick="createCustomCall()">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #ff3366, #ff9966); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8em; color: white; box-shadow: 0 6px 20px rgba(255,51,102,0.4);">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 1.3em; font-weight: 700; color: white; margin-bottom: 5px;">Своя ссылка</div>
+                        <div style="color: rgba(255,255,255,0.8); font-size: 0.9em;">Любая платформа</div>
+                    </div>
+                </div>
+                <div style="color: rgba(255,255,255,0.9); margin-bottom: 20px; line-height: 1.5;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;"><i class="fas fa-check" style="color: #00ffaa;"></i><span>Любая платформа</span></div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;"><i class="fas fa-check" style="color: #00ffaa;"></i><span>Без ограничений</span></div>
+                    <div style="display: flex; align-items: center; gap: 10px;"><i class="fas fa-check" style="color: #00ffaa;"></i><span>Создать ссылку вручную</span></div>
+                </div>
+                <div style="background: linear-gradient(135deg, rgba(255,51,102,0.3), rgba(255,153,102,0.3)); color: white; text-align: center; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 1.1em; margin-top: 10px; border: 1px solid rgba(255,255,255,0.2);">
+                    Создать свою ссылку
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <button id="closeCallModal" style="background: rgba(255,60,60,0.2); border: 2px solid rgba(255,100,100,0.6); color: #ff6666; padding: 14px 40px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 1.1em; transition: all 0.3s ease;">Отмена</button>
+        </div>
+    `;
+    
+    overlay.appendChild(modalContent);
+    document.body.appendChild(overlay);
+    
+    // Добавляем обработчик закрытия
+    setTimeout(() => {
+        const closeBtn = document.getElementById('closeCallModal');
+        if (closeBtn) {
+            closeBtn.onclick = function() {
+                overlay.remove();
+            };
+        }
+        
+        // Закрытие по клику на оверлей
+        overlay.onclick = function(e) {
+            if (e.target === overlay) {
+                overlay.remove();
+            }
+        };
+    }, 100);
+}
+
+function hideCallModal() {
+    const modal = document.querySelector('.call-modal-overlay');
     if (modal) {
-        modal.style.display = 'none';
+        modal.remove();
     }
 }
 
 function createDiscordCall() {
-    hideCallPlatforms();
+    hideCallModal();
     
-    // Создаем реальную Discord ссылку
-    const discordInvite = "https://discord.gg/invite/neonchat";
+    const discordInvite = "https://discord.gg/neonchat";
     
     const messageText = `
         <div style="background: linear-gradient(135deg, rgba(88,101,242,0.15), rgba(88,101,242,0.25)); border-radius: 16px; padding: 25px; margin: 12px 0; border: 2px solid rgba(88,101,242,0.4);">
@@ -898,8 +1018,8 @@ function createDiscordCall() {
                 </div>
                 
                 <div style="color: rgba(255,255,255,0.9); line-height: 1.6; margin-bottom: 20px;">
-                    1. <strong>Присоединяйтесь к нашему Discord серверу:</strong><br>
-                    2. Нажмите на ссылку ниже<br>
+                    1. <strong>Нажмите на ссылку ниже</strong><br>
+                    2. Присоединитесь к серверу NeonChat<br>
                     3. Создайте голосовой канал в сервере<br>
                     4. Пригласите друзей в свой канал
                 </div>
@@ -911,16 +1031,6 @@ function createDiscordCall() {
                     </a>
                 </div>
             </div>
-            
-            <div style="background: rgba(0, 255, 170, 0.1); border-radius: 12px; padding: 18px; margin-top: 20px; border-left: 4px solid #00ffaa;">
-                <div style="color: #00ffaa; font-weight: 800; margin-bottom: 10px; font-size: 1.1em;">✅ Преимущества Discord:</div>
-                <div style="color: rgba(255,255,255,0.9); display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.95em;">
-                    <div><i class="fas fa-check"></i> Бесплатно до 50 человек</div>
-                    <div><i class="fas fa-check"></i> Отличное качество</div>
-                    <div><i class="fas fa-check"></i> Экран, камера, микрофон</div>
-                    <div><i class="fas fa-check"></i> Текстовый чат рядом</div>
-                </div>
-            </div>
         </div>
     `;
     
@@ -929,9 +1039,8 @@ function createDiscordCall() {
 }
 
 function createGoogleMeetCall() {
-    hideCallPlatforms();
+    hideCallModal();
     
-    // Генерируем реальный Google Meet код
     const meetCode = generateRealMeetCode();
     const meetLink = `https://meet.google.com/${meetCode}`;
     
@@ -947,41 +1056,9 @@ function createGoogleMeetCall() {
                 </div>
             </div>
             
-            <div style="color: rgba(255,255,255,0.9); line-height: 1.6; margin-bottom: 20px; padding: 0 10px;">
-                <strong>${currentUser.name}</strong> создал Google Meet звонок!
-            </div>
-            
             <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid rgba(255,255,255,0.1);">
                 <div style="color: #fbbc05; font-weight: 700; margin-bottom: 15px; font-size: 1.2em;">
                     <i class="fas fa-graduation-cap"></i> Инструкция:
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                    <div style="background: rgba(66,133,244,0.1); padding: 15px; border-radius: 10px; border: 1px solid rgba(66,133,244,0.3);">
-                        <div style="color: #4285f4; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-laptop"></i>
-                            <span>На компьютере</span>
-                        </div>
-                        <div style="color: rgba(255,255,255,0.9); font-size: 0.95em; line-height: 1.5;">
-                            1. Нажмите "Присоединиться"<br>
-                            2. Войдите в Google аккаунт<br>
-                            3. Разрешите доступ к камере<br>
-                            4. Пригласите других
-                        </div>
-                    </div>
-                    
-                    <div style="background: rgba(251,188,5,0.1); padding: 15px; border-radius: 10px; border: 1px solid rgba(251,188,5,0.3);">
-                        <div style="color: #fbbc05; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-mobile-alt"></i>
-                            <span>На телефоне</span>
-                        </div>
-                        <div style="color: rgba(255,255,255,0.9); font-size: 0.95em; line-height: 1.5;">
-                            1. Установите приложение<br>
-                            2. Войдите в Google<br>
-                            3. Используйте код встречи<br>
-                            4. Разрешите доступ
-                        </div>
-                    </div>
                 </div>
                 
                 <!-- Код встречи -->
@@ -1006,10 +1083,9 @@ function createGoogleMeetCall() {
 }
 
 function createZoomCall() {
-    hideCallPlatforms();
+    hideCallModal();
     
-    // Создаем реальную Zoom ссылку
-    const zoomLink = "https://zoom.us/j/meeting?create=true";
+    const zoomLink = "https://zoom.us/meeting#/create";
     
     const messageText = `
         <div style="background: linear-gradient(135deg, rgba(45,140,255,0.15), rgba(0,102,255,0.15)); border-radius: 16px; padding: 25px; margin: 12px 0; border: 2px solid rgba(45,140,255,0.4);">
@@ -1021,10 +1097,6 @@ function createZoomCall() {
                     <div style="font-size: 1.5em; font-weight: 800; color: white; margin-bottom: 8px;">🎥 ZOOM ЗВОНОК</div>
                     <div style="color: rgba(255,255,255,0.9); font-size: 1.1em;">Создал: <strong style="color: #00ffaa;">${currentUser.name}</strong></div>
                 </div>
-            </div>
-            
-            <div style="color: rgba(255,255,255,0.9); line-height: 1.6; margin-bottom: 20px; padding: 0 10px;">
-                <strong>${currentUser.name}</strong> создал Zoom встречу!
             </div>
             
             <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid rgba(255,255,255,0.1); text-align: center;">
@@ -1039,15 +1111,6 @@ function createZoomCall() {
                     </a>
                 </div>
                 
-                <div style="background: rgba(255,215,0,0.1); border-radius: 10px; padding: 15px; margin: 15px 0; border-left: 4px solid gold;">
-                    <div style="color: gold; font-weight: 700; margin-bottom: 10px;">
-                        ⚡ Zoom работает 40 минут бесплатно
-                    </div>
-                    <div style="color: rgba(255,255,255,0.9); font-size: 0.95em;">
-                        Для более длинных встреч потребуется платная подписка
-                    </div>
-                </div>
-                
                 <a href="${zoomLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #2d8cff, #0066ff); color: white; padding: 16px 35px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 1.1em; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 8px 25px rgba(45,140,255,0.4); transition: all 0.3s ease; margin-top: 15px;">
                     <i class="fas fa-plus-circle"></i> Создать Zoom встречу
                 </a>
@@ -1059,7 +1122,7 @@ function createZoomCall() {
 }
 
 function createCustomCall() {
-    hideCallPlatforms();
+    hideCallModal();
     
     const customLink = prompt('Введите ссылку на ваш видеозвонок (Discord, Zoom, Google Meet и т.д.):');
     
@@ -1114,11 +1177,9 @@ function createCustomCall() {
 }
 
 function generateRealMeetCode() {
-    // Генерируем код похожий на Google Meet
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     let code = '';
     
-    // 3 группы по 3 символа, разделенные дефисами
     for (let i = 0; i < 11; i++) {
         if (i === 3 || i === 7) {
             code += '-';
@@ -1661,7 +1722,7 @@ window.sendMessage = sendMessage;
 window.addEmoji = addEmoji;
 window.switchChannel = switchChannel;
 window.startCall = startCall;
-window.hideCallPlatforms = hideCallPlatforms;
+window.hideCallModal = hideCallModal;
 window.createDiscordCall = createDiscordCall;
 window.createGoogleMeetCall = createGoogleMeetCall;
 window.createZoomCall = createZoomCall;
