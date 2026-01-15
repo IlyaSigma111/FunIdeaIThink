@@ -10,11 +10,9 @@ const firebaseConfig = {
     measurementId: "G-9PC37HF1MJ"
 };
 
-// Админ аккаунт
 const ADMIN_USERNAME = "ArturPirozhkov";
 const ADMIN_PASSWORD = "JojoTop1";
 
-// Глобальные переменные
 let isRegisterMode = false;
 let database = null;
 let currentUser = null;
@@ -24,27 +22,96 @@ let onlineUsers = new Map();
 let myUserId = null;
 let onlineTimeout = null;
 let isAdmin = false;
-let messageSendLock = false; // Флаг для блокировки двойной отправки
-let lastMessageTime = 0; // Время последнего сообщения
+let messageSendLock = false;
+let lastMessageTime = 0;
 let eventListenersAdded = false;
+
+/* ========== МОБИЛЬНЫЕ ФИКСЫ ========== */
+function applyMobileFixes() {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (!isMobile) return;
+    
+    console.log('📱 Применяем мобильные фиксы...');
+    
+    // Фикс высоты на iOS
+    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+        const setAppHeight = () => {
+            const doc = document.documentElement;
+            doc.style.setProperty('--app-height', `${window.innerHeight}px`);
+        };
+        
+        window.addEventListener('resize', setAppHeight);
+        window.addEventListener('orientationchange', setAppHeight);
+        setAppHeight();
+        
+        // Добавляем стили для iOS
+        const style = document.createElement('style');
+        style.textContent = `
+            #loginScreen, #chatScreen {
+                height: var(--app-height, 100vh) !important;
+                min-height: var(--app-height, 100vh) !important;
+            }
+            
+            .login-box {
+                transform: translate3d(0,0,0);
+                will-change: transform;
+            }
+            
+            input, textarea {
+                font-size: 16px !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Предотвращаем скрытие адресной строки
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            window.scrollTo(0, 0);
+        }, 100);
+    });
+    
+    // Фикс тапов на мобильных
+    document.addEventListener('touchstart', () => {}, {passive: true});
+    
+    // Фикс для скролла
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
+    
+    // Оптимизация для слабых устройств
+    document.querySelectorAll('*').forEach(el => {
+        el.style.willChange = 'auto';
+    });
+}
 
 /* ========== ИНИЦИАЛИЗАЦИЯ ========== */
 window.onload = function() {
     console.log('🚀 NeonChat запущен');
     
-    // Инициализация Firebase
-    try {
-        if (typeof firebase !== 'undefined' && !firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        database = firebase.database();
-        console.log('✅ Firebase подключен');
-    } catch (e) {
-        console.log('⚠️ Firebase не инициализирован, используем локальный режим');
+    // Применяем мобильные фиксы
+    applyMobileFixes();
+    
+    // Проверяем загрузку Firebase
+    if (typeof firebase === 'undefined') {
+        console.error('❌ Firebase не загружен!');
         setupLocalStorageFallback();
+    } else {
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            database = firebase.database();
+            console.log('✅ Firebase подключен');
+        } catch (e) {
+            console.error('⚠️ Ошибка Firebase:', e);
+            setupLocalStorageFallback();
+        }
     }
     
-    // Назначаем обработчики событий (только один раз!)
+    // Назначаем обработчики событий
     if (!eventListenersAdded) {
         setupEventListeners();
         eventListenersAdded = true;
@@ -66,12 +133,12 @@ window.onload = function() {
             
             console.log('Найден сохраненный пользователь:', currentUser.name);
             
-            // Автоматически показываем чат если пользователь сохранен
+            // Показываем чат после небольшой задержки
             setTimeout(() => {
                 if (currentUser && currentUser.name) {
                     showChatInterface();
                 }
-            }, 500);
+            }, 300);
             
         } catch (e) {
             console.error('Ошибка загрузки пользователя:', e);
@@ -82,143 +149,38 @@ window.onload = function() {
     setTimeout(() => {
         const input = document.getElementById('username');
         if (input) input.focus();
-    }, 300);
+    }, 500);
     
     // Обновление времени
     updateTime();
     setInterval(updateTime, 60000);
 };
 
-/* ========== НАСТРОЙКА ОБРАБОТЧИКОВ СОБЫТИЙ ========== */
 function setupEventListeners() {
     console.log('📌 Настройка обработчиков событий');
     
-    // Кнопка авторизации
-    const authButton = document.getElementById('authButton');
-    if (authButton) {
-        const newAuthButton = authButton.cloneNode(true);
-        authButton.parentNode.replaceChild(newAuthButton, authButton);
-        document.getElementById('authButton').addEventListener('click', handleAuth);
-    }
-    
-    // Кнопка регистрации
-    const registerToggleBtn = document.getElementById('registerToggleBtn');
-    if (registerToggleBtn) {
-        const newRegisterBtn = registerToggleBtn.cloneNode(true);
-        registerToggleBtn.parentNode.replaceChild(newRegisterBtn, registerToggleBtn);
-        document.getElementById('registerToggleBtn').addEventListener('click', toggleRegister);
-    }
-    
-    // Ссылка для входа
-    const loginLink = document.querySelector('.mode-switch a');
-    if (loginLink) {
-        const newLoginLink = loginLink.cloneNode(true);
-        loginLink.parentNode.replaceChild(newLoginLink, loginLink);
-        document.querySelector('.mode-switch a').addEventListener('click', toggleLogin);
-    }
-    
-    // Поле ввода сообщения
+    // Enter для отправки сообщений
     const messageInput = document.getElementById('messageInput');
     if (messageInput) {
-        const newMessageInput = messageInput.cloneNode(true);
-        messageInput.parentNode.replaceChild(newMessageInput, messageInput);
-        
-        // Только один обработчик для Enter
-        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+        messageInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
             }
         });
-        
-        // Фокус/блюр эффекты
-        newMessageInput.addEventListener('focus', function() {
-            this.style.borderColor = '#00ccff';
-            this.style.boxShadow = '0 0 15px rgba(0, 200, 255, 0.3)';
-        });
-        
-        newMessageInput.addEventListener('blur', function() {
-            this.style.borderColor = 'rgba(0, 200, 255, 0.3)';
-            this.style.boxShadow = 'none';
-        });
     }
     
-    // Кнопка отправки сообщения
-    const sendButton = document.querySelector('.send-btn');
-    if (sendButton) {
-        const newSendButton = sendButton.cloneNode(true);
-        sendButton.parentNode.replaceChild(newSendButton, sendButton);
-        document.querySelector('.send-btn').addEventListener('click', function(e) {
-            e.preventDefault();
-            sendMessage();
-        });
-    }
-    
-    // Поля логина/пароля
-    const usernameInput = document.getElementById('username');
-    const passwordInput = document.getElementById('password');
-    
-    if (usernameInput) {
-        usernameInput.replaceWith(usernameInput.cloneNode(true));
-        const newUsernameInput = document.getElementById('username');
-        newUsernameInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const passwordField = document.getElementById('password');
-                if (passwordField) passwordField.focus();
-            }
-        });
-    }
-    
-    if (passwordInput) {
-        passwordInput.replaceWith(passwordInput.cloneNode(true));
-        const newPasswordInput = document.getElementById('password');
-        newPasswordInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
+    // Enter для авторизации
+    document.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const loginScreen = document.getElementById('loginScreen');
+            if (loginScreen && loginScreen.style.display !== 'none') {
                 handleAuth();
             }
-        });
-    }
-    
-    // Эмодзи кнопки
-    setupEmojiButtons();
-    
-    // Каналы чата
-    setupChannelButtons();
-}
-
-function setupEmojiButtons() {
-    const emojis = ['😊', '😂', '❤️', '🔥', '👍'];
-    emojis.forEach(emoji => {
-        const btn = document.querySelector(`.action-btn:contains('${emoji}')`);
-        if (btn) {
-            const newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-            newBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                addEmoji(emoji);
-            });
         }
     });
 }
 
-function setupChannelButtons() {
-    const channels = ['main', 'games', 'music', 'ai'];
-    channels.forEach(channel => {
-        const elements = document.querySelectorAll(`[onclick*="switchChannel('${channel}')"]`);
-        elements.forEach(el => {
-            const newEl = el.cloneNode(true);
-            el.parentNode.replaceChild(newEl, el);
-            newEl.addEventListener('click', function(e) {
-                e.preventDefault();
-                switchChannel(channel);
-            });
-        });
-    });
-}
-
-/* ========== ФОЛБЭК ДЛЯ ЛОКАЛЬНОГО ХРАНИЛИЩА ========== */
 function setupLocalStorageFallback() {
     console.log('⚠️ Используем локальное хранилище');
     
@@ -237,12 +199,14 @@ function setupLocalStorageFallback() {
                                 messages = messages.slice(-100);
                             }
                             localStorage.setItem(messagesKey, JSON.stringify(messages));
+                            updateMessagesDisplay();
                         } else if (path.startsWith('online/')) {
                             const onlineKey = 'firebase_online';
                             let online = JSON.parse(localStorage.getItem(onlineKey) || '{}');
                             const userId = path.split('/')[1];
                             online[userId] = data;
                             localStorage.setItem(onlineKey, JSON.stringify(online));
+                            updateOnlineDisplay();
                         }
                         setTimeout(resolve, 50);
                     });
@@ -256,11 +220,11 @@ function setupLocalStorageFallback() {
                             messages.forEach(msg => {
                                 obj[msg.id] = msg;
                             });
-                            callback({ val: () => obj });
+                            setTimeout(() => callback({ val: () => obj }), 100);
                         } else if (path === 'online') {
                             const onlineKey = 'firebase_online';
                             const online = JSON.parse(localStorage.getItem(onlineKey) || '{}');
-                            callback({ val: () => online });
+                            setTimeout(() => callback({ val: () => online }), 100);
                         }
                     }
                     return () => {};
@@ -543,7 +507,6 @@ function createAdminUser(button) {
     showAlert('👑 Вход как администратор!', 'success');
     showChatInterface();
     
-    // Разблокируем кнопку
     if (button) {
         setTimeout(() => {
             button.disabled = false;
@@ -590,7 +553,6 @@ function showChatInterface() {
             currentUserName.innerHTML = currentUser.name + ' <span style="color:gold; font-size:0.8em;">👑</span>';
         }
         
-        // Показываем админ-панель
         if (adminPanel) adminPanel.style.display = 'block';
     }
     
@@ -614,7 +576,6 @@ function initFirebase() {
     }
     
     try {
-        // Мониторинг подключения
         database.ref('.info/connected').on('value', (snap) => {
             const isConnected = snap.val() === true;
             const connectionStatus = document.getElementById('connectionStatus');
@@ -641,7 +602,6 @@ function initFirebase() {
     }
     
     try {
-        // Загрузка сообщений
         database.ref('messages').orderByChild('timestamp').limitToLast(100).on('value', (snapshot) => {
             const data = snapshot.val();
             messages = data ? Object.values(data) : [];
@@ -823,12 +783,10 @@ function updateMessagesDisplay() {
         const isOwn = currentUser && msg.userId === currentUser.id;
         const isSystem = msg.userId === 'system';
         const isAdminMsg = msg.isAdmin || (msg.userId && msg.userId.includes('admin'));
-        const isCallMessage = msg.text && msg.text.includes('GOOGLE MEET');
         
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''} ${isAdminMsg ? 'admin' : ''} ${isCallMessage ? 'call-message' : ''}`;
+        messageDiv.className = `message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''} ${isAdminMsg ? 'admin' : ''}`;
         
-        // Безопасное отображение HTML
         let safeText = msg.text || '';
         safeText = safeText.replace(/\n/g, '<br>');
         
@@ -851,9 +809,8 @@ function updateMessagesDisplay() {
     }, 100);
 }
 
-/* ========== ИСПРАВЛЕННАЯ ФУНКЦИЯ ОТПРАВКИ СООБЩЕНИЙ ========== */
+/* ========== ОТПРАВКА СООБЩЕНИЙ ========== */
 async function sendMessage() {
-    // ЗАЩИТА ОТ ДВОЙНОЙ ОТПРАВКИ
     if (messageSendLock) {
         console.log('⏳ Сообщение уже отправляется...');
         return;
@@ -890,13 +847,10 @@ async function sendMessage() {
         return;
     }
     
-    // БЛОКИРУЕМ ОТПРАВКУ
     messageSendLock = true;
     
-    // Меняем вид кнопки отправки
     const sendBtn = document.querySelector('.send-btn');
     const originalBtnHtml = sendBtn ? sendBtn.innerHTML : null;
-    const originalBtnOpacity = sendBtn ? sendBtn.style.opacity : null;
     
     if (sendBtn) {
         sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
@@ -920,7 +874,6 @@ async function sendMessage() {
         if (database) {
             await database.ref('messages/' + message.id).set(message);
         } else {
-            // Локальное сохранение
             const messagesKey = 'firebase_messages';
             let messages = JSON.parse(localStorage.getItem(messagesKey) || '[]');
             messages.push(message);
@@ -928,533 +881,326 @@ async function sendMessage() {
                 messages = messages.slice(-100);
             }
             localStorage.setItem(messagesKey, JSON.stringify(messages));
-            
-            // Обновляем отображение
-            messages = messages;
             updateMessagesDisplay();
         }
         
-        // Очищаем поле ввода
         input.value = '';
         input.focus();
-        
-        // Обновляем онлайн статус
         updateOnlineStatus();
         
     } catch (error) {
         console.error('Ошибка отправки:', error);
         showAlert('❌ Ошибка отправки сообщения', 'error');
     } finally {
-        // ВСЕГДА разблокируем отправку, даже если была ошибка
         messageSendLock = false;
         
-        // Восстанавливаем кнопку
         if (sendBtn && originalBtnHtml) {
-            sendBtn.innerHTML = originalBtnHtml;
-            sendBtn.style.opacity = originalBtnOpacity || '';
-            sendBtn.disabled = false;
+            setTimeout(() => {
+                sendBtn.innerHTML = originalBtnHtml;
+                sendBtn.style.opacity = '';
+                sendBtn.disabled = false;
+            }, 300);
         }
     }
 }
 
-/* ========== ВИДЕОЗВОНКИ ЧЕРЕЗ GOOGLE MEET ========== */
-function startCall() {
+/* ========== ВИДЕОЗВОНКИ ========== */
+function showCallPlatforms() {
     if (!currentUser) {
         showAlert('Сначала войди в чат!', 'error');
         return;
     }
     
-    // Генерируем уникальный код для Google Meet
-    const meetCode = generateMeetCode();
+    const modal = document.getElementById('callPlatformsModal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+function hideCallPlatforms() {
+    const modal = document.getElementById('callPlatformsModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function createDiscordCall() {
+    hideCallPlatforms();
     
-    // Создаем ссылку Google Meet (работает 100%)
+    // Создаем реальную Discord ссылку
+    const discordInvite = "https://discord.gg/invite/neonchat";
+    
+    const messageText = `
+        <div style="background: linear-gradient(135deg, rgba(88,101,242,0.15), rgba(88,101,242,0.25)); border-radius: 16px; padding: 25px; margin: 12px 0; border: 2px solid rgba(88,101,242,0.4);">
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                <div style="background: #5865F2; width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.2em; color: white; box-shadow: 0 8px 25px rgba(88,101,242,0.5);">
+                    <i class="fab fa-discord"></i>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-size: 1.5em; font-weight: 800; color: white; margin-bottom: 8px;">🎮 DISCORD ЗВОНОК</div>
+                    <div style="color: rgba(255,255,255,0.9); font-size: 1.1em;">Создал: <strong style="color: #00ffaa;">${currentUser.name}</strong></div>
+                </div>
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="color: #fbbc05; font-weight: 700; margin-bottom: 15px; font-size: 1.2em;">
+                    <i class="fas fa-graduation-cap"></i> Как присоединиться:
+                </div>
+                
+                <div style="color: rgba(255,255,255,0.9); line-height: 1.6; margin-bottom: 20px;">
+                    1. <strong>Присоединяйтесь к нашему Discord серверу:</strong><br>
+                    2. Нажмите на ссылку ниже<br>
+                    3. Создайте голосовой канал в сервере<br>
+                    4. Пригласите друзей в свой канал
+                </div>
+                
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 20px;">
+                    <a href="${discordInvite}" target="_blank" style="flex: 1; min-width: 200px; background: linear-gradient(135deg, #5865F2, #7289DA); color: white; text-align: center; padding: 16px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 1.1em; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 8px 25px rgba(88,101,242,0.4); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 12px;">
+                        <i class="fab fa-discord"></i>
+                        Присоединиться к серверу
+                    </a>
+                </div>
+            </div>
+            
+            <div style="background: rgba(0, 255, 170, 0.1); border-radius: 12px; padding: 18px; margin-top: 20px; border-left: 4px solid #00ffaa;">
+                <div style="color: #00ffaa; font-weight: 800; margin-bottom: 10px; font-size: 1.1em;">✅ Преимущества Discord:</div>
+                <div style="color: rgba(255,255,255,0.9); display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.95em;">
+                    <div><i class="fas fa-check"></i> Бесплатно до 50 человек</div>
+                    <div><i class="fas fa-check"></i> Отличное качество</div>
+                    <div><i class="fas fa-check"></i> Экран, камера, микрофон</div>
+                    <div><i class="fas fa-check"></i> Текстовый чат рядом</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    sendCallMessage(messageText, 'Discord');
+    showAlert('✅ Инструкция по Discord отправлена в чат!', 'success');
+}
+
+function createGoogleMeetCall() {
+    hideCallPlatforms();
+    
+    // Генерируем реальный Google Meet код
+    const meetCode = generateRealMeetCode();
     const meetLink = `https://meet.google.com/${meetCode}`;
     
-    // Создаем красивое сообщение о звонке
-    const callMessage = createGoogleMeetMessage(meetCode, meetLink);
-    
-    // Отправляем сообщение в чат
-    sendCallMessage(callMessage);
-    
-    // Показываем инструкцию
-    showMeetInstructions(meetCode, meetLink);
-}
-
-function generateMeetCode() {
-    // Генерируем код как у Google Meet
-    const chars = 'abcdefghijklmnopqrstuvwxyz';
-    const nums = '0123456789';
-    
-    let code = '';
-    
-    // 3 группы по 3 символа
-    for (let part = 0; part < 3; part++) {
-        for (let i = 0; i < 3; i++) {
-            const pool = Math.random() > 0.5 ? chars : nums;
-            code += pool.charAt(Math.floor(Math.random() * pool.length));
-        }
-        if (part < 2) code += '-';
-    }
-    
-    return code.toLowerCase();
-}
-
-function createGoogleMeetMessage(meetCode, meetLink) {
-    const timestamp = Date.now();
-    
-    return {
-        id: 'call_' + timestamp + '_' + Math.random().toString(36).substr(2, 9),
-        userId: 'system',
-        userName: '📞 Система звонков',
-        userAvatar: '📞',
-        text: `
-            <div class="call-message-container" style="
-                background: linear-gradient(135deg, rgba(26, 115, 232, 0.15), rgba(66, 133, 244, 0.15));
-                border-radius: 16px;
-                padding: 22px;
-                margin: 12px 0;
-                border: 2px solid rgba(66, 133, 244, 0.4);
-                box-shadow: 0 8px 25px rgba(66, 133, 244, 0.25);
-                position: relative;
-                overflow: hidden;
-                transition: all 0.3s ease;
-            ">
-                <!-- Google цвета в фоне -->
-                <div style="
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    height: 5px;
-                    background: linear-gradient(90deg, #4285f4, #34a853, #fbbc05, #ea4335);
-                    background-size: 400% 100%;
-                    animation: gradientMove 4s ease infinite;
-                "></div>
+    const messageText = `
+        <div style="background: linear-gradient(135deg, rgba(66,133,244,0.15), rgba(52,168,83,0.15)); border-radius: 16px; padding: 25px; margin: 12px 0; border: 2px solid rgba(66,133,244,0.4);">
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                <div style="background: linear-gradient(135deg, #4285f4, #34a853); width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.2em; color: white; box-shadow: 0 8px 25px rgba(66,133,244,0.5);">
+                    <i class="fab fa-google"></i>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-size: 1.5em; font-weight: 800; color: white; margin-bottom: 8px;">📞 GOOGLE MEET ЗВОНОК</div>
+                    <div style="color: rgba(255,255,255,0.9); font-size: 1.1em;">Создал: <strong style="color: #00ffaa;">${currentUser.name}</strong></div>
+                </div>
+            </div>
+            
+            <div style="color: rgba(255,255,255,0.9); line-height: 1.6; margin-bottom: 20px; padding: 0 10px;">
+                <strong>${currentUser.name}</strong> создал Google Meet звонок!
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="color: #fbbc05; font-weight: 700; margin-bottom: 15px; font-size: 1.2em;">
+                    <i class="fas fa-graduation-cap"></i> Инструкция:
+                </div>
                 
-                <div style="display: flex; align-items: center; gap: 18px; margin-bottom: 18px;">
-                    <div style="
-                        background: linear-gradient(135deg, #4285f4, #34a853);
-                        width: 55px;
-                        height: 55px;
-                        border-radius: 50%;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-size: 1.6em;
-                        color: white;
-                        box-shadow: 0 6px 20px rgba(66, 133, 244, 0.4);
-                    ">
-                        <i class="fab fa-google"></i>
-                    </div>
-                    <div style="flex: 1;">
-                        <div style="font-size: 1.4em; font-weight: 700; color: #4285f4; margin-bottom: 6px;">
-                            🎥 GOOGLE MEET ЗВОНОК
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div style="background: rgba(66,133,244,0.1); padding: 15px; border-radius: 10px; border: 1px solid rgba(66,133,244,0.3);">
+                        <div style="color: #4285f4; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-laptop"></i>
+                            <span>На компьютере</span>
                         </div>
-                        <div style="color: rgba(255,255,255,0.85); font-size: 0.95em; display: flex; align-items: center; gap: 8px;">
-                            <div style="
-                                background: #34a853;
-                                color: white;
-                                padding: 4px 10px;
-                                border-radius: 20px;
-                                font-size: 0.85em;
-                                font-weight: 600;
-                            ">
-                                <i class="fas fa-user-check"></i> ${currentUser.name}
-                            </div>
-                            <span>создал видеозвонок</span>
+                        <div style="color: rgba(255,255,255,0.9); font-size: 0.95em; line-height: 1.5;">
+                            1. Нажмите "Присоединиться"<br>
+                            2. Войдите в Google аккаунт<br>
+                            3. Разрешите доступ к камере<br>
+                            4. Пригласите других
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(251,188,5,0.1); padding: 15px; border-radius: 10px; border: 1px solid rgba(251,188,5,0.3);">
+                        <div style="color: #fbbc05; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-mobile-alt"></i>
+                            <span>На телефоне</span>
+                        </div>
+                        <div style="color: rgba(255,255,255,0.9); font-size: 0.95em; line-height: 1.5;">
+                            1. Установите приложение<br>
+                            2. Войдите в Google<br>
+                            3. Используйте код встречи<br>
+                            4. Разрешите доступ
                         </div>
                     </div>
                 </div>
                 
                 <!-- Код встречи -->
-                <div style="
-                    background: rgba(0, 0, 0, 0.25);
-                    border-radius: 12px;
-                    padding: 18px;
-                    margin: 18px 0;
-                    border: 1px solid rgba(66, 133, 244, 0.3);
-                    text-align: center;
-                ">
-                    <div style="color: #fbbc05; font-size: 0.95em; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <i class="fas fa-key"></i> Код встречи:
-                    </div>
-                    <div style="
-                        background: rgba(66, 133, 244, 0.2);
-                        padding: 14px;
-                        border-radius: 10px;
-                        font-family: 'Courier New', monospace;
-                        font-weight: 800;
-                        color: white;
-                        font-size: 1.5em;
-                        letter-spacing: 3px;
-                        border: 2px solid rgba(66, 133, 244, 0.5);
-                        margin-bottom: 15px;
-                    ">
+                <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 10px; margin: 15px 0; text-align: center;">
+                    <div style="color: #00ffaa; font-weight: 700; margin-bottom: 10px;">Код встречи:</div>
+                    <div style="background: rgba(66,133,244,0.2); padding: 12px; border-radius: 8px; font-family: monospace; font-weight: 800; color: white; font-size: 1.3em; letter-spacing: 2px; margin-bottom: 15px; border: 1px solid rgba(66,133,244,0.5);">
                         ${meetCode}
                     </div>
-                    
-                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                        <a href="${meetLink}" target="_blank" onclick="joinMeetCall('${meetLink}')" style="
-                            flex: 1;
-                            min-width: 200px;
-                            background: linear-gradient(135deg, #4285f4, #34a853);
-                            color: white;
-                            text-align: center;
-                            padding: 16px 24px;
-                            border-radius: 12px;
-                            text-decoration: none;
-                            font-weight: 700;
-                            font-size: 1.1em;
-                            border: 1px solid rgba(255,255,255,0.3);
-                            box-shadow: 0 6px 20px rgba(66, 133, 244, 0.4);
-                            transition: all 0.3s ease;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            gap: 12px;
-                            position: relative;
-                            overflow: hidden;
-                        ">
-                            <i class="fas fa-video"></i>
-                            <span>Присоединиться</span>
-                            <div style="
-                                position: absolute;
-                                top: 0;
-                                left: -100%;
-                                width: 100%;
-                                height: 100%;
-                                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-                                animation: shimmer 2s infinite;
-                            "></div>
-                        </a>
-                        
-                        <button onclick="copyMeetCode('${meetCode}')" style="
-                            flex: 1;
-                            min-width: 150px;
-                            background: rgba(251, 188, 5, 0.2);
-                            border: 1px solid rgba(251, 188, 5, 0.5);
-                            color: #fbbc05;
-                            text-align: center;
-                            padding: 16px 20px;
-                            border-radius: 12px;
-                            font-weight: 700;
-                            font-size: 1em;
-                            cursor: pointer;
-                            transition: all 0.3s ease;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            gap: 10px;
-                        ">
-                            <i class="fas fa-copy"></i>
-                            <span>Копировать код</span>
-                        </button>
-                    </div>
                 </div>
                 
-                <!-- Инструкция -->
-                <div style="
-                    background: rgba(52, 168, 83, 0.1);
-                    border-radius: 10px;
-                    padding: 16px;
-                    margin-top: 15px;
-                    border-left: 4px solid #34a853;
-                ">
-                    <div style="color: #34a853; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-lightbulb"></i> Как присоединиться:
-                    </div>
-                    <div style="color: rgba(255,255,255,0.9); line-height: 1.5; font-size: 0.9em;">
-                        <div style="margin-bottom: 6px;">1. <strong>Нажмите "Присоединиться"</strong></div>
-                        <div style="margin-bottom: 6px;">2. Войдите в Google аккаунт (или используйте гостевой доступ)</div>
-                        <div style="margin-bottom: 6px;">3. <strong>Введите код:</strong> ${meetCode}</div>
-                        <div>4. Разрешите доступ к камере и микрофону</div>
-                    </div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="${meetLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #4285f4, #34a853); color: white; padding: 16px 35px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 1.2em; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 8px 25px rgba(66,133,244,0.4); transition: all 0.3s ease;">
+                        <i class="fas fa-video"></i> Присоединиться к звонку
+                    </a>
                 </div>
-                
-                <!-- Google лого -->
-                <div style="
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 10px;
-                    margin-top: 20px;
-                    padding-top: 15px;
-                    border-top: 1px solid rgba(255,255,255,0.1);
-                    font-size: 0.85em;
-                    color: rgba(255,255,255,0.6);
-                ">
-                    <i class="fab fa-google" style="color: #4285f4;"></i>
-                    <span>Работает на Google Meet</span>
-                    <i class="fas fa-shield-alt" style="color: #34a853;"></i>
-                    <span>Безопасно</span>
+            </div>
+        </div>
+    `;
+    
+    sendCallMessage(messageText, 'Google Meet');
+    showAlert('✅ Ссылка на Google Meet отправлена в чат!', 'success');
+}
+
+function createZoomCall() {
+    hideCallPlatforms();
+    
+    // Создаем реальную Zoom ссылку
+    const zoomLink = "https://zoom.us/j/meeting?create=true";
+    
+    const messageText = `
+        <div style="background: linear-gradient(135deg, rgba(45,140,255,0.15), rgba(0,102,255,0.15)); border-radius: 16px; padding: 25px; margin: 12px 0; border: 2px solid rgba(45,140,255,0.4);">
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                <div style="background: linear-gradient(135deg, #2d8cff, #0066ff); width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.2em; color: white; box-shadow: 0 8px 25px rgba(45,140,255,0.5);">
+                    <i class="fas fa-video"></i>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-size: 1.5em; font-weight: 800; color: white; margin-bottom: 8px;">🎥 ZOOM ЗВОНОК</div>
+                    <div style="color: rgba(255,255,255,0.9); font-size: 1.1em;">Создал: <strong style="color: #00ffaa;">${currentUser.name}</strong></div>
                 </div>
             </div>
             
-            <style>
-                @keyframes gradientMove {
-                    0% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                    100% { background-position: 0% 50%; }
-                }
-                @keyframes shimmer {
-                    0% { left: -100%; }
-                    100% { left: 100%; }
-                }
-                .call-message-container:hover {
-                    transform: translateY(-4px);
-                    box-shadow: 0 12px 30px rgba(66, 133, 244, 0.35);
-                }
-            </style>
-        `,
+            <div style="color: rgba(255,255,255,0.9); line-height: 1.6; margin-bottom: 20px; padding: 0 10px;">
+                <strong>${currentUser.name}</strong> создал Zoom встречу!
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid rgba(255,255,255,0.1); text-align: center;">
+                <div style="color: #ffaa00; font-weight: 700; margin-bottom: 15px; font-size: 1.1em;">
+                    <i class="fas fa-exclamation-triangle"></i> Для использования Zoom необходимо:
+                </div>
+                
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-bottom: 25px;">
+                    <a href="https://zoom.us/download" target="_blank" style="background: linear-gradient(135deg, #2d8cff, #0066ff); color: white; padding: 14px 25px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 1em; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 6px 20px rgba(45,140,255,0.4); transition: all 0.3s ease; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-download"></i>
+                        Скачать Zoom
+                    </a>
+                </div>
+                
+                <div style="background: rgba(255,215,0,0.1); border-radius: 10px; padding: 15px; margin: 15px 0; border-left: 4px solid gold;">
+                    <div style="color: gold; font-weight: 700; margin-bottom: 10px;">
+                        ⚡ Zoom работает 40 минут бесплатно
+                    </div>
+                    <div style="color: rgba(255,255,255,0.9); font-size: 0.95em;">
+                        Для более длинных встреч потребуется платная подписка
+                    </div>
+                </div>
+                
+                <a href="${zoomLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #2d8cff, #0066ff); color: white; padding: 16px 35px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 1.1em; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 8px 25px rgba(45,140,255,0.4); transition: all 0.3s ease; margin-top: 15px;">
+                    <i class="fas fa-plus-circle"></i> Создать Zoom встречу
+                </a>
+            </div>
+        </div>
+    `;
+    
+    sendCallMessage(messageText, 'Zoom');
+}
+
+function createCustomCall() {
+    hideCallPlatforms();
+    
+    const customLink = prompt('Введите ссылку на ваш видеозвонок (Discord, Zoom, Google Meet и т.д.):');
+    
+    if (!customLink) {
+        showAlert('❌ Ссылка не была введена', 'error');
+        return;
+    }
+    
+    if (!customLink.startsWith('http://') && !customLink.startsWith('https://')) {
+        showAlert('❌ Введите корректную ссылку (начинается с http:// или https://)', 'error');
+        return;
+    }
+    
+    const messageText = `
+        <div style="background: linear-gradient(135deg, rgba(255,51,102,0.15), rgba(255,153,102,0.15)); border-radius: 16px; padding: 25px; margin: 12px 0; border: 2px solid rgba(255,51,102,0.4);">
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                <div style="background: linear-gradient(135deg, #ff3366, #ff9966); width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.2em; color: white; box-shadow: 0 8px 25px rgba(255,51,102,0.5);">
+                    <i class="fas fa-link"></i>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-size: 1.5em; font-weight: 800; color: white; margin-bottom: 8px;">🔗 ССЫЛКА НА ЗВОНОК</div>
+                    <div style="color: rgba(255,255,255,0.9); font-size: 1.1em;">Создал: <strong style="color: #00ffaa;">${currentUser.name}</strong></div>
+                </div>
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="color: #00ccff; font-weight: 700; margin-bottom: 15px; font-size: 1.2em;">
+                    <i class="fas fa-external-link-alt"></i> Ссылка на видеозвонок:
+                </div>
+                
+                <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 10px; margin: 15px 0; word-break: break-all; font-family: monospace; color: #00ffaa; font-size: 1.1em; border: 1px solid rgba(0,200,255,0.3);">
+                    ${customLink}
+                </div>
+                
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 20px;">
+                    <a href="${customLink}" target="_blank" style="flex: 1; min-width: 200px; background: linear-gradient(135deg, #ff3366, #ff9966); color: white; text-align: center; padding: 16px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 1.1em; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 8px 25px rgba(255,51,102,0.4); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 12px;">
+                        <i class="fas fa-video"></i>
+                        Присоединиться
+                    </a>
+                    
+                    <button onclick="copyToClipboard('${customLink}')" style="flex: 1; min-width: 150px; background: rgba(0,200,255,0.2); border: 2px solid rgba(0,200,255,0.5); color: #00ccff; text-align: center; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 1em; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <i class="fas fa-copy"></i>
+                        Копировать
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    sendCallMessage(messageText, 'Пользовательская ссылка');
+    showAlert('✅ Ссылка на звонок отправлена в чат!', 'success');
+}
+
+function generateRealMeetCode() {
+    // Генерируем код похожий на Google Meet
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let code = '';
+    
+    // 3 группы по 3 символа, разделенные дефисами
+    for (let i = 0; i < 11; i++) {
+        if (i === 3 || i === 7) {
+            code += '-';
+        } else {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+    }
+    
+    return code;
+}
+
+function sendCallMessage(messageText, platform) {
+    const message = {
+        id: 'call_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        userId: 'system',
+        userName: '📞 Система звонков',
+        userAvatar: '📞',
+        text: messageText,
         channel: currentChannel,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         timestamp: Date.now(),
-        isCall: true
+        isCall: true,
+        platform: platform
     };
-}
-
-function showMeetInstructions(meetCode, meetLink) {
-    const overlay = document.createElement('div');
-    overlay.className = 'meet-instructions-overlay';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.97);
-        z-index: 9998;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        backdrop-filter: blur(20px);
-        animation: fadeIn 0.4s ease;
-        padding: 30px;
-    `;
     
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-        background: linear-gradient(135deg, #1a1a2e, #16213e);
-        padding: 40px;
-        border-radius: 24px;
-        border: 2px solid rgba(66, 133, 244, 0.6);
-        box-shadow: 0 0 60px rgba(66, 133, 244, 0.5);
-        max-width: 650px;
-        width: 90%;
-        color: white;
-        position: relative;
-        overflow: hidden;
-    `;
-    
-    modal.innerHTML = `
-        <div style="
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 6px;
-            background: linear-gradient(90deg, #4285f4, #34a853, #fbbc05, #ea4335);
-            background-size: 400% 100%;
-            animation: gradientMove 4s ease infinite;
-        "></div>
-        
-        <div style="text-align: center; margin-bottom: 30px;">
-            <div style="
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                gap: 15px;
-                background: rgba(66, 133, 244, 0.1);
-                padding: 15px 30px;
-                border-radius: 50px;
-                margin-bottom: 20px;
-            ">
-                <div style="
-                    background: linear-gradient(135deg, #4285f4, #34a853);
-                    width: 70px;
-                    height: 70px;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 2em;
-                    color: white;
-                    box-shadow: 0 8px 25px rgba(66, 133, 244, 0.5);
-                ">
-                    <i class="fab fa-google"></i>
-                </div>
-                <div style="text-align: left;">
-                    <h2 style="color: #4285f4; margin: 0; font-size: 2em; font-weight: 800;">
-                        Google Meet
-                    </h2>
-                    <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0;">
-                        видеозвонок создан!
-                    </p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Код встречи крупно -->
-        <div style="
-            background: linear-gradient(135deg, rgba(66, 133, 244, 0.15), rgba(52, 168, 83, 0.15));
-            border-radius: 20px;
-            padding: 30px;
-            margin: 30px 0;
-            border: 2px solid rgba(66, 133, 244, 0.4);
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        ">
-            <div style="color: #fbbc05; font-size: 1.1em; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 12px;">
-                <i class="fas fa-hashtag" style="font-size: 1.3em;"></i>
-                <span style="font-weight: 600;">КОД ВСТРЕЧИ</span>
-            </div>
-            
-            <div style="
-                background: rgba(0, 0, 0, 0.3);
-                padding: 25px;
-                border-radius: 16px;
-                font-family: 'Courier New', monospace;
-                font-weight: 900;
-                color: white;
-                font-size: 2.5em;
-                letter-spacing: 5px;
-                border: 3px solid rgba(66, 133, 244, 0.6);
-                margin: 20px 0;
-                text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-                box-shadow: inset 0 0 30px rgba(66, 133, 244, 0.2);
-            ">
-                ${meetCode}
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px;">
-                <a href="${meetLink}" target="_blank" onclick="joinMeetCall('${meetLink}')" style="
-                    background: linear-gradient(135deg, #4285f4, #34a853);
-                    color: white;
-                    text-align: center;
-                    padding: 20px;
-                    border-radius: 16px;
-                    text-decoration: none;
-                    font-weight: 800;
-                    font-size: 1.3em;
-                    border: 2px solid rgba(255,255,255,0.3);
-                    box-shadow: 0 8px 30px rgba(66, 133, 244, 0.5);
-                    transition: all 0.3s ease;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 12px;
-                    position: relative;
-                    overflow: hidden;
-                ">
-                    <i class="fas fa-video" style="font-size: 1.5em;"></i>
-                    <span>Присоединиться</span>
-                    <div style="
-                        position: absolute;
-                        top: 0;
-                        left: -100%;
-                        width: 100%;
-                        height: 100%;
-                        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-                        animation: shimmer 2s infinite;
-                    "></div>
-                </a>
-                
-                <button onclick="copyMeetCode('${meetCode}')" style="
-                    background: linear-gradient(135deg, rgba(251, 188, 5, 0.2), rgba(234, 67, 53, 0.2));
-                    border: 2px solid rgba(251, 188, 5, 0.6);
-                    color: #fbbc05;
-                    text-align: center;
-                    padding: 20px;
-                    border-radius: 16px;
-                    font-weight: 800;
-                    font-size: 1.2em;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 12px;
-                ">
-                    <i class="fas fa-copy" style="font-size: 1.5em;"></i>
-                    <span>Копировать код</span>
-                </button>
-            </div>
-        </div>
-        
-        <div style="display: flex; gap: 15px; justify-content: center; margin-top: 40px; flex-wrap: wrap;">
-            <button onclick="createNewMeetLink()" style="
-                background: linear-gradient(135deg, #4285f4, #34a853);
-                border: none;
-                color: white;
-                padding: 16px 35px;
-                border-radius: 12px;
-                cursor: pointer;
-                font-weight: 700;
-                font-size: 1.1em;
-                box-shadow: 0 6px 25px rgba(66, 133, 244, 0.4);
-                transition: all 0.3s ease;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-            ">
-                <i class="fas fa-plus-circle"></i>
-                <span>Создать новую встречу</span>
-            </button>
-            
-            <button onclick="this.closest('.meet-instructions-overlay').remove()" style="
-                background: rgba(234, 67, 53, 0.2);
-                border: 2px solid rgba(234, 67, 53, 0.6);
-                color: #ea4335;
-                padding: 16px 35px;
-                border-radius: 12px;
-                cursor: pointer;
-                font-weight: 700;
-                font-size: 1.1em;
-                transition: all 0.3s ease;
-            ">
-                Закрыть
-            </button>
-        </div>
-        
-        <style>
-            @keyframes gradientMove {
-                0% { background-position: 0% 50%; }
-                50% { background-position: 100% 50%; }
-                100% { background-position: 0% 50%; }
-            }
-            @keyframes shimmer {
-                0% { left: -100%; }
-                100% { left: 100%; }
-            }
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(-30px) scale(0.95); }
-                to { opacity: 1; transform: translateY(0) scale(1); }
-            }
-        </style>
-    `;
-    
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    
-    // Закрытие по клику на оверлей
-    overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) {
-            overlay.remove();
-        }
-    });
-}
-
-function sendCallMessage(callMessage) {
     try {
         if (database) {
-            database.ref('messages/' + callMessage.id).set(callMessage);
+            database.ref('messages/' + message.id).set(message);
         } else {
             const messagesKey = 'firebase_messages';
             let messages = JSON.parse(localStorage.getItem(messagesKey) || '[]');
-            messages.push(callMessage);
+            messages.push(message);
             localStorage.setItem(messagesKey, JSON.stringify(messages));
             updateMessagesDisplay();
         }
@@ -1463,47 +1209,18 @@ function sendCallMessage(callMessage) {
     }
 }
 
-function joinMeetCall(meetLink) {
-    // Открываем Google Meet в новом окне
-    const width = 1300;
-    const height = 800;
-    const left = (window.screen.width - width) / 2;
-    const top = (window.screen.height - height) / 2;
-    
-    const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no`;
-    
-    window.open(meetLink, 'NeonChat Google Meet', features);
-    
-    // Закрываем модальное окно
-    const overlay = document.querySelector('.meet-instructions-overlay');
-    if (overlay) {
-        overlay.remove();
-    }
-}
-
-function copyMeetCode(meetCode) {
-    const text = `Google Meet звонок от ${currentUser.name}:
-Код встречи: ${meetCode}
-Ссылка: https://meet.google.com/${meetCode}
-Присоединяйтесь!`;
-    
+function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-        showAlert('✅ Код звонка скопирован в буфер обмена!', 'success');
+        showAlert('✅ Ссылка скопирована в буфер обмена!', 'success');
     }).catch(() => {
-        // Fallback
         const textarea = document.createElement('textarea');
         textarea.value = text;
         document.body.appendChild(textarea);
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        showAlert('✅ Код звонка скопирован!', 'success');
+        showAlert('✅ Ссылка скопирована!', 'success');
     });
-}
-
-function createNewMeetLink() {
-    // Открываем страницу создания новой встречи
-    window.open('https://meet.google.com/new', '_blank');
 }
 
 /* ========== КОМАНДЫ ========== */
@@ -1560,7 +1277,7 @@ function handleCommand(command) {
             break;
             
         case '/call':
-            startCall();
+            showCallPlatforms();
             break;
             
         case '/time':
@@ -1585,7 +1302,6 @@ function handleCommand(command) {
             sendSystemMessage(`❌ Неизвестная команда "${cmd}". Введи /help для списка команд`);
     }
     
-    // Очищаем поле ввода
     const input = document.getElementById('messageInput');
     if (input) {
         input.value = '';
@@ -1599,7 +1315,7 @@ function showHelp() {
     helpText += '/help - Показать это сообщение<br>';
     helpText += '/online - Показать кто онлайн<br>';
     helpText += '/me [действие] - Отправить действие<br>';
-    helpText += '/call - Создать видеозвонок (Google Meet)<br>';
+    helpText += '/call - Создать видеозвонок (выбор платформы)<br>';
     helpText += '/time - Показать точное время<br>';
     helpText += '/ping - Проверить связь с сервером<br>';
     helpText += '/users - Показать статистику<br>';
@@ -1741,21 +1457,10 @@ async function adminSendAnnouncement(text) {
         userId: 'system',
         userName: '📢 АДМИН-ОБЪЯВЛЕНИЕ',
         userAvatar: '📢',
-        text: `📣 <div style="
-            background: linear-gradient(45deg, rgba(255, 153, 0, 0.2), rgba(255, 255, 0, 0.2));
-            padding: 20px;
-            border-radius: 12px;
-            color: #ffcc00;
-            font-weight: bold;
-            border: 2px solid #ff9900;
-            text-align: center;
-            margin: 10px 0;
-        ">
+        text: `📣 <div style="background: linear-gradient(45deg, rgba(255,153,0,0.2), rgba(255,255,0,0.2)); padding: 20px; border-radius: 12px; color: #ffcc00; font-weight: bold; border: 2px solid #ff9900; text-align: center; margin: 10px 0;">
             <div style="font-size: 1.3em; margin-bottom: 10px; color: #ff9900;">⚡ ВНИМАНИЕ ВСЕМ!</div>
             <div style="font-size: 1.1em; margin-bottom: 10px;">${text}</div>
-            <div style="margin-top: 10px; font-size: 0.9em; color: #ffcc88;">
-                👑 От администратора <strong>${currentUser.name}</strong>
-            </div>
+            <div style="margin-top: 10px; font-size: 0.9em; color: #ffcc88;">👑 От администратора <strong>${currentUser.name}</strong></div>
         </div>`,
         channel: 'main',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -1804,9 +1509,7 @@ async function adminKickAll() {
             text: `🚨 <div style="background: linear-gradient(45deg, rgba(255,0,0,0.2), rgba(255,68,0,0.2)); padding: 20px; border-radius: 12px; border: 2px solid #ff0000; text-align: center;">
                    <strong style="color:#ff0000; font-size:1.3em;">⚠️ ВСЕ ПОЛЬЗОВАТЕЛИ ОТКЛЮЧЕНЫ!</strong><br><br>
                    🔥 Администратор <strong>${currentUser.name}</strong> отключил всех пользователей!<br><br>
-                   <div style="font-size:0.9em; color:#ffaaaa;">
-                   Перезайдите в чат для продолжения общения
-                   </div>
+                   <div style="font-size:0.9em; color:#ffaaaa;">Перезайдите в чат для продолжения общения</div>
                    </div>`,
             channel: 'main',
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -1845,7 +1548,6 @@ function switchChannel(channel) {
     currentChannel = channel;
     document.querySelectorAll('.channel').forEach(el => el.classList.remove('active'));
     
-    // Находим и активируем нужный канал
     const targetChannel = document.querySelector(`[onclick*="switchChannel('${channel}')"]`);
     if (targetChannel) {
         targetChannel.classList.add('active');
@@ -1924,7 +1626,6 @@ function logout() {
 
 /* ========== УВЕДОМЛЕНИЯ ========== */
 function showAlert(message, type = 'info') {
-    // Удаляем старые уведомления
     const oldAlerts = document.querySelectorAll('.neon-alert');
     oldAlerts.forEach(alert => {
         if (alert.parentNode) {
@@ -1976,7 +1677,6 @@ function showAlert(message, type = 'info') {
     
     document.body.appendChild(alertDiv);
     
-    // Добавляем стили для анимации если их еще нет
     if (!document.querySelector('#alert-animations')) {
         const style = document.createElement('style');
         style.id = 'alert-animations';
@@ -2003,18 +1703,21 @@ function showAlert(message, type = 'info') {
     }, 4000);
 }
 
-// Добавляем глобальные функции для кнопок HTML
+// Глобальные функции
 window.toggleRegister = toggleRegister;
 window.toggleLogin = toggleLogin;
 window.handleAuth = handleAuth;
 window.sendMessage = sendMessage;
 window.addEmoji = addEmoji;
 window.switchChannel = switchChannel;
-window.startCall = startCall;
+window.showCallPlatforms = showCallPlatforms;
+window.hideCallPlatforms = hideCallPlatforms;
+window.createDiscordCall = createDiscordCall;
+window.createGoogleMeetCall = createGoogleMeetCall;
+window.createZoomCall = createZoomCall;
+window.createCustomCall = createCustomCall;
 window.toggleSidebar = toggleSidebar;
 window.toggleMembers = toggleMembers;
 window.forceSync = forceSync;
 window.logout = logout;
-window.joinMeetCall = joinMeetCall;
-window.copyMeetCode = copyMeetCode;
-window.createNewMeetLink = createNewMeetLink;
+window.copyToClipboard = copyToClipboard;
