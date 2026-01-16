@@ -8,6 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
 </head>
 <body>
     <!-- ЭКРАН ЛОГИНА -->
@@ -67,7 +68,7 @@
                 <i class="fas fa-comments"></i>
                 <span>Чат</span>
             </button>
-            <button class="mobile-btn" onclick="switchChannel('dm')">
+            <button class="mobile-btn" onclick="showDMView()">
                 <i class="fas fa-envelope"></i>
                 <span>ЛС</span>
                 <span class="mobile-badge" id="mobileDMBadge" style="display: none;">0</span>
@@ -79,7 +80,7 @@
         </div>
         
         <div class="chat-content">
-            <!-- ЛЕВАЯ ПАНЕЛЬ -->
+            <!-- ЛЕВАЯ ПАНЕЛЬ (ИСПРАВЛЕНА) -->
             <div class="sidebar">
                 <div class="user-info">
                     <div class="avatar" id="userAvatar">👤</div>
@@ -105,21 +106,26 @@
                     </div>
                 </div>
                 
+                <!-- КАНАЛЫ (ИСПРАВЛЕНЫ ОТСТУПЫ) -->
                 <div class="channels">
                     <div class="channel active" onclick="switchChannel('main')" data-channel="main">
-                        <i class="fas fa-comment-alt"></i> Основной чат
+                        <i class="fas fa-comment-alt"></i> 
+                        <span class="channel-text">Основной чат</span>
                         <span class="unread-badge" id="mainBadge" style="display: none;">0</span>
                     </div>
                     <div class="channel" onclick="switchChannel('games')" data-channel="games">
-                        <i class="fas fa-gamepad"></i> Игры
+                        <i class="fas fa-gamepad"></i> 
+                        <span class="channel-text">Игры</span>
                         <span class="unread-badge" id="gamesBadge" style="display: none;">0</span>
                     </div>
                     <div class="channel" onclick="switchChannel('lessons')" data-channel="lessons">
-                        <i class="fas fa-graduation-cap"></i> Уроки
+                        <i class="fas fa-graduation-cap"></i> 
+                        <span class="channel-text">Уроки</span>
                         <span class="unread-badge" id="lessonsBadge" style="display: none;">0</span>
                     </div>
                     <div class="channel" onclick="switchChannel('ai')" data-channel="ai">
-                        <i class="fas fa-robot"></i> 🤖 Нейросеть
+                        <i class="fas fa-robot"></i> 
+                        <span class="channel-text">🤖 Нейросеть</span>
                         <span class="unread-badge" id="aiBadge" style="display: none;">0</span>
                     </div>
                 </div>
@@ -163,7 +169,7 @@
                     </div>
                 </div>
                 
-                <!-- ИСПРАВЛЕННОЕ ПОЛЕ ВВОДА ДЛЯ МОБИЛОК -->
+                <!-- ИСПРАВЛЕННОЕ ПОЛЕ ВВОДА -->
                 <div class="input-area" id="inputArea">
                     <div class="input-box">
                         <input type="text" id="messageInput" placeholder="Сообщение или команда (/help)..." autocomplete="off">
@@ -183,7 +189,7 @@
                     </div>
                     
                     <!-- АНИМИРОВАННАЯ ПАНЕЛЬ ЭМОДЗИ -->
-                    <div class="emoji-panel animate-slideDown" id="emojiPanel" style="display: none;">
+                    <div class="emoji-panel" id="emojiPanel" style="display: none;">
                         <div class="emoji-category">Часто используемые:</div>
                         <div class="emoji-grid">
                             <button onclick="addEmoji('😎')" class="emoji-btn">😎</button>
