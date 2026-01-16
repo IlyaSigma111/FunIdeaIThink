@@ -12,6 +12,8 @@ const firebaseConfig = {
 
 const ADMIN_USERNAME = "ArturPirozhkov";
 const ADMIN_PASSWORD = "JojoTop1";
+const TEACHER_USERNAME = "Алсу Рашидовна";
+const TEACHER_PASSWORD = "1234";
 
 /* ========== TELEGRAM БОТ ========== */
 const TELEGRAM_BOT_TOKEN = "8375108387:AAEVrbh4T-vrSzaK5M2OSNeHaNppsCdpfW0";
@@ -187,8 +189,12 @@ let onlineUsers = new Map();
 let myUserId = null;
 let onlineTimeout = null;
 let isAdmin = false;
+let isTeacher = false;
 let messageSendLock = false;
 let lastMessageTime = 0;
+let notificationsEnabled = false;
+let soundEnabled = true;
+let dmFolderOpen = false;
 
 /* ========== TELEGRAM ИНФО ========== */
 function showTelegramInfo() {
@@ -458,6 +464,7 @@ window.onload = function() {
             currentUser = JSON.parse(savedUser);
             myUserId = currentUser.id;
             isAdmin = currentUser.isAdmin || false;
+            isTeacher = currentUser.isTeacher || false;
             
             // Автозаполняем поле логина
             const usernameInput = document.getElementById('username');
@@ -479,6 +486,9 @@ window.onload = function() {
         }
     }
     
+    // Запрашиваем разрешение на уведомления
+    requestNotificationPermission();
+    
     // Автофокус
     setTimeout(() => {
         const input = document.getElementById('username');
@@ -488,6 +498,23 @@ window.onload = function() {
     // Обновление времени
     updateTime();
     setInterval(updateTime, 60000);
+    
+    // Проверяем уведомления
+    checkNotificationSettings();
+    
+    // Настраиваем мобильный ввод и меню
+    setTimeout(() => {
+        setupMobileInput();
+        updateChannelLayout();
+        adjustMobileLayout();
+    }, 500);
+    
+    // Слушаем изменения размера окна
+    window.addEventListener('resize', function() {
+        setupMobileInput();
+        updateChannelLayout();
+        adjustMobileLayout();
+    });
 };
 
 function setupEventListeners() {
@@ -510,6 +537,20 @@ function setupEventListeners() {
             const loginScreen = document.getElementById('loginScreen');
             if (loginScreen && loginScreen.style.display !== 'none') {
                 handleAuth();
+            }
+        }
+    });
+    
+    // Клик вне эмодзи-панели
+    document.addEventListener('click', function(e) {
+        const emojiPanel = document.getElementById('emojiPanel');
+        const emojiBtn = document.querySelector('.action-btn[title="Ещё эмодзи"]');
+        
+        if (emojiPanel && emojiBtn) {
+            if (!emojiPanel.contains(e.target) && !emojiBtn.contains(e.target)) {
+                if (emojiPanel.style.display === 'block') {
+                    emojiPanel.style.display = 'none';
+                }
             }
         }
     });
@@ -598,6 +639,95 @@ function setupLocalStorageFallback() {
     };
 }
 
+/* ========== УВЕДОМЛЕНИЯ БРАУЗЕРА ========== */
+function requestNotificationPermission() {
+    if (!("Notification" in window)) {
+        console.log("Браузер не поддерживает уведомления");
+        return;
+    }
+    
+    if (Notification.permission === "granted") {
+        notificationsEnabled = true;
+        updateNotificationUI(true);
+        console.log("Уведомления уже разрешены");
+    } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(function(permission) {
+            if (permission === "granted") {
+                notificationsEnabled = true;
+                updateNotificationUI(true);
+                console.log("Уведомления разрешены");
+                showBrowserNotification("NeonChat", "Уведомления включены!");
+            } else {
+                updateNotificationUI(false);
+                console.log("Уведомления запрещены");
+            }
+        });
+    }
+}
+
+function showBrowserNotification(title, body) {
+    if (!notificationsEnabled) return;
+    
+    const options = {
+        body: body,
+        icon: 'https://cdn-icons-png.flaticon.com/512/1256/1256650.png',
+        badge: 'https://cdn-icons-png.flaticon.com/512/1256/1256650.png',
+        tag: 'neonchat-notification',
+        vibrate: [200, 100, 200],
+        renotify: true,
+        actions: [
+            {
+                action: 'open',
+                title: 'Открыть чат'
+            }
+        ]
+    };
+    
+    if (soundEnabled) {
+        playNotificationSound();
+    }
+    
+    // Проверяем видимость страницы
+    if (document.hidden) {
+        if ("Notification" in window && Notification.permission === "granted") {
+            new Notification(title, options);
+        }
+    }
+}
+
+function playNotificationSound() {
+    try {
+        const audio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
+        audio.volume = 0.3;
+        audio.play();
+    } catch (e) {
+        console.log("Не удалось воспроизвести звук уведомления");
+    }
+}
+
+function updateNotificationUI(enabled) {
+    const notifStatus = document.getElementById('notifStatusText');
+    const notifBtn = document.getElementById('notifStatus');
+    
+    if (notifStatus) {
+        notifStatus.textContent = enabled ? '🔔' : '🔕';
+        notifStatus.style.color = enabled ? '#00ffaa' : '#ff6666';
+    }
+    
+    if (notifBtn) {
+        notifBtn.innerHTML = enabled ? 
+            '<i class="fas fa-bell"></i> Уведомления' :
+            '<i class="fas fa-bell-slash"></i> Уведомления';
+    }
+}
+
+function checkNotificationSettings() {
+    const soundEnabled = localStorage.getItem('neonchat_sound_enabled');
+    if (soundEnabled !== null) {
+        soundEnabled = soundEnabled === 'true';
+    }
+}
+
 /* ========== АВТОРИЗАЦИЯ ========== */
 function toggleRegister() {
     isRegisterMode = true;
@@ -633,6 +763,13 @@ function toggleLogin() {
         const usernameInput = document.getElementById('username');
         if (usernameInput) usernameInput.focus();
     }, 100);
+}
+
+function teacherLogin() {
+    document.getElementById('username').value = TEACHER_USERNAME;
+    document.getElementById('password').value = TEACHER_PASSWORD;
+    
+    showAlert('Готово! Нажмите "Войти"', 'info');
 }
 
 function handleAuth() {
@@ -731,6 +868,14 @@ function handleAuth() {
             return;
         }
         
+        // Проверяем учительский аккаунт
+        if (username === TEACHER_USERNAME && password === TEACHER_PASSWORD) {
+            console.log('👨‍🏫 Вход как учитель');
+            isTeacher = true;
+            createTeacherUser(button);
+            return;
+        }
+        
         // Обычный вход
         loginUser(username, password, button);
     }
@@ -748,7 +893,8 @@ function registerUser(username, password, button) {
         avatar: avatar,
         passwordHash: simpleHash(password),
         registeredAt: Date.now(),
-        isAdmin: false
+        isAdmin: false,
+        isTeacher: false
     };
     
     // Сохраняем
@@ -820,6 +966,7 @@ function loginUser(username, password, button) {
         myUserId = user.id;
         currentUser = user;
         isAdmin = user.isAdmin || false;
+        isTeacher = user.isTeacher || false;
         
         localStorage.setItem('neonchat_current_user', JSON.stringify(currentUser));
         
@@ -870,6 +1017,31 @@ function createAdminUser(button) {
     }
 }
 
+function createTeacherUser(button) {
+    myUserId = 'teacher_' + TEACHER_USERNAME;
+    
+    currentUser = {
+        id: myUserId,
+        name: TEACHER_USERNAME,
+        avatar: '👨‍🏫',
+        isTeacher: true,
+        isSpecialTeacher: true
+    };
+    
+    localStorage.setItem('neonchat_current_user', JSON.stringify(currentUser));
+    
+    console.log('✅ Вход как учитель');
+    showAlert('👨‍🏫 Вход как учитель!', 'success');
+    showChatInterface();
+    
+    if (button) {
+        setTimeout(() => {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
+        }, 1000);
+    }
+}
+
 function simpleHash(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -886,7 +1058,9 @@ function showChatInterface() {
     const chatScreen = document.getElementById('chatScreen');
     const currentUserName = document.getElementById('currentUserName');
     const userAvatar = document.getElementById('userAvatar');
+    const userRoleTag = document.getElementById('userRoleTag');
     const adminPanel = document.getElementById('adminPanel');
+    const teacherPanel = document.getElementById('teacherPanel');
     
     if (loginScreen) loginScreen.style.display = 'none';
     if (chatScreen) chatScreen.style.display = 'flex';
@@ -907,8 +1081,33 @@ function showChatInterface() {
             currentUserName.classList.add('admin-name');
             currentUserName.innerHTML = currentUser.name + ' <span style="color:gold; font-size:0.8em;">👑</span>';
         }
-        
+        if (userRoleTag) {
+            userRoleTag.textContent = 'Администратор';
+            userRoleTag.className = 'user-role role-admin';
+        }
         if (adminPanel) adminPanel.style.display = 'block';
+    }
+    
+    // Если учитель - меняем стили
+    if (isTeacher && currentUser) {
+        if (userAvatar) userAvatar.classList.add('teacher-avatar');
+        if (currentUserName) {
+            currentUserName.classList.add('teacher-name');
+            currentUserName.innerHTML = currentUser.name + ' <span style="color:#ff9900; font-size:0.8em;">👨‍🏫</span>';
+        }
+        if (userRoleTag) {
+            userRoleTag.textContent = 'Учитель';
+            userRoleTag.className = 'user-role role-teacher';
+        }
+        if (teacherPanel) teacherPanel.style.display = 'block';
+    }
+    
+    // Если обычный пользователь
+    if (!isAdmin && !isTeacher && currentUser) {
+        if (userRoleTag) {
+            userRoleTag.textContent = currentUser.role || 'Ученик';
+            userRoleTag.className = 'user-role role-student';
+        }
     }
     
     // Фокус на поле ввода
@@ -995,6 +1194,7 @@ function updateOnlineStatus() {
             name: currentUser.name,
             avatar: currentUser.avatar,
             isAdmin: isAdmin,
+            isTeacher: isTeacher,
             lastSeen: Date.now()
         });
         
@@ -1053,6 +1253,7 @@ function updateOnlineDisplay() {
                 ${currentUser.name}
                 <span style="color: #00ff80; font-size: 0.8em;">(Вы)</span>
                 ${isAdmin ? '<span class="admin-badge">👑</span>' : ''}
+                ${isTeacher ? '<span class="teacher-badge">👨‍🏫</span>' : ''}
                 <div class="online-dot"></div>
             </div>
         `;
@@ -1072,6 +1273,7 @@ function updateOnlineDisplay() {
             <div class="member-name">
                 ${user.name}
                 ${user.isAdmin ? '<span class="admin-badge">👑</span>' : ''}
+                ${user.isTeacher ? '<span class="teacher-badge">👨‍🏫</span>' : ''}
                 <div class="online-dot"></div>
             </div>
         `;
@@ -1138,18 +1340,20 @@ function updateMessagesDisplay() {
         const isOwn = currentUser && msg.userId === currentUser.id;
         const isSystem = msg.userId === 'system';
         const isAdminMsg = msg.isAdmin || (msg.userId && msg.userId.includes('admin'));
+        const isTeacherMsg = msg.isTeacher || (msg.userId && msg.userId.includes('teacher'));
         
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''} ${isAdminMsg ? 'admin' : ''}`;
+        messageDiv.className = `message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''} ${isAdminMsg ? 'admin' : ''} ${isTeacherMsg ? 'teacher' : ''}`;
         
         let safeText = msg.text || '';
         safeText = safeText.replace(/\n/g, '<br>');
         
         messageDiv.innerHTML = `
             <div class="message-header">
-                <span class="message-user ${isAdminMsg ? 'admin' : ''}">
+                <span class="message-user ${isAdminMsg ? 'admin' : ''} ${isTeacherMsg ? 'teacher' : ''}">
                     ${msg.userAvatar || ''} ${msg.userName || 'Неизвестный'}
                     ${isAdminMsg ? '👑' : ''}
+                    ${isTeacherMsg ? '👨‍🏫' : ''}
                 </span>
                 <span class="message-time">${msg.time || '00:00'}</span>
             </div>
@@ -1222,7 +1426,8 @@ async function sendMessage() {
         channel: currentChannel,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         timestamp: Date.now(),
-        isAdmin: isAdmin
+        isAdmin: isAdmin,
+        isTeacher: isTeacher
     };
     
     try {
@@ -1351,7 +1556,8 @@ function createZoomCall() {
     const messageText = `
         <div style="background: linear-gradient(135deg, rgba(45,140,255,0.15), rgba(0,102,255,0.15)); border-radius: 16px; padding: 25px; margin: 12px 0; border: 2px solid rgba(45,140,255,0.4);">
             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-                <div style="background: linear-gradient(135deg, #2d8cff, #0066ff); width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.2em; color: white; box-shadow: 0 8px 25px rgba(45,140,255,0.5);">
+                <div style="background: linear-gradient(135deg, #2d8cff, #0066ff); width: 70px; height: 70px; border-radius: 50%; display: flex;
+                                    align-items: center; justify-content: center; font-size: 2.2em; color: white; box-shadow: 0 8px 25px rgba(45,140,255,0.5);">
                     <i class="fas fa-video"></i>
                 </div>
                 <div style="flex: 1;">
@@ -1592,6 +1798,12 @@ function showHelp() {
         helpText += '/kickall - Кикнуть всех пользователей<br>';
     }
     
+    if (isTeacher) {
+        helpText += '<br><strong style="color:#ff9900;">👨‍🏫 Учительские команды:</strong><br>';
+        helpText += '/teacher - Панель учителя<br>';
+        helpText += '/announce - Сделать объявление<br>';
+    }
+    
     helpText += '</div>';
     
     sendSystemMessage(helpText);
@@ -1779,6 +1991,109 @@ async function adminSendAnnouncement(text) {
     }
 }
 
+/* ========== ФУНКЦИИ УЧИТЕЛЯ ========== */
+function teacherAnnounce() {
+    if (!isTeacher) {
+        showAlert('❌ Только учитель может делать объявления', 'error');
+        return;
+    }
+    
+    const modal = document.getElementById('teacherAnnounceModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        const textarea = document.getElementById('teacherAnnounceText');
+        if (textarea) {
+            textarea.value = '';
+            textarea.focus();
+        }
+    }
+}
+
+function closeTeacherAnnounce() {
+    const modal = document.getElementById('teacherAnnounceModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+async function sendTeacherAnnouncement() {
+    if (!isTeacher) return;
+    
+    const textarea = document.getElementById('teacherAnnounceText');
+    if (!textarea) return;
+    
+    const text = textarea.value.trim();
+    if (!text) {
+        showAlert('Введите текст объявления!', 'error');
+        return;
+    }
+    
+    const message = {
+        id: 'teacher_announce_' + Date.now(),
+        userId: 'system',
+        userName: '👨‍🏫 УЧИТЕЛЬСКОЕ ОБЪЯВЛЕНИЕ',
+        userAvatar: '👨‍🏫',
+        text: `📚 <div style="background: linear-gradient(45deg, rgba(255,153,0,0.2), rgba(255,204,0,0.2)); padding: 20px; border-radius: 12px; color: #ff9900; font-weight: bold; border: 2px solid #ff9900; text-align: center; margin: 10px 0;">
+            <div style="font-size: 1.3em; margin-bottom: 10px; color: #ff9900;">👨‍🏫 ВНИМАНИЕ УЧЕНИКАМ!</div>
+            <div style="font-size: 1.1em; margin-bottom: 10px;">${text}</div>
+            <div style="margin-top: 10px; font-size: 0.9em; color: #ffcc66;">👨‍🏫 От учителя <strong>${currentUser.name}</strong></div>
+        </div>`,
+        channel: 'lessons',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: Date.now(),
+        isTeacher: true
+    };
+    
+    try {
+        if (database) {
+            await database.ref('messages/' + message.id).set(message);
+        } else {
+            const messagesKey = 'firebase_messages';
+            let messages = JSON.parse(localStorage.getItem(messagesKey) || '[]');
+            messages.push(message);
+            localStorage.setItem(messagesKey, JSON.stringify(messages));
+            updateMessagesDisplay();
+        }
+        
+        // Отправляем в Telegram
+        const telegramMessage = `👨‍🏫 <b>УЧИТЕЛЬСКОЕ ОБЪЯВЛЕНИЕ</b>\n\n` +
+                               `👤 Учитель: ${currentUser.name}\n` +
+                               `📝 Текст:\n<code>${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code>\n` +
+                               `🕒 Время: ${new Date().toLocaleTimeString('ru-RU')}`;
+        
+        sendToTelegram({
+            id: 'teacher_announce_' + Date.now(),
+            userName: '👨‍🏫 Система',
+            text: telegramMessage,
+            timestamp: Date.now(),
+            channel: 'system'
+        }).catch(() => {});
+        
+        closeTeacherAnnounce();
+        showAlert('✅ Учительское объявление отправлено!', 'success');
+        
+    } catch (error) {
+        console.error('Ошибка отправки учительского объявления:', error);
+        showAlert('❌ Ошибка отправки объявления', 'error');
+    }
+}
+
+function teacherPinMessage() {
+    if (!isTeacher) {
+        showAlert('❌ Только учитель может закреплять сообщения', 'error');
+        return;
+    }
+    showAlert('Функция закрепления сообщений в разработке', 'info');
+}
+
+function teacherLessonPlan() {
+    if (!isTeacher) {
+        showAlert('❌ Только учитель может создавать планы уроков', 'error');
+        return;
+    }
+    showAlert('Функция плана уроков в разработке', 'info');
+}
+
 async function adminKickAll() {
     if (!isAdmin) {
         showAlert('❌ Только администратор может кикать пользователей', 'error');
@@ -1843,12 +2158,169 @@ async function adminKickAll() {
     }
 }
 
+/* ========== ЛИЧНЫЕ СООБЩЕНИЯ (ПАПКА) ========== */
+function toggleDMFolder() {
+    const folderContent = document.getElementById('dmFolderContent');
+    const folderArrow = document.querySelector('.folder-arrow');
+    
+    dmFolderOpen = !dmFolderOpen;
+    
+    if (folderContent) {
+        if (dmFolderOpen) {
+            folderContent.classList.add('open');
+            folderContent.style.maxHeight = '250px';
+            folderArrow.classList.add('open');
+            loadDMDialogs();
+        } else {
+            folderContent.classList.remove('open');
+            folderContent.style.maxHeight = '0';
+            folderArrow.classList.remove('open');
+        }
+    }
+}
+
+function loadDMDialogs() {
+    const dmList = document.getElementById('dmList');
+    if (!dmList) return;
+    
+    const dialogs = JSON.parse(localStorage.getItem('neonchat_dialogs') || '{}');
+    dmList.innerHTML = '';
+    
+    let hasDialogs = false;
+    let unreadCount = 0;
+    
+    Object.entries(dialogs).forEach(([userId, dialog]) => {
+        if (dialog.messages && dialog.messages.length > 0) {
+            hasDialogs = true;
+            const lastMessage = dialog.messages[dialog.messages.length - 1];
+            const isUnread = lastMessage && !lastMessage.read && lastMessage.userId !== myUserId;
+            
+            if (isUnread) unreadCount++;
+            
+            const dmItem = document.createElement('div');
+            dmItem.className = `dm-item ${isUnread ? 'unread' : ''}`;
+            dmItem.onclick = () => openDM(userId);
+            
+            dmItem.innerHTML = `
+                <div class="dm-avatar">${dialog.avatar || '👤'}</div>
+                <div class="dm-info">
+                    <div class="dm-user">${dialog.name}</div>
+                    <div class="dm-preview">${lastMessage?.text?.substring(0, 30) || 'Нет сообщений'}...</div>
+                </div>
+                ${isUnread ? '<span class="dm-badge">!</span>' : ''}
+            `;
+            
+            dmList.appendChild(dmItem);
+        }
+    });
+    
+    updateDMBadge(unreadCount);
+    
+    if (!hasDialogs) {
+        dmList.innerHTML = `
+            <div style="text-align: center; padding: 15px; color: rgba(255,255,255,0.5);">
+                <i class="fas fa-envelope" style="font-size: 1.5em; margin-bottom: 8px; display: block;"></i>
+                Нет диалогов
+            </div>
+        `;
+    }
+}
+
+function updateDMBadge(count) {
+    const folderBadge = document.getElementById('dmFolderBadge');
+    const mobileBadge = document.getElementById('mobileDMBadge');
+    
+    if (folderBadge) {
+        if (count > 0) {
+            folderBadge.textContent = count;
+            folderBadge.style.display = 'inline';
+        } else {
+            folderBadge.style.display = 'none';
+        }
+    }
+    
+    if (mobileBadge) {
+        if (count > 0) {
+            mobileBadge.textContent = count;
+            mobileBadge.style.display = 'inline';
+        } else {
+            mobileBadge.style.display = 'none';
+        }
+    }
+}
+
+/* ========== ИСПРАВЛЕНИЯ ДЛЯ МОБИЛЬНОГО ВВОДА ========== */
+function setupMobileInput() {
+    const isMobile = window.innerWidth <= 768;
+    const inputArea = document.getElementById('inputArea');
+    const messagesContainer = document.getElementById('messagesContainer');
+    
+    if (isMobile && inputArea && messagesContainer) {
+        const messageInput = document.getElementById('messageInput');
+        if (messageInput) {
+            messageInput.addEventListener('focus', function() {
+                setTimeout(() => {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    hideMobilePanels();
+                    closeEmojiPanel();
+                }, 100);
+            });
+            
+            messageInput.addEventListener('blur', function() {
+                setTimeout(() => {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }, 100);
+            });
+        }
+    }
+}
+
+function closeEmojiPanel() {
+    const emojiPanel = document.getElementById('emojiPanel');
+    if (emojiPanel) {
+        emojiPanel.style.display = 'none';
+    }
+}
+
+/* ========== ИСПРАВЛЕНИЯ ДЛЯ ЛЕВОГО МЕНЮ ========== */
+function updateChannelLayout() {
+    const channels = document.querySelectorAll('.channel');
+    channels.forEach(channel => {
+        const icon = channel.querySelector('i');
+        const text = channel.querySelector('.channel-text');
+        const badge = channel.querySelector('.unread-badge');
+        
+        if (icon && text && badge) {
+            channel.style.justifyContent = 'flex-start';
+            channel.style.alignItems = 'center';
+            
+            icon.style.marginRight = '10px';
+            text.style.flex = '1';
+            text.style.minWidth = '0';
+            text.style.overflow = 'hidden';
+            text.style.textOverflow = 'ellipsis';
+            badge.style.marginLeft = '8px';
+        }
+    });
+}
+
 /* ========== УТИЛИТЫ ========== */
 function addEmoji(emoji) {
     const input = document.getElementById('messageInput');
     if (input) {
         input.value += emoji + ' ';
         input.focus();
+    }
+}
+
+function toggleEmojiPanel() {
+    const emojiPanel = document.getElementById('emojiPanel');
+    if (emojiPanel) {
+        if (emojiPanel.style.display === 'block') {
+            emojiPanel.style.display = 'none';
+        } else {
+            emojiPanel.style.display = 'block';
+        }
     }
 }
 
@@ -1865,7 +2337,8 @@ function switchChannel(channel) {
         'main': 'Основной чат',
         'games': 'Игры',
         'lessons': 'Уроки',
-        'ai': '🤖 Нейросеть'
+        'ai': '🤖 Нейросеть',
+        'dm': 'Личные сообщения'
     };
     
     const channelNameElement = document.getElementById('channelName');
@@ -1899,6 +2372,16 @@ function toggleMembers() {
     }
 }
 
+function showDMView() {
+    const dmFolder = document.getElementById('dmFolder');
+    if (dmFolder) {
+        const folderHeader = dmFolder.querySelector('.folder-header');
+        if (folderHeader) {
+            folderHeader.click();
+        }
+    }
+}
+
 function forceSync() {
     const btn = document.querySelector('.refresh-btn');
     if (btn) {
@@ -1917,6 +2400,120 @@ function hideMobilePanels() {
     });
 }
 
+function adjustMobileLayout() {
+    const isMobile = window.innerWidth <= 768;
+    const inputArea = document.getElementById('inputArea');
+    const mobileMenu = document.getElementById('mobileMenu');
+    
+    if (isMobile && inputArea && mobileMenu) {
+        const menuHeight = mobileMenu.offsetHeight;
+        inputArea.style.paddingBottom = (menuHeight + 10) + 'px';
+    }
+}
+
+function startNewDM() {
+    const modal = document.getElementById('newDMModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        const recipientInput = document.getElementById('dmRecipient');
+        if (recipientInput) {
+            recipientInput.value = '';
+            recipientInput.focus();
+        }
+    }
+}
+
+function closeNewDM() {
+    const modal = document.getElementById('newDMModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function sendDirectMessage() {
+    const recipient = document.getElementById('dmRecipient').value.trim();
+    const messageText = document.getElementById('dmMessageText').value.trim();
+    
+    if (!recipient) {
+        showAlert('Введите имя получателя!', 'error');
+        return;
+    }
+    
+    if (!messageText) {
+        showAlert('Введите сообщение!', 'error');
+        return;
+    }
+    
+    // Сохраняем диалог
+    const dialogKey = 'neonchat_dm_' + recipient.toLowerCase();
+    const existingDialog = JSON.parse(localStorage.getItem(dialogKey) || '{"messages":[], "name": "' + recipient + '", "avatar": "👤"}');
+    
+    const newMessage = {
+        id: 'dm_' + Date.now(),
+        userId: myUserId,
+        userName: currentUser.name,
+        text: messageText,
+        timestamp: Date.now(),
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        read: false
+    };
+    
+    existingDialog.messages.push(newMessage);
+    localStorage.setItem(dialogKey, JSON.stringify(existingDialog));
+    
+    // Обновляем список диалогов
+    const dialogs = JSON.parse(localStorage.getItem('neonchat_dialogs') || '{}');
+    dialogs[recipient.toLowerCase()] = {
+        name: recipient,
+        avatar: '👤',
+        messages: existingDialog.messages,
+        lastMessage: newMessage.timestamp
+    };
+    localStorage.setItem('neonchat_dialogs', JSON.stringify(dialogs));
+    
+    closeNewDM();
+    loadDMDialogs();
+    showAlert('Личное сообщение отправлено!', 'success');
+}
+
+function openDM(userId) {
+    // Переключаемся на вкладку ЛС
+    switchChannel('dm');
+    
+    // Загружаем сообщения из этого диалога
+    const dialogs = JSON.parse(localStorage.getItem('neonchat_dialogs') || '{}');
+    const dialog = dialogs[userId];
+    
+    if (dialog) {
+        const messagesContainer = document.getElementById('messagesContainer');
+        if (messagesContainer) {
+            messagesContainer.innerHTML = '';
+            
+            dialog.messages.forEach(msg => {
+                const isOwn = msg.userId === myUserId;
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isOwn ? 'own' : ''}`;
+                
+                messageDiv.innerHTML = `
+                    <div class="message-header">
+                        <span class="message-user">${msg.userName}</span>
+                        <span class="message-time">${msg.time}</span>
+                    </div>
+                    <div class="message-content">${msg.text}</div>
+                `;
+                
+                messagesContainer.appendChild(messageDiv);
+            });
+            
+            setTimeout(() => {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 100);
+        }
+    }
+    
+    hideMobilePanels();
+}
+
 function logout() {
     if (confirm('Выйти из чата?')) {
         if (database && myUserId) {
@@ -1933,6 +2530,76 @@ function logout() {
 }
 
 /* ========== УВЕДОМЛЕНИЯ ========== */
+function testNotification() {
+    if (notificationsEnabled) {
+        showBrowserNotification("NeonChat", "Тестовое уведомление работает!");
+        showAlert('✅ Тестовое уведомление отправлено!', 'success');
+    } else {
+        showAlert('⚠️ Уведомления не разрешены. Разрешите их в настройках браузера.', 'warning');
+    }
+}
+
+function showNotificationSettings() {
+    const modal = document.getElementById('notificationsModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        
+        // Загружаем сохраненные настройки
+        const soundEnabled = localStorage.getItem('neonchat_sound_enabled');
+        const notifyMentions = localStorage.getItem('neonchat_notify_mentions');
+        const notifyDM = localStorage.getItem('neonchat_notify_dm');
+        const volume = localStorage.getItem('neonchat_volume');
+        
+        const soundCheckbox = document.getElementById('soundEnabled');
+        const mentionsCheckbox = document.getElementById('notifyMentions');
+        const dmCheckbox = document.getElementById('notifyDM');
+        const volumeSlider = document.getElementById('notificationVolume');
+        const volumeValue = document.getElementById('volumeValue');
+        
+        if (soundCheckbox) soundCheckbox.checked = soundEnabled !== 'false';
+        if (mentionsCheckbox) mentionsCheckbox.checked = notifyMentions !== 'false';
+        if (dmCheckbox) dmCheckbox.checked = notifyDM !== 'false';
+        if (volumeSlider) {
+            volumeSlider.value = volume || '50';
+            if (volumeValue) volumeValue.textContent = (volume || '50') + '%';
+        }
+        
+        // Обновляем значение громкости при изменении слайдера
+        if (volumeSlider && volumeValue) {
+            volumeSlider.oninput = function() {
+                volumeValue.textContent = this.value + '%';
+            };
+        }
+    }
+}
+
+function closeNotifications() {
+    const modal = document.getElementById('notificationsModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function saveNotificationSettings() {
+    const soundEnabled = document.getElementById('soundEnabled').checked;
+    const notifyMentions = document.getElementById('notifyMentions').checked;
+    const notifyDM = document.getElementById('notifyDM').checked;
+    const volume = document.getElementById('notificationVolume').value;
+    
+    localStorage.setItem('neonchat_sound_enabled', soundEnabled);
+    localStorage.setItem('neonchat_notify_mentions', notifyMentions);
+    localStorage.setItem('neonchat_notify_dm', notifyDM);
+    localStorage.setItem('neonchat_volume', volume);
+    
+    closeNotifications();
+    showAlert('Настройки уведомлений сохранены!', 'success');
+}
+
+function testNotificationSound() {
+    playNotificationSound();
+    showAlert('✅ Звук уведомления воспроизведен', 'success');
+}
+
 function showAlert(message, type = 'info') {
     const oldAlerts = document.querySelectorAll('.neon-alert');
     oldAlerts.forEach(alert => {
@@ -2014,9 +2681,11 @@ function showAlert(message, type = 'info') {
 // Глобальные функции
 window.toggleRegister = toggleRegister;
 window.toggleLogin = toggleLogin;
+window.teacherLogin = teacherLogin;
 window.handleAuth = handleAuth;
 window.sendMessage = sendMessage;
 window.addEmoji = addEmoji;
+window.toggleEmojiPanel = toggleEmojiPanel;
 window.switchChannel = switchChannel;
 window.startCall = startCall;
 window.createDiscordCall = createDiscordCall;
@@ -2028,6 +2697,23 @@ window.toggleMembers = toggleMembers;
 window.forceSync = forceSync;
 window.logout = logout;
 window.showTelegramInfo = showTelegramInfo;
+window.testNotification = testNotification;
+window.showNotificationSettings = showNotificationSettings;
+window.closeNotifications = closeNotifications;
+window.saveNotificationSettings = saveNotificationSettings;
+window.testNotificationSound = testNotificationSound;
+window.startNewDM = startNewDM;
+window.closeNewDM = closeNewDM;
+window.sendDirectMessage = sendDirectMessage;
+window.teacherAnnounce = teacherAnnounce;
+window.closeTeacherAnnounce = closeTeacherAnnounce;
+window.sendTeacherAnnouncement = sendTeacherAnnouncement;
+window.teacherPinMessage = teacherPinMessage;
+window.teacherLessonPlan = teacherLessonPlan;
+window.adminClearChat = adminClearChat;
+window.adminAnnouncement = adminAnnouncement;
+window.adminKickAll = adminKickAll;
+window.showDMView = showDMView;
 
 console.log('✅ Все функции загружены! Telegram бот настроен: все сообщения будут приходить!');
 console.log('🔧 Проверка Telegram:');
