@@ -13,9 +13,91 @@ const firebaseConfig = {
 const ADMIN_USERNAME = "ArturPirozhkov";
 const ADMIN_PASSWORD = "JojoTop1";
 
-/* ========== TELEGRAM КОНФИГУРАЦИЯ ========== */
+/* ========== TELEGRAM БОТ ========== */
 const TELEGRAM_BOT_TOKEN = "8375108387:AAEVrbh4T-vrSzaK5M2OSNeHaNppsCdpfW0";
-// Chat ID теперь не нужен - пользователи сами подписываются
+const TELEGRAM_CHAT_ID = "8375108387"; // твой chat_id
+
+// Функция для отправки в Telegram
+async function sendToTelegram(messageData) {
+    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+        console.log('⚠️ Telegram не настроен');
+        return false;
+    }
+    
+    try {
+        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+        
+        // Формируем текст сообщения
+        const timestamp = new Date(messageData.timestamp).toLocaleTimeString('ru-RU', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        let telegramMessage = `📨 <b>Новое сообщение из NeonChat</b>\n`;
+        telegramMessage += `👤 <b>Пользователь:</b> ${messageData.userName || 'Аноним'}\n`;
+        
+        if (messageData.channel) {
+            const channelNames = {
+                'main': 'Основной чат',
+                'games': 'Игры',
+                'lessons': 'Уроки',
+                'ai': 'Нейросеть'
+            };
+            telegramMessage += `📂 <b>Раздел:</b> ${channelNames[messageData.channel] || messageData.channel}\n`;
+        }
+        
+        telegramMessage += `🕒 <b>Время:</b> ${timestamp}\n`;
+        telegramMessage += `📝 <b>Сообщение:</b>\n<code>${messageData.text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code>\n`;
+        telegramMessage += `\n🔗 <i>ID: ${messageData.id}</i>`;
+        
+        console.log('📤 Отправляю в Telegram:', messageData.text);
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                chat_id: TELEGRAM_CHAT_ID,
+                text: telegramMessage,
+                parse_mode: 'HTML',
+                disable_notification: false
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.ok) {
+            console.log('✅ Сообщение отправлено в Telegram');
+            return true;
+        } else {
+            console.error('❌ Ошибка Telegram:', result.description);
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Ошибка отправки в Telegram:', error);
+        return false;
+    }
+}
+
+// Функция для отправки всех сообщений в Telegram
+function sendAllToTelegram(messageData) {
+    // Не отправляем системные сообщения, команды или действия
+    if (messageData.userId === 'system' || 
+        messageData.text.startsWith('/') ||
+        messageData.isAction ||
+        messageData.isCall ||
+        messageData.userId === 'admin_ArturPirozhkov') { // не отправляем свои же сообщения
+        console.log('⏭️ Пропускаем сообщение для Telegram:', messageData.userName);
+        return;
+    }
+    
+    console.log('📨 Отправляю сообщение в Telegram от:', messageData.userName);
+    // Отправляем асинхронно, не ждем ответа
+    sendToTelegram(messageData).catch(error => {
+        console.error('Фоновая ошибка Telegram:', error);
+    });
+}
 
 let isRegisterMode = false;
 let database = null;
@@ -29,7 +111,7 @@ let isAdmin = false;
 let messageSendLock = false;
 let lastMessageTime = 0;
 
-/* ========== ТЕЛЕГРАМ ФУНКЦИЯ ========== */
+/* ========== TELEGRAM ИНФО ========== */
 function showTelegramInfo() {
     const modal = document.createElement('div');
     modal.style.cssText = `
@@ -77,7 +159,7 @@ function showTelegramInfo() {
                     📱 Telegram-бот
                 </h2>
                 <p style="color: rgba(255,255,255,0.9); margin: 0;">
-                    Получай уведомления о новых сообщениях
+                    Все сообщения приходят мне в Telegram
                 </p>
             </div>
             
@@ -90,14 +172,14 @@ function showTelegramInfo() {
                 text-align: left;
             ">
                 <p style="color: #00ffaa; font-weight: 600; margin-bottom: 15px;">
-                    <i class="fas fa-graduation-cap"></i> Как подключиться:
+                    <i class="fas fa-graduation-cap"></i> Как работает:
                 </p>
                 
                 <ol style="color: rgba(255,255,255,0.9); line-height: 1.6; margin: 0; padding-left: 20px;">
-                    <li>Открой Telegram</li>
-                    <li>Найди бота <strong style="color: #00ccff;">@NeonChatBot</strong></li>
-                    <li>Нажми кнопку <strong style="color: #00ffaa;">"Start"</strong></li>
-                    <li>Готово! Будешь получать уведомления</li>
+                    <li>Все сообщения из чата дублируются в Telegram</li>
+                    <li>Я вижу, кто что пишет в реальном времени</li>
+                    <li>Системные сообщения не отправляются</li>
+                    <li>Команды тоже не отправляются</li>
                 </ol>
             </div>
             
@@ -111,8 +193,7 @@ function showTelegramInfo() {
                 font-size: 0.9em;
             ">
                 <i class="fas fa-info-circle"></i> 
-                Бот отправляет только важные уведомления. 
-                Ты сам решаешь, подписываться или нет.
+                Статус: ${TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID ? '✅ Бот активен' : '❌ Бот не настроен'}
             </div>
             
             <button onclick="this.parentElement.parentElement.remove()" style="
@@ -268,6 +349,7 @@ function startCall() {
 /* ========== ИНИЦИАЛИЗАЦИЯ ========== */
 window.onload = function() {
     console.log('🚀 NeonChat запущен');
+    console.log('🤖 Telegram бот настроен:', TELEGRAM_BOT_TOKEN ? '✅' : '❌');
     
     // Проверяем загрузку Firebase
     if (typeof firebase === 'undefined') {
@@ -372,6 +454,13 @@ function setupLocalStorageFallback() {
                             }
                             localStorage.setItem(messagesKey, JSON.stringify(messages));
                             updateMessagesDisplay();
+                            
+                            // ОТПРАВЛЯЕМ В TELEGRAM ДАЖЕ В ЛОКАЛЬНОМ РЕЖИМЕ
+                            if (data.userId !== 'system' && !data.text.startsWith('/') && !data.isAction) {
+                                console.log('📨 Отправляю в Telegram из localStorage:', data.text);
+                                sendAllToTelegram(data);
+                            }
+                            
                         } else if (path.startsWith('online/')) {
                             const onlineKey = 'firebase_online';
                             let online = JSON.parse(localStorage.getItem(onlineKey) || '{}');
@@ -587,6 +676,20 @@ function registerUser(username, password, button) {
     localStorage.setItem('neonchat_current_user', JSON.stringify(currentUser));
     
     console.log('✅ Новый пользователь:', username);
+    
+    // Отправляем в Telegram о новом пользователе
+    const telegramMessage = `👤 <b>НОВЫЙ ПОЛЬЗОВАТЕЛЬ В NEONCHAT!</b>\n\n` +
+                           `Имя: ${username}\n` +
+                           `Время: ${new Date().toLocaleString('ru-RU')}`;
+    
+    sendToTelegram({
+        id: 'new_user_' + Date.now(),
+        userName: '📋 Система',
+        text: telegramMessage,
+        timestamp: Date.now(),
+        channel: 'system'
+    }).catch(() => {});
+    
     showAlert(`Добро пожаловать, ${username}!`, 'success');
     showChatInterface();
     
@@ -1045,6 +1148,11 @@ async function sendMessage() {
     try {
         if (database) {
             await database.ref('messages/' + message.id).set(message);
+            
+            // ОТПРАВЛЯЕМ В TELEGRAM ПОСЛЕ УСПЕШНОЙ ЗАПИСИ В FIREBASE
+            console.log('📤 Отправляю сообщение в Telegram:', text);
+            sendAllToTelegram(message);
+            
         } else {
             const messagesKey = 'firebase_messages';
             let messages = JSON.parse(localStorage.getItem(messagesKey) || '[]');
@@ -1054,6 +1162,10 @@ async function sendMessage() {
             }
             localStorage.setItem(messagesKey, JSON.stringify(messages));
             updateMessagesDisplay();
+            
+            // ОТПРАВЛЯЕМ В TELEGRAM И В ЛОКАЛЬНОМ РЕЖИМЕ
+            console.log('📤 Отправляю сообщение в Telegram (локально):', text);
+            sendAllToTelegram(message);
         }
         
         input.value = '';
@@ -1259,6 +1371,22 @@ function sendCallMessage(messageText, platform) {
     try {
         if (database) {
             database.ref('messages/' + message.id).set(message);
+            
+            // Отправляем в Telegram о создании звонка
+            const telegramMessage = `📞 <b>СОЗДАН НОВЫЙ ЗВОНОК!</b>\n\n` +
+                                   `👤 Создал: ${currentUser.name}\n` +
+                                   `📱 Платформа: ${platform}\n` +
+                                   `🕒 Время: ${new Date().toLocaleTimeString('ru-RU')}\n\n` +
+                                   `🔗 Перейдите в чат для получения ссылки`;
+            
+            sendToTelegram({
+                id: 'call_notif_' + Date.now(),
+                userName: '📢 Система',
+                text: telegramMessage,
+                timestamp: Date.now(),
+                channel: 'system'
+            }).catch(() => {});
+            
         } else {
             const messagesKey = 'firebase_messages';
             let messages = JSON.parse(localStorage.getItem(messagesKey) || '[]');
@@ -1463,6 +1591,20 @@ async function adminClearChat() {
             updateMessagesDisplay();
         }
         
+        // Отправляем в Telegram об очистке чата
+        const telegramMessage = `🧹 <b>ЧАТ ОЧИЩЕН АДМИНИСТРАТОРОМ!</b>\n\n` +
+                               `👤 Администратор: ${currentUser.name}\n` +
+                               `🕒 Время: ${new Date().toLocaleString('ru-RU')}\n` +
+                               `⚠️ Все сообщения удалены`;
+        
+        sendToTelegram({
+            id: 'clear_notif_' + Date.now(),
+            userName: '⚠️ Система',
+            text: telegramMessage,
+            timestamp: Date.now(),
+            channel: 'system'
+        }).catch(() => {});
+        
         const message = {
             id: 'clear_' + Date.now(),
             userId: 'system',
@@ -1532,6 +1674,20 @@ async function adminSendAnnouncement(text) {
             updateMessagesDisplay();
         }
         
+        // Отправляем в Telegram об объявлении
+        const telegramMessage = `📢 <b>АДМИНИСТРАТОРСКОЕ ОБЪЯВЛЕНИЕ</b>\n\n` +
+                               `👤 Администратор: ${currentUser.name}\n` +
+                               `📝 Текст:\n<code>${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code>\n` +
+                               `🕒 Время: ${new Date().toLocaleTimeString('ru-RU')}`;
+        
+        sendToTelegram({
+            id: 'announce_notif_' + Date.now(),
+            userName: '📢 Система',
+            text: telegramMessage,
+            timestamp: Date.now(),
+            channel: 'system'
+        }).catch(() => {});
+        
         console.log('✅ Объявление отправлено');
         showAlert('✅ Объявление отправлено всем пользователям!', 'success');
     } catch (error) {
@@ -1554,6 +1710,21 @@ async function adminKickAll() {
         if (database) {
             await database.ref('online').remove();
         }
+        
+        // Отправляем в Telegram о кике всех
+        const telegramMessage = `🚨 <b>ВСЕ ПОЛЬЗОВАТЕЛИ ОТКЛЮЧЕНЫ АДМИНИСТРАТОРОМ!</b>\n\n` +
+                               `👤 Администратор: ${currentUser.name}\n` +
+                               `🕒 Время: ${new Date().toLocaleString('ru-RU')}\n` +
+                               `👥 Онлайн пользователей: 0\n` +
+                               `⚠️ Принудительное отключение всех пользователей`;
+        
+        sendToTelegram({
+            id: 'kickall_notif_' + Date.now(),
+            userName: '🚨 Система',
+            text: telegramMessage,
+            timestamp: Date.now(),
+            channel: 'system'
+        }).catch(() => {});
         
         const message = {
             id: 'kickall_' + Date.now(),
@@ -1775,4 +1946,8 @@ window.forceSync = forceSync;
 window.logout = logout;
 window.showTelegramInfo = showTelegramInfo;
 
-console.log('✅ Все функции загружены! Telegram бот: просто /start');
+console.log('✅ Все функции загружены! Telegram бот настроен: все сообщения будут приходить!');
+console.log('🔧 Проверка Telegram:', {
+    token: TELEGRAM_BOT_TOKEN ? '✅ Есть' : '❌ Нет',
+    chatId: TELEGRAM_CHAT_ID ? '✅ Есть' : '❌ Нет'
+});
