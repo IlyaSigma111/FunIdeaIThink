@@ -13,10 +13,6 @@ const firebaseConfig = {
 const ADMIN_USERNAME = "ArturPirozhkov";
 const ADMIN_PASSWORD = "JojoTop1";
 
-/* ========== TELEGRAM КОНФИГУРАЦИЯ ========== */
-const TELEGRAM_BOT_TOKEN = "8375108387:AAEVrbh4T-vrSzaK5M2OSNeHaNppsCdpfW0";
-const TELEGRAM_CHAT_ID = "8375108387";
-
 let isRegisterMode = false;
 let database = null;
 let currentUser = null;
@@ -28,241 +24,6 @@ let onlineTimeout = null;
 let isAdmin = false;
 let messageSendLock = false;
 let lastMessageTime = 0;
-
-/* ========== TELEGRAM ФУНКЦИИ ========== */
-async function sendToTelegram(text, isSMS = false) {
-    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-        console.log('⚠️ Telegram не настроен');
-        return false;
-    }
-    
-    try {
-        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                chat_id: TELEGRAM_CHAT_ID,
-                text: text,
-                parse_mode: 'HTML',
-                disable_notification: false
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.ok) {
-            console.log('✅ Сообщение отправлено в Telegram');
-            
-            if (isSMS) {
-                showAlert('✅ SMS отправлено в Telegram!', 'success');
-            }
-            
-            return true;
-        } else {
-            console.error('❌ Ошибка Telegram:', result.description);
-            
-            if (isSMS) {
-                showAlert('❌ Ошибка отправки: ' + result.description, 'error');
-            }
-            
-            return false;
-        }
-    } catch (error) {
-        console.error('❌ Ошибка отправки в Telegram:', error);
-        
-        if (isSMS) {
-            showAlert('❌ Ошибка сети при отправке', 'error');
-        }
-        
-        return false;
-    }
-}
-
-function sendChatToTelegram(messageData) {
-    if (!messageData || !currentUser) return;
-    
-    // Не отправляем системные сообщения или команды
-    if (messageData.userId === 'system' || 
-        messageData.text.startsWith('/') ||
-        messageData.isAction) {
-        return;
-    }
-    
-    const timestamp = new Date(messageData.timestamp).toLocaleTimeString('ru-RU', {
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-    
-    let telegramMessage = `📨 <b>Новое сообщение из NeonChat</b>\n`;
-    telegramMessage += `👤 <b>Пользователь:</b> ${messageData.userName || 'Аноним'}\n`;
-    
-    if (messageData.channel) {
-        const channelNames = {
-            'main': 'Основной чат',
-            'games': 'Игры',
-            'lessons': 'Уроки',
-            'ai': 'Нейросеть'
-        };
-        telegramMessage += `📂 <b>Раздел:</b> ${channelNames[messageData.channel] || messageData.channel}\n`;
-    }
-    
-    telegramMessage += `🕒 <b>Время:</b> ${timestamp}\n`;
-    telegramMessage += `📝 <b>Сообщение:</b>\n<code>${messageData.text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code>\n`;
-    telegramMessage += `\n🔗 <i>ID: ${messageData.id}</i>`;
-    
-    // Отправляем асинхронно, не ждем ответа
-    sendToTelegram(telegramMessage).catch(error => {
-        console.error('Фоновая ошибка Telegram:', error);
-    });
-}
-
-function showSMSPanel() {
-    if (!currentUser) {
-        showAlert('Сначала войди в чат!', 'error');
-        return;
-    }
-    
-    const modal = document.getElementById('smsModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        document.getElementById('smsNumber').focus();
-        
-        // Обработчик счетчика символов
-        const textarea = document.getElementById('smsText');
-        const counter = document.getElementById('smsCharCount');
-        
-        if (textarea && counter) {
-            textarea.addEventListener('input', function() {
-                counter.textContent = this.value.length;
-            });
-        }
-    }
-}
-
-function hideSMSPanel() {
-    const modal = document.getElementById('smsModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-async function sendSMS() {
-    const numberInput = document.getElementById('smsNumber');
-    const textInput = document.getElementById('smsText');
-    const statusDiv = document.getElementById('smsStatus');
-    
-    if (!numberInput || !textInput) return;
-    
-    const phoneNumber = numberInput.value.replace(/\D/g, '');
-    const smsText = textInput.value.trim();
-    
-    // Валидация
-    if (!phoneNumber || phoneNumber.length !== 10) {
-        if (statusDiv) {
-            statusDiv.innerHTML = '<span style="color: #ff6666;">❌ Введите 10 цифр номера</span>';
-            statusDiv.style.display = 'block';
-        }
-        numberInput.focus();
-        return;
-    }
-    
-    if (!smsText) {
-        if (statusDiv) {
-            statusDiv.innerHTML = '<span style="color: #ff6666;">❌ Введите текст сообщения</span>';
-            statusDiv.style.display = 'block';
-        }
-        textInput.focus();
-        return;
-    }
-    
-    if (smsText.length > 500) {
-        if (statusDiv) {
-            statusDiv.innerHTML = '<span style="color: #ff6666;">❌ Сообщение слишком длинное</span>';
-            statusDiv.style.display = 'block';
-        }
-        return;
-    }
-    
-    // Формируем SMS для Telegram
-    const fullNumber = `+7${phoneNumber}`;
-    const timestamp = new Date().toLocaleTimeString('ru-RU', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-    
-    let telegramSMS = `📱 <b>НОВОЕ SMS ИЗ NEONCHAT</b>\n\n`;
-    telegramSMS += `👤 <b>Отправитель:</b> ${currentUser.name}\n`;
-    telegramSMS += `📞 <b>Номер:</b> <code>${fullNumber}</code>\n`;
-    telegramSMS += `🕒 <b>Время:</b> ${timestamp}\n\n`;
-    telegramSMS += `📝 <b>Текст SMS:</b>\n`;
-    telegramSMS += `<code>${smsText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code>\n\n`;
-    telegramSMS += `📍 <i>Отправлено из чата NeonChat</i>`;
-    
-    // Показываем статус отправки
-    if (statusDiv) {
-        statusDiv.innerHTML = '<span style="color: #ffaa00;">⏳ Отправляем SMS...</span>';
-        statusDiv.style.display = 'block';
-    }
-    
-    // Отправляем в Telegram
-    const success = await sendToTelegram(telegramSMS, true);
-    
-    if (success) {
-        // Очищаем поля при успехе
-        numberInput.value = '';
-        textInput.value = '';
-        document.getElementById('smsCharCount').textContent = '0';
-        
-        if (statusDiv) {
-            statusDiv.innerHTML = '<span style="color: #00ff80;">✅ SMS успешно отправлено в Telegram!</span>';
-            
-            // Автоматически скрываем окно через 2 секунды
-            setTimeout(() => {
-                hideSMSPanel();
-                setTimeout(() => {
-                    statusDiv.style.display = 'none';
-                }, 300);
-            }, 2000);
-        }
-        
-        // Также отправляем уведомление в чат
-        const smsMessage = {
-            id: 'sms_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-            userId: 'system',
-            userName: '📱 SMS-система',
-            userAvatar: '📱',
-            text: `📱 <b>SMS отправлено!</b>\nНомер: +7***${phoneNumber.slice(-4)}\nСимволов: ${smsText.length}/500`,
-            channel: currentChannel,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            timestamp: Date.now(),
-            isSMS: true
-        };
-        
-        try {
-            if (database) {
-                await database.ref('messages/' + smsMessage.id).set(smsMessage);
-            } else {
-                const messagesKey = 'firebase_messages';
-                let messages = JSON.parse(localStorage.getItem(messagesKey) || '[]');
-                messages.push(smsMessage);
-                localStorage.setItem(messagesKey, JSON.stringify(messages));
-                updateMessagesDisplay();
-            }
-        } catch (error) {
-            console.error('Ошибка записи SMS в историю:', error);
-        }
-        
-    } else {
-        if (statusDiv) {
-            statusDiv.innerHTML = '<span style="color: #ff6666;">❌ Ошибка отправки. Попробуйте снова.</span>';
-        }
-    }
-}
 
 /* ========== ПРОСТАЯ ФУНКЦИЯ ЗВОНКА ========== */
 function startCall() {
@@ -443,15 +204,6 @@ window.onload = function() {
     // Обновление времени
     updateTime();
     setInterval(updateTime, 60000);
-    
-    // Закрытие SMS окна по клику вне его
-    document.addEventListener('click', function(e) {
-        const smsModal = document.getElementById('smsModal');
-        if (smsModal && smsModal.style.display === 'flex' && 
-            e.target === smsModal) {
-            hideSMSPanel();
-        }
-    });
 };
 
 function setupEventListeners() {
@@ -478,24 +230,17 @@ function setupEventListeners() {
         }
     });
     
-    // Обработчик SMS текста
-    const smsText = document.getElementById('smsText');
-    if (smsText) {
-        smsText.addEventListener('input', function() {
-            const counter = document.getElementById('smsCharCount');
-            if (counter) {
-                counter.textContent = this.value.length;
-            }
-        });
+    // Кнопка звонка в левой панели
+    const callButton = document.getElementById('callButton');
+    if (callButton) {
+        callButton.addEventListener('click', startCall);
     }
     
-    // Enter в SMS окне
-    document.getElementById('smsText')?.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && e.ctrlKey) {
-            e.preventDefault();
-            sendSMS();
-        }
-    });
+    // Кнопка звонка в мобильном меню
+    const mobileCallBtn = document.getElementById('mobileCallBtn');
+    if (mobileCallBtn) {
+        mobileCallBtn.addEventListener('click', startCall);
+    }
 }
 
 function setupLocalStorageFallback() {
@@ -517,11 +262,6 @@ function setupLocalStorageFallback() {
                             }
                             localStorage.setItem(messagesKey, JSON.stringify(messages));
                             updateMessagesDisplay();
-                            
-                            // Отправляем в Telegram
-                            if (data.userId !== 'system') {
-                                sendChatToTelegram(data);
-                            }
                         } else if (path.startsWith('online/')) {
                             const onlineKey = 'firebase_online';
                             let online = JSON.parse(localStorage.getItem(onlineKey) || '{}');
@@ -737,16 +477,6 @@ function registerUser(username, password, button) {
     localStorage.setItem('neonchat_current_user', JSON.stringify(currentUser));
     
     console.log('✅ Новый пользователь:', username);
-    
-    // Отправляем в Telegram о новом пользователе
-    const telegramMessage = `👤 <b>НОВЫЙ ПОЛЬЗОВАТЕЛЬ В NEONCHAT!</b>\n\n` +
-                           `Имя: ${username}\n` +
-                           `ID: ${myUserId}\n` +
-                           `Время: ${new Date().toLocaleString('ru-RU')}\n\n` +
-                           `📊 Всего пользователей: ${Object.keys(localStorage).filter(k => k.startsWith('neonchat_user_')).length}`;
-    
-    sendToTelegram(telegramMessage).catch(() => {});
-    
     showAlert(`Добро пожаловать, ${username}!`, 'success');
     showChatInterface();
     
@@ -801,17 +531,6 @@ function loginUser(username, password, button) {
         localStorage.setItem('neonchat_current_user', JSON.stringify(currentUser));
         
         console.log('✅ Успешный вход:', username);
-        
-        // Отправляем в Telegram о входе пользователя
-        if (!user.isAdmin) {
-            const telegramMessage = `🔓 <b>ПОЛЬЗОВАТЕЛЬ ВОШЕЛ В СИСТЕМУ</b>\n\n` +
-                                   `👤 ${username}\n` +
-                                   `🕒 ${new Date().toLocaleTimeString('ru-RU')}\n` +
-                                   `📍 NeonChat Web`;
-            
-            sendToTelegram(telegramMessage).catch(() => {});
-        }
-        
         showAlert(`С возвращением, ${username}!`, 'success');
         showChatInterface();
         
@@ -847,16 +566,6 @@ function createAdminUser(button) {
     localStorage.setItem('neonchat_current_user', JSON.stringify(currentUser));
     
     console.log('✅ Вход как администратор');
-    
-    // Отправляем в Telegram о входе админа
-    const telegramMessage = `👑 <b>АДМИНИСТРАТОР ВОШЕЛ В СИСТЕМУ!</b>\n\n` +
-                           `Аккаунт: ${ADMIN_USERNAME}\n` +
-                           `Время: ${new Date().toLocaleString('ru-RU')}\n` +
-                           `IP: Веб-версия\n\n` +
-                           `⚠️ Повышенный уровень доступа активирован`;
-    
-    sendToTelegram(telegramMessage).catch(() => {});
-    
     showAlert('👑 Вход как администратор!', 'success');
     showChatInterface();
     
@@ -1136,19 +845,18 @@ function updateMessagesDisplay() {
         const isOwn = currentUser && msg.userId === currentUser.id;
         const isSystem = msg.userId === 'system';
         const isAdminMsg = msg.isAdmin || (msg.userId && msg.userId.includes('admin'));
-        const isSMS = msg.isSMS;
         
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''} ${isAdminMsg ? 'admin' : ''} ${isSMS ? 'sms' : ''}`;
+        messageDiv.className = `message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''} ${isAdminMsg ? 'admin' : ''}`;
         
         let safeText = msg.text || '';
         safeText = safeText.replace(/\n/g, '<br>');
         
         messageDiv.innerHTML = `
             <div class="message-header">
-                <span class="message-user ${isAdminMsg ? 'admin' : ''} ${isSMS ? 'sms' : ''}">
+                <span class="message-user ${isAdminMsg ? 'admin' : ''}">
                     ${msg.userAvatar || ''} ${msg.userName || 'Неизвестный'}
-                    ${isAdminMsg ? '👑' : ''} ${isSMS ? '📱' : ''}
+                    ${isAdminMsg ? '👑' : ''}
                 </span>
                 <span class="message-time">${msg.time || '00:00'}</span>
             </div>
@@ -1227,10 +935,6 @@ async function sendMessage() {
     try {
         if (database) {
             await database.ref('messages/' + message.id).set(message);
-            
-            // Отправляем в Telegram после успешной записи в Firebase
-            sendChatToTelegram(message);
-            
         } else {
             const messagesKey = 'firebase_messages';
             let messages = JSON.parse(localStorage.getItem(messagesKey) || '[]');
@@ -1240,9 +944,6 @@ async function sendMessage() {
             }
             localStorage.setItem(messagesKey, JSON.stringify(messages));
             updateMessagesDisplay();
-            
-            // Отправляем в Telegram
-            sendChatToTelegram(message);
         }
         
         input.value = '';
@@ -1448,16 +1149,6 @@ function sendCallMessage(messageText, platform) {
     try {
         if (database) {
             database.ref('messages/' + message.id).set(message);
-            
-            // Отправляем в Telegram о создании звонка
-            const telegramMessage = `📞 <b>СОЗДАН НОВЫЙ ЗВОНОК!</b>\n\n` +
-                                   `👤 Создал: ${currentUser.name}\n` +
-                                   `📱 Платформа: ${platform}\n` +
-                                   `🕒 Время: ${new Date().toLocaleTimeString('ru-RU')}\n\n` +
-                                   `🔗 Перейдите в чат для получения ссылки`;
-            
-            sendToTelegram(telegramMessage).catch(() => {});
-            
         } else {
             const messagesKey = 'firebase_messages';
             let messages = JSON.parse(localStorage.getItem(messagesKey) || '[]');
@@ -1542,16 +1233,7 @@ function handleCommand(command) {
             break;
             
         case '/users':
-            sendSystemMessage(`👤 Всего пользователей: ${Object.keys(localStorage).filter(k => k.startsWith('neonchat_user_')).length}`);
-            break;
-            
-        case '/sms':
-            showSMSPanel();
-            break;
-            
-        case '/telegram':
-        case '/tg':
-            sendSystemMessage(`🤖 Telegram-бот активен!\nВсе сообщения дублируются в Telegram.\nТокен: ${TELEGRAM_BOT_TOKEN ? '✅ Настроен' : '❌ Не настроен'}`);
+            sendSystemMessage(`👤 Всего пользователей: ${localStorage.length}`);
             break;
             
         default:
@@ -1575,8 +1257,6 @@ function showHelp() {
     helpText += '/time - Показать точное время<br>';
     helpText += '/ping - Проверить связь с сервером<br>';
     helpText += '/users - Показать статистику<br>';
-    helpText += '/sms - Отправить SMS через Telegram<br>';
-    helpText += '/telegram - Информация о Telegram-боте<br>';
     
     if (isAdmin) {
         helpText += '<br><strong style="color:gold;">👑 Админ команды:</strong><br>';
@@ -1667,14 +1347,6 @@ async function adminClearChat() {
             updateMessagesDisplay();
         }
         
-        // Отправляем в Telegram об очистке чата
-        const telegramMessage = `🧹 <b>ЧАТ ОЧИЩЕН АДМИНИСТРАТОРОМ!</b>\n\n` +
-                               `👤 Администратор: ${currentUser.name}\n` +
-                               `🕒 Время: ${new Date().toLocaleString('ru-RU')}\n` +
-                               `⚠️ Все сообщения удалены`;
-        
-        sendToTelegram(telegramMessage).catch(() => {});
-        
         const message = {
             id: 'clear_' + Date.now(),
             userId: 'system',
@@ -1744,14 +1416,6 @@ async function adminSendAnnouncement(text) {
             updateMessagesDisplay();
         }
         
-        // Отправляем в Telegram об объявлении
-        const telegramMessage = `📢 <b>АДМИНИСТРАТОРСКОЕ ОБЪЯВЛЕНИЕ</b>\n\n` +
-                               `👤 Администратор: ${currentUser.name}\n` +
-                               `📝 Текст:\n<code>${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code>\n` +
-                               `🕒 Время: ${new Date().toLocaleTimeString('ru-RU')}`;
-        
-        sendToTelegram(telegramMessage).catch(() => {});
-        
         console.log('✅ Объявление отправлено');
         showAlert('✅ Объявление отправлено всем пользователям!', 'success');
     } catch (error) {
@@ -1774,15 +1438,6 @@ async function adminKickAll() {
         if (database) {
             await database.ref('online').remove();
         }
-        
-        // Отправляем в Telegram о кике всех
-        const telegramMessage = `🚨 <b>ВСЕ ПОЛЬЗОВАТЕЛИ ОТКЛЮЧЕНЫ АДМИНИСТРАТОРОМ!</b>\n\n` +
-                               `👤 Администратор: ${currentUser.name}\n` +
-                               `🕒 Время: ${new Date().toLocaleString('ru-RU')}\n` +
-                               `👥 Онлайн пользователей: 0\n` +
-                               `⚠️ Принудительное отключение всех пользователей`;
-        
-        sendToTelegram(telegramMessage).catch(() => {});
         
         const message = {
             id: 'kickall_' + Date.now(),
@@ -1839,7 +1494,7 @@ function switchChannel(channel) {
     const channelNames = {
         'main': 'Основной чат',
         'games': 'Игры',
-        'lessons': 'Уроки',
+        'music': 'Музыка',
         'ai': '🤖 Нейросеть'
     };
     
@@ -2002,8 +1657,5 @@ window.toggleSidebar = toggleSidebar;
 window.toggleMembers = toggleMembers;
 window.forceSync = forceSync;
 window.logout = logout;
-window.showSMSPanel = showSMSPanel;
-window.hideSMSPanel = hideSMSPanel;
-window.sendSMS = sendSMS;
 
-console.log('✅ Все функции загружены! Telegram бот настроен!');
+console.log('✅ Все функции загружены!');
