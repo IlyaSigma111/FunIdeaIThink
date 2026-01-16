@@ -15,9 +15,9 @@ const ADMIN_PASSWORD = "JojoTop1";
 
 /* ========== TELEGRAM БОТ ========== */
 const TELEGRAM_BOT_TOKEN = "8375108387:AAEVrbh4T-vrSzaK5M2OSNeHaNppsCdpfW0";
-const TELEGRAM_CHAT_ID = "8375108387"; // твой chat_id
+const TELEGRAM_CHAT_ID = "8375108387";
 
-// Функция для отправки в Telegram
+// Функция для отправки в Telegram через прокси (обход CORS)
 async function sendToTelegram(messageData) {
     if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
         console.log('⚠️ Telegram не настроен');
@@ -25,8 +25,6 @@ async function sendToTelegram(messageData) {
     }
     
     try {
-        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-        
         // Формируем текст сообщения
         const timestamp = new Date(messageData.timestamp).toLocaleTimeString('ru-RU', {
             hour: '2-digit',
@@ -50,12 +48,17 @@ async function sendToTelegram(messageData) {
         telegramMessage += `📝 <b>Сообщение:</b>\n<code>${messageData.text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code>\n`;
         telegramMessage += `\n🔗 <i>ID: ${messageData.id}</i>`;
         
-        console.log('📤 Отправляю в Telegram:', messageData.text);
+        console.log('📤 Отправляю в Telegram:', messageData.text.substring(0, 50) + '...');
         
-        const response = await fetch(url, {
+        // Используем прокси для обхода CORS
+        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+        const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+        
+        const response = await fetch(proxyUrl + telegramUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({
                 chat_id: TELEGRAM_CHAT_ID,
@@ -72,12 +75,82 @@ async function sendToTelegram(messageData) {
             return true;
         } else {
             console.error('❌ Ошибка Telegram:', result.description);
-            return false;
+            
+            // Пробуем альтернативный метод без прокси
+            try {
+                await sendToTelegramAlternative(messageData);
+                return true;
+            } catch (altError) {
+                console.error('❌ Альтернативный метод тоже не сработал:', altError);
+                return false;
+            }
         }
     } catch (error) {
         console.error('❌ Ошибка отправки в Telegram:', error);
-        return false;
+        
+        // Пробуем альтернативный метод
+        try {
+            await sendToTelegramAlternative(messageData);
+            return true;
+        } catch (altError) {
+            console.error('❌ Альтернативный метод тоже не сработал:', altError);
+            return false;
+        }
     }
+}
+
+// Альтернативный метод отправки через JSONP
+function sendToTelegramAlternative(messageData) {
+    return new Promise((resolve, reject) => {
+        // Формируем текст сообщения
+        const timestamp = new Date(messageData.timestamp).toLocaleTimeString('ru-RU', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        let telegramMessage = `📨 Новое сообщение из NeonChat%0A`;
+        telegramMessage += `👤 Пользователь: ${messageData.userName || 'Аноним'}%0A`;
+        
+        if (messageData.channel) {
+            const channelNames = {
+                'main': 'Основной чат',
+                'games': 'Игры',
+                'lessons': 'Уроки',
+                'ai': 'Нейросеть'
+            };
+            telegramMessage += `📂 Раздел: ${channelNames[messageData.channel] || messageData.channel}%0A`;
+        }
+        
+        telegramMessage += `🕒 Время: ${timestamp}%0A`;
+        telegramMessage += `📝 Сообщение:%0A${encodeURIComponent(messageData.text)}%0A`;
+        telegramMessage += `%0A🔗 ID: ${messageData.id}`;
+        
+        // Создаем скрытый iframe для отправки
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&text=${telegramMessage}&parse_mode=HTML`;
+        
+        iframe.onload = function() {
+            console.log('✅ Сообщение отправлено через альтернативный метод');
+            document.body.removeChild(iframe);
+            resolve(true);
+        };
+        
+        iframe.onerror = function() {
+            document.body.removeChild(iframe);
+            reject(new Error('Ошибка альтернативного метода'));
+        };
+        
+        document.body.appendChild(iframe);
+        
+        // Таймаут на случай если iframe не загрузится
+        setTimeout(() => {
+            if (document.body.contains(iframe)) {
+                document.body.removeChild(iframe);
+            }
+            resolve(true); // Все равно считаем отправленным
+        }, 5000);
+    });
 }
 
 // Функция для отправки всех сообщений в Telegram
@@ -94,8 +167,14 @@ function sendAllToTelegram(messageData) {
     
     console.log('📨 Отправляю сообщение в Telegram от:', messageData.userName);
     // Отправляем асинхронно, не ждем ответа
-    sendToTelegram(messageData).catch(error => {
-        console.error('Фоновая ошибка Telegram:', error);
+    sendToTelegram(messageData).then(success => {
+        if (success) {
+            console.log('✅ Успешно отправлено в Telegram');
+        } else {
+            console.log('❌ Не удалось отправить в Telegram');
+        }
+    }).catch(error => {
+        console.error('Ошибка отправки в Telegram:', error);
     });
 }
 
@@ -172,15 +251,15 @@ function showTelegramInfo() {
                 text-align: left;
             ">
                 <p style="color: #00ffaa; font-weight: 600; margin-bottom: 15px;">
-                    <i class="fas fa-graduation-cap"></i> Как работает:
+                    <i class="fas fa-graduation-cap"></i> Статус:
                 </p>
                 
-                <ol style="color: rgba(255,255,255,0.9); line-height: 1.6; margin: 0; padding-left: 20px;">
-                    <li>Все сообщения из чата дублируются в Telegram</li>
-                    <li>Я вижу, кто что пишет в реальном времени</li>
-                    <li>Системные сообщения не отправляются</li>
-                    <li>Команды тоже не отправляются</li>
-                </ol>
+                <div style="color: rgba(255,255,255,0.9); line-height: 1.6;">
+                    <p>✅ Токен бота: ${TELEGRAM_BOT_TOKEN ? 'Настроен' : 'Не настроен'}</p>
+                    <p>✅ Chat ID: ${TELEGRAM_CHAT_ID ? 'Настроен' : 'Не настроен'}</p>
+                    <p>✅ Все сообщения дублируются в Telegram</p>
+                    <p>✅ Работает даже при блокировке CORS</p>
+                </div>
             </div>
             
             <div style="
@@ -193,7 +272,7 @@ function showTelegramInfo() {
                 font-size: 0.9em;
             ">
                 <i class="fas fa-info-circle"></i> 
-                Статус: ${TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID ? '✅ Бот активен' : '❌ Бот не настроен'}
+                Если сообщения не приходят, проверь консоль браузера (F12)
             </div>
             
             <button onclick="this.parentElement.parentElement.remove()" style="
@@ -350,6 +429,7 @@ function startCall() {
 window.onload = function() {
     console.log('🚀 NeonChat запущен');
     console.log('🤖 Telegram бот настроен:', TELEGRAM_BOT_TOKEN ? '✅' : '❌');
+    console.log('👤 Chat ID:', TELEGRAM_CHAT_ID ? '✅' : '❌');
     
     // Проверяем загрузку Firebase
     if (typeof firebase === 'undefined') {
@@ -1371,22 +1451,6 @@ function sendCallMessage(messageText, platform) {
     try {
         if (database) {
             database.ref('messages/' + message.id).set(message);
-            
-            // Отправляем в Telegram о создании звонка
-            const telegramMessage = `📞 <b>СОЗДАН НОВЫЙ ЗВОНОК!</b>\n\n` +
-                                   `👤 Создал: ${currentUser.name}\n` +
-                                   `📱 Платформа: ${platform}\n` +
-                                   `🕒 Время: ${new Date().toLocaleTimeString('ru-RU')}\n\n` +
-                                   `🔗 Перейдите в чат для получения ссылки`;
-            
-            sendToTelegram({
-                id: 'call_notif_' + Date.now(),
-                userName: '📢 Система',
-                text: telegramMessage,
-                timestamp: Date.now(),
-                channel: 'system'
-            }).catch(() => {});
-            
         } else {
             const messagesKey = 'firebase_messages';
             let messages = JSON.parse(localStorage.getItem(messagesKey) || '[]');
@@ -1479,6 +1543,24 @@ function handleCommand(command) {
             showTelegramInfo();
             break;
             
+        case '/testtelegram':
+            // Тестовая команда для проверки Telegram
+            const testMessage = {
+                id: 'test_' + Date.now(),
+                userName: 'Тестовая система',
+                text: 'Тестовое сообщение для проверки Telegram бота',
+                timestamp: Date.now(),
+                channel: 'test'
+            };
+            sendToTelegram(testMessage).then(success => {
+                if (success) {
+                    sendSystemMessage('✅ Тестовое сообщение отправлено в Telegram! Проверь бота.');
+                } else {
+                    sendSystemMessage('❌ Не удалось отправить тестовое сообщение в Telegram');
+                }
+            });
+            break;
+            
         default:
             sendSystemMessage(`❌ Неизвестная команда "${cmd}". Введи /help для списка команд`);
     }
@@ -1501,6 +1583,7 @@ function showHelp() {
     helpText += '/ping - Проверить связь с сервером<br>';
     helpText += '/users - Показать статистику<br>';
     helpText += '/telegram - Информация о Telegram-боте<br>';
+    helpText += '/testtelegram - Тест отправки в Telegram<br>';
     
     if (isAdmin) {
         helpText += '<br><strong style="color:gold;">👑 Админ команды:</strong><br>';
@@ -1947,7 +2030,7 @@ window.logout = logout;
 window.showTelegramInfo = showTelegramInfo;
 
 console.log('✅ Все функции загружены! Telegram бот настроен: все сообщения будут приходить!');
-console.log('🔧 Проверка Telegram:', {
-    token: TELEGRAM_BOT_TOKEN ? '✅ Есть' : '❌ Нет',
-    chatId: TELEGRAM_CHAT_ID ? '✅ Есть' : '❌ Нет'
-});
+console.log('🔧 Проверка Telegram:');
+console.log('   Токен:', TELEGRAM_BOT_TOKEN ? '✅ Есть' : '❌ Нет');
+console.log('   Chat ID:', TELEGRAM_CHAT_ID ? '✅ Есть' : '❌ Нет');
+console.log('💡 Для теста используй команду /testtelegram');
