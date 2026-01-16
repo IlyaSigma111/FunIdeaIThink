@@ -14,7 +14,7 @@
     <div id="loginScreen">
         <div class="login-box">
             <h1 class="neon-text">NeonChat</h1>
-            <p class="subtitle">Чат с ИИ-помощником и видеозвонками</p>
+            <p class="subtitle">Образовательный чат с уроками</p>
             
             <div class="input-group">
                 <i class="fas fa-user"></i>
@@ -39,6 +39,11 @@
                 <i class="fas fa-user-plus"></i> Создать аккаунт
             </button>
             
+            <!-- КНОПКА УЧИТЕЛЯ -->
+            <button onclick="teacherLogin()" class="neon-btn teacher-btn">
+                <i class="fas fa-chalkboard-teacher"></i> Войти как учитель
+            </button>
+            
             <div class="mode-switch" id="loginHint" style="display: none;">
                 Уже есть аккаунт? 
                 <a onclick="toggleLogin()">Войти</a>
@@ -48,7 +53,7 @@
     
     <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
     <div id="chatScreen" style="display: none;">
-        <!-- МОБИЛЬНОЕ МЕНЮ (исправлено для мобилок) -->
+        <!-- ИСПРАВЛЕННОЕ МОБИЛЬНОЕ МЕНЮ -->
         <div class="mobile-menu" id="mobileMenu">
             <button class="mobile-btn" onclick="toggleSidebar()">
                 <i class="fas fa-bars"></i>
@@ -65,6 +70,7 @@
             <button class="mobile-btn" onclick="switchChannel('dm')">
                 <i class="fas fa-envelope"></i>
                 <span>ЛС</span>
+                <span class="mobile-badge" id="mobileDMBadge" style="display: none;">0</span>
             </button>
             <button class="mobile-btn" onclick="startCall()">
                 <i class="fas fa-video"></i>
@@ -78,9 +84,24 @@
                 <div class="user-info">
                     <div class="avatar" id="userAvatar">👤</div>
                     <div class="user-name" id="currentUserName">Гость</div>
-                    <div class="status"><i class="fas fa-circle"></i> онлайн</div>
-                    <div class="notification-status" id="notificationStatus" style="font-size: 0.8em; color: #88aaff; margin-top: 5px; display: none;">
-                        <i class="fas fa-bell"></i> Уведомления
+                    <div class="status"><i class="fas fa-circle"></i> <span id="userStatus">онлайн</span></div>
+                    <div class="user-role" id="userRoleTag"></div>
+                </div>
+                
+                <!-- ПАНЕЛЬ ЛС КАК ПАПКА -->
+                <div class="dm-folder" id="dmFolder">
+                    <div class="folder-header" onclick="toggleDMFolder()">
+                        <i class="fas fa-folder"></i> Личные сообщения
+                        <span class="folder-badge" id="dmFolderBadge" style="display: none;">0</span>
+                        <i class="fas fa-chevron-down folder-arrow"></i>
+                    </div>
+                    <div class="folder-content" id="dmFolderContent">
+                        <div class="dm-list" id="dmList">
+                            <!-- Диалоги будут здесь -->
+                        </div>
+                        <button onclick="startNewDM()" class="new-dm-btn">
+                            <i class="fas fa-plus"></i> Новый диалог
+                        </button>
                     </div>
                 </div>
                 
@@ -101,21 +122,14 @@
                         <i class="fas fa-robot"></i> 🤖 Нейросеть
                         <span class="unread-badge" id="aiBadge" style="display: none;">0</span>
                     </div>
-                    <div class="channel" onclick="switchChannel('dm')" id="dmChannel" data-channel="dm">
-                        <i class="fas fa-envelope"></i> 💌 Личные сообщения
-                        <span class="unread-badge" id="dmBadge" style="display: none;">0</span>
-                    </div>
                 </div>
                 
                 <div class="sidebar-buttons">
                     <button onclick="startCall()" class="sidebar-btn">
                         <i class="fas fa-video"></i> Видеозвонок
                     </button>
-                    <button onclick="startNewDM()" class="sidebar-btn" id="newDMBtn">
-                        <i class="fas fa-plus"></i> Новое ЛС
-                    </button>
                     <button onclick="showNotificationSettings()" class="sidebar-btn">
-                        <i class="fas fa-bell"></i> Уведомления
+                        <i class="fas fa-bell"></i> <span id="notifStatus">Уведомления</span>
                     </button>
                     <button onclick="logout()" class="sidebar-btn logout">
                         <i class="fas fa-sign-out-alt"></i> Выйти
@@ -135,7 +149,7 @@
                         <button onclick="forceSync()" class="refresh-btn" title="Обновить">
                             <i class="fas fa-sync-alt"></i>
                         </button>
-                        <button onclick="testNotification()" class="refresh-btn" title="Тест уведомления" id="testNotifBtn">
+                        <button onclick="testNotification()" class="refresh-btn" title="Тест уведомления">
                             <i class="fas fa-bell"></i>
                         </button>
                     </div>
@@ -149,7 +163,7 @@
                     </div>
                 </div>
                 
-                <!-- ПОЛЕ ВВОДА (исправлено для мобилок) -->
+                <!-- ИСПРАВЛЕННОЕ ПОЛЕ ВВОДА ДЛЯ МОБИЛОК -->
                 <div class="input-area" id="inputArea">
                     <div class="input-box">
                         <input type="text" id="messageInput" placeholder="Сообщение или команда (/help)..." autocomplete="off">
@@ -168,16 +182,19 @@
                         </button>
                     </div>
                     
-                    <!-- ДОПОЛНИТЕЛЬНЫЕ ЭМОДЗИ (скрыты по умолчанию) -->
-                    <div class="emoji-panel" id="emojiPanel" style="display: none; margin-top: 10px; flex-wrap: wrap; gap: 8px; justify-content: center;">
-                        <button onclick="addEmoji('😎')" class="action-btn">😎</button>
-                        <button onclick="addEmoji('🥳')" class="action-btn">🥳</button>
-                        <button onclick="addEmoji('😍')" class="action-btn">😍</button>
-                        <button onclick="addEmoji('🤔')" class="action-btn">🤔</button>
-                        <button onclick="addEmoji('🎉')" class="action-btn">🎉</button>
-                        <button onclick="addEmoji('✨')" class="action-btn">✨</button>
-                        <button onclick="addEmoji('🌟')" class="action-btn">🌟</button>
-                        <button onclick="addEmoji('💯')" class="action-btn">💯</button>
+                    <!-- АНИМИРОВАННАЯ ПАНЕЛЬ ЭМОДЗИ -->
+                    <div class="emoji-panel animate-slideDown" id="emojiPanel" style="display: none;">
+                        <div class="emoji-category">Часто используемые:</div>
+                        <div class="emoji-grid">
+                            <button onclick="addEmoji('😎')" class="emoji-btn">😎</button>
+                            <button onclick="addEmoji('🥳')" class="emoji-btn">🥳</button>
+                            <button onclick="addEmoji('😍')" class="emoji-btn">😍</button>
+                            <button onclick="addEmoji('🤔')" class="emoji-btn">🤔</button>
+                            <button onclick="addEmoji('🎉')" class="emoji-btn">🎉</button>
+                            <button onclick="addEmoji('✨')" class="emoji-btn">✨</button>
+                            <button onclick="addEmoji('🌟')" class="emoji-btn">🌟</button>
+                            <button onclick="addEmoji('💯')" class="emoji-btn">💯</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -189,11 +206,19 @@
                     <!-- Онлайн пользователи -->
                 </div>
                 
-                <!-- ДИАЛОГИ ЛС -->
-                <div class="dm-section">
-                    <h3><i class="fas fa-envelope"></i> Диалоги</h3>
-                    <div class="dm-list" id="dmList">
-                        <!-- Диалоги -->
+                <!-- ПАНЕЛЬ УЧИТЕЛЯ -->
+                <div id="teacherPanel" style="display: none; margin-top: 20px;">
+                    <h3 style="color: #ff9900;"><i class="fas fa-chalkboard-teacher"></i> Панель учителя</h3>
+                    <div style="background: rgba(255, 153, 0, 0.1); border: 1px solid #ff9900; border-radius: 10px; padding: 15px; margin-top: 10px;">
+                        <button onclick="teacherAnnounce()" class="teacher-btn">
+                            <i class="fas fa-bullhorn"></i> Объявление
+                        </button>
+                        <button onclick="teacherPinMessage()" class="teacher-btn">
+                            <i class="fas fa-thumbtack"></i> Закрепить
+                        </button>
+                        <button onclick="teacherLessonPlan()" class="teacher-btn">
+                            <i class="fas fa-book"></i> План урока
+                        </button>
                     </div>
                 </div>
                 
@@ -276,6 +301,20 @@
                 <button onclick="saveNotificationSettings()" class="modal-btn primary">Сохранить</button>
                 <button onclick="closeNotifications()" class="modal-btn">Закрыть</button>
                 <button onclick="testNotificationSound()" class="modal-btn secondary">Тест звука</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО ОБЪЯВЛЕНИЯ УЧИТЕЛЯ -->
+    <div id="teacherAnnounceModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2 style="color: #ff9900;"><i class="fas fa-chalkboard-teacher"></i> Учительское объявление</h2>
+            <textarea id="teacherAnnounceText" placeholder="Введите объявление для учеников..." rows="5"></textarea>
+            <div class="modal-buttons">
+                <button onclick="sendTeacherAnnouncement()" class="modal-btn primary" style="background: linear-gradient(135deg, #ff9900, #ffcc00);">
+                    <i class="fas fa-bullhorn"></i> Отправить
+                </button>
+                <button onclick="closeTeacherAnnounce()" class="modal-btn secondary">Отмена</button>
             </div>
         </div>
     </div>
