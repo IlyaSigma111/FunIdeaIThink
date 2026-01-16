@@ -56,7 +56,6 @@ html, body {
     opacity: 0.9;
 }
 
-/* Поля ввода */
 .input-group {
     background: rgba(10, 10, 25, 0.7);
     border: 1px solid rgba(0, 200, 255, 0.4);
@@ -95,7 +94,6 @@ html, body {
     color: rgba(255, 255, 255, 0.4);
 }
 
-/* Кнопки */
 .neon-btn {
     background: linear-gradient(135deg, #0066ff 0%, #00ccff 100%);
     color: white;
@@ -114,10 +112,6 @@ html, body {
 .neon-btn:hover {
     transform: translateY(-3px);
     box-shadow: 0 10px 25px rgba(0, 150, 255, 0.4);
-}
-
-.neon-btn:active {
-    transform: translateY(0);
 }
 
 .register-btn {
@@ -140,10 +134,6 @@ html, body {
     cursor: pointer;
 }
 
-.mode-switch a:hover {
-    text-decoration: underline;
-}
-
 /* ========== ОСНОВНОЙ ИНТЕРФЕЙС ========== */
 #chatScreen {
     display: none;
@@ -152,7 +142,6 @@ html, body {
     flex-direction: column;
 }
 
-/* МОБИЛЬНОЕ МЕНЮ */
 .mobile-menu {
     display: none;
     position: fixed;
@@ -188,11 +177,6 @@ html, body {
     color: #00ccff;
 }
 
-.mobile-btn i {
-    font-size: 1.3em;
-}
-
-/* ОСНОВНОЙ КОНТЕНТ */
 .chat-content {
     flex: 1;
     display: flex;
@@ -245,11 +229,6 @@ html, body {
     word-break: break-word;
 }
 
-.admin-name {
-    color: gold;
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-}
-
 .status {
     color: #00ffaa;
     font-size: 0.85em;
@@ -259,7 +238,6 @@ html, body {
     gap: 6px;
 }
 
-/* КАНАЛЫ */
 .channels {
     margin: 20px 0;
     flex: 1;
@@ -280,6 +258,7 @@ html, body {
     align-items: center;
     gap: 10px;
     border: 1px solid transparent;
+    position: relative;
 }
 
 .channel:hover {
@@ -300,7 +279,30 @@ html, body {
     width: 20px;
 }
 
-/* КНОПКИ В ЛЕВОЙ ПАНЕЛИ */
+/* БЕЙДЖИ ДЛЯ УВЕДОМЛЕНИЙ */
+.unread-badge {
+    background: #ff3366;
+    color: white;
+    font-size: 0.7em;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: auto;
+    font-weight: 800;
+    min-width: 20px;
+    text-align: center;
+    animation: pulse 2s infinite;
+}
+
+.dm-badge {
+    background: #00ccff;
+    color: white;
+    font-size: 0.7em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+    font-weight: 800;
+}
+
 .sidebar-buttons {
     display: flex;
     flex-direction: column;
@@ -329,15 +331,6 @@ html, body {
     transform: translateY(-2px);
 }
 
-.sidebar-btn.logout {
-    background: rgba(255, 60, 60, 0.1);
-    border-color: rgba(255, 100, 100, 0.3);
-}
-
-.sidebar-btn.logout:hover {
-    background: rgba(255, 60, 60, 0.2);
-}
-
 /* ЦЕНТРАЛЬНАЯ ЧАСТЬ */
 .main {
     flex: 1;
@@ -347,7 +340,6 @@ html, body {
     height: 100%;
 }
 
-/* ЗАГОЛОВОК ЧАТА */
 .chat-header {
     padding: 18px 25px;
     background: rgba(20, 20, 40, 0.95);
@@ -444,16 +436,27 @@ html, body {
     margin: 10px auto;
 }
 
+.message.dm {
+    background: rgba(155, 89, 182, 0.25);
+    border-color: rgba(155, 89, 182, 0.4);
+    border-left: 4px solid #9b59b6;
+}
+
 .message.admin {
     background: rgba(255, 215, 0, 0.15);
     border-color: rgba(255, 215, 0, 0.4);
     border-left: 4px solid gold;
 }
 
-.message.ai {
-    background: rgba(106, 13, 173, 0.2);
-    border-color: rgba(157, 78, 221, 0.3);
-    border-left: 4px solid #9d4edd;
+.message.unread {
+    border: 2px solid #00ccff;
+    animation: pulse-border 1.5s infinite;
+}
+
+@keyframes pulse-border {
+    0% { border-color: #00ccff; }
+    50% { border-color: rgba(0, 200, 255, 0.3); }
+    100% { border-color: #00ccff; }
 }
 
 .message-header {
@@ -474,12 +477,12 @@ html, body {
     gap: 8px;
 }
 
-.message-user.admin {
-    color: gold;
+.message-user.dm {
+    color: #9b59b6;
 }
 
-.message-user.ai {
-    color: #9d4edd;
+.message-user.admin {
+    color: gold;
 }
 
 .message-time {
@@ -492,29 +495,6 @@ html, body {
     line-height: 1.5;
     font-size: 1em;
     color: rgba(255, 255, 255, 0.9);
-}
-
-/* Анимация набора AI */
-.ai-typing {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #9d4edd;
-    font-style: italic;
-    padding: 10px;
-    background: rgba(106, 13, 173, 0.1);
-    border-radius: 10px;
-    margin: 5px;
-    border-left: 3px solid #9d4edd;
-}
-
-.ai-typing i {
-    animation: typing 1.5s infinite;
-}
-
-@keyframes typing {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 1; }
 }
 
 /* ПОЛЕ ВВОДА */
@@ -560,15 +540,6 @@ html, body {
     transition: all 0.3s ease;
 }
 
-.send-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(0, 150, 255, 0.4);
-}
-
-.send-btn:active {
-    transform: scale(0.98);
-}
-
 .actions {
     display: flex;
     gap: 10px;
@@ -585,11 +556,6 @@ html, body {
     font-size: 1.1em;
     transition: all 0.2s ease;
     min-width: 45px;
-}
-
-.action-btn:hover {
-    background: rgba(0, 200, 255, 0.2);
-    transform: translateY(-2px);
 }
 
 /* ПРАВАЯ ПАНЕЛЬ */
@@ -618,7 +584,7 @@ html, body {
     background: rgba(10, 10, 25, 0.5);
     border-radius: 12px;
     padding: 15px;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     max-height: 200px;
     overflow-y: auto;
     border: 1px solid rgba(0, 200, 255, 0.1);
@@ -632,6 +598,7 @@ html, body {
     border-radius: 8px;
     transition: all 0.2s ease;
     gap: 10px;
+    cursor: pointer;
 }
 
 .member:hover {
@@ -659,11 +626,6 @@ html, body {
     gap: 6px;
 }
 
-.admin-badge {
-    color: gold;
-    font-size: 0.8em;
-}
-
 .online-dot {
     width: 8px;
     height: 8px;
@@ -677,6 +639,97 @@ html, body {
     0% { opacity: 1; }
     50% { opacity: 0.5; }
     100% { opacity: 1; }
+}
+
+/* ЛИЧНЫЕ СООБЩЕНИЯ */
+.dm-section {
+    margin: 20px 0;
+    flex: 1;
+    min-height: 150px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.dm-list {
+    background: rgba(10, 10, 25, 0.5);
+    border-radius: 12px;
+    padding: 15px;
+    border: 1px solid rgba(155, 89, 182, 0.3);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.dm-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    margin: 6px 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    gap: 10px;
+    border: 1px solid transparent;
+}
+
+.dm-item:hover {
+    background: rgba(155, 89, 182, 0.1);
+    border-color: rgba(155, 89, 182, 0.2);
+}
+
+.dm-item.active {
+    background: rgba(155, 89, 182, 0.2);
+    border-color: #9b59b6;
+}
+
+.dm-item.unread {
+    background: rgba(0, 200, 255, 0.1);
+    border: 2px solid #00ccff;
+    animation: pulse-border 2s infinite;
+}
+
+.dm-avatar {
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9em;
+}
+
+.dm-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.dm-user {
+    font-weight: 600;
+    color: #9b59b6;
+    font-size: 0.9em;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dm-preview {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dm-badge-small {
+    background: #ff3366;
+    color: white;
+    font-size: 0.7em;
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+    font-weight: 800;
 }
 
 /* СТАТИСТИКА */
@@ -708,28 +761,178 @@ html, body {
     color: #00ffaa;
 }
 
-/* АДМИН КНОПКИ */
-.admin-btn {
-    background: rgba(255, 215, 0, 0.1);
-    border: 1px solid rgba(255, 215, 0, 0.3);
-    color: gold;
-    padding: 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.9em;
-    font-weight: 500;
+/* МОДАЛЬНЫЕ ОКНА */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    margin: 5px 0;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.modal-content {
+    background: rgba(15, 15, 35, 0.98);
+    padding: 30px;
+    border-radius: 20px;
+    max-width: 500px;
+    width: 100%;
+    border: 2px solid rgba(0, 200, 255, 0.5);
+    box-shadow: 0 0 50px rgba(0, 200, 255, 0.3);
+    color: white;
+    animation: modalSlideUp 0.3s ease;
+}
+
+@keyframes modalSlideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-content h2 {
+    color: #00ccff;
+    margin-bottom: 20px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
+    gap: 10px;
+}
+
+.modal-content input,
+.modal-content textarea {
+    width: 100%;
+    background: rgba(10, 10, 25, 0.7);
+    border: 1px solid rgba(0, 200, 255, 0.4);
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: white;
+    font-size: 1em;
+    margin-bottom: 15px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.modal-content input:focus,
+.modal-content textarea:focus {
+    border-color: #00ccff;
+    box-shadow: 0 0 20px rgba(0, 200, 255, 0.2);
+}
+
+.modal-content textarea {
+    resize: vertical;
+    min-height: 100px;
+    font-family: inherit;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.modal-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1em;
+}
+
+.modal-btn.primary {
+    background: linear-gradient(135deg, #0066ff 0%, #00ccff 100%);
+    color: white;
+}
+
+.modal-btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.modal-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* УВЕДОМЛЕНИЯ */
+.notifications-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.notification-item {
+    background: rgba(30, 30, 50, 0.6);
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 12px;
+    border-left: 4px solid #00ccff;
     transition: all 0.2s ease;
 }
 
-.admin-btn:hover {
-    background: rgba(255, 215, 0, 0.2);
-    transform: translateY(-2px);
+.notification-item.unread {
+    background: rgba(0, 150, 255, 0.15);
+    border-left-color: #ff3366;
+}
+
+.notification-item:hover {
+    background: rgba(30, 30, 50, 0.8);
+}
+
+.notification-title {
+    font-weight: 600;
+    color: #00ccff;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-time {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.notification-body {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9em;
+}
+
+/* КНОПКА ТЕСТА УВЕДОМЛЕНИЙ */
+.test-notification-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #00ffaa, #00cc66);
+    color: #00331a;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    font-size: 1.8em;
+    cursor: pointer;
+    z-index: 9997;
+    box-shadow: 0 8px 25px rgba(0, 255, 170, 0.4);
+    transition: all 0.3s ease;
+    display: none;
+}
+
+.test-notification-btn:hover {
+    transform: scale(1.1) rotate(15deg);
+    box-shadow: 0 12px 30px rgba(0, 255, 170, 0.6);
 }
 
 /* АДАПТИВНОСТЬ */
@@ -779,6 +982,10 @@ html, body {
     .login-box {
         padding: 30px 25px;
     }
+    
+    .modal-content {
+        padding: 20px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -825,146 +1032,4 @@ html, body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 200, 255, 0.6);
-}
-
-/* ========== TELEGRAM МОДАЛЬНОЕ ОКНО ========== */
-.telegram-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10000;
-    padding: 20px;
-    animation: fadeIn 0.3s ease;
-}
-
-.telegram-box {
-    background: rgba(15, 15, 35, 0.98);
-    padding: 35px;
-    border-radius: 20px;
-    max-width: 500px;
-    width: 100%;
-    border: 2px solid #00ccff;
-    box-shadow: 0 0 50px rgba(0, 200, 255, 0.5);
-    color: white;
-    text-align: center;
-    animation: slideUp 0.3s ease;
-}
-
-.telegram-icon {
-    background: #0088cc;
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.2em;
-    color: white;
-    margin: 0 auto 20px;
-    box-shadow: 0 8px 25px rgba(0, 136, 204, 0.5);
-}
-
-.telegram-title {
-    color: #00ccff;
-    font-size: 1.8em;
-    font-weight: 800;
-    margin: 0 0 10px 0;
-}
-
-.telegram-subtitle {
-    color: rgba(255, 255, 255, 0.9);
-    margin: 0 0 25px 0;
-}
-
-.telegram-instruction {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 15px;
-    padding: 20px;
-    margin: 20px 0;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    text-align: left;
-}
-
-.telegram-instruction-title {
-    color: #00ffaa;
-    font-weight: 600;
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.telegram-instruction ol {
-    color: rgba(255, 255, 255, 0.9);
-    line-height: 1.6;
-    margin: 0;
-    padding-left: 20px;
-}
-
-.telegram-instruction li {
-    margin-bottom: 8px;
-}
-
-.telegram-instruction strong {
-    color: #00ccff;
-}
-
-.telegram-info {
-    background: rgba(0, 136, 204, 0.1);
-    border-radius: 12px;
-    padding: 15px;
-    margin: 15px 0;
-    border: 1px solid rgba(0, 136, 204, 0.3);
-    color: #88aaff;
-    font-size: 0.9em;
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-}
-
-.telegram-info i {
-    color: #00ccff;
-    margin-top: 2px;
-    font-size: 1.1em;
-}
-
-.telegram-btn {
-    background: linear-gradient(135deg, #0066ff 0%, #00ccff 100%);
-    color: white;
-    border: none;
-    padding: 14px 40px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-weight: 700;
-    font-size: 1.1em;
-    transition: all 0.3s ease;
-    margin-top: 10px;
-}
-
-.telegram-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 25px rgba(0, 150, 255, 0.4);
-}
-
-/* Анимации для модалки */
-@keyframes slideUp {
-    from {
-        transform: translateY(30px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
 }
