@@ -13,6 +13,10 @@ const firebaseConfig = {
 const ADMIN_USERNAME = "ArturPirozhkov";
 const ADMIN_PASSWORD = "JojoTop1";
 
+/* ========== TELEGRAM КОНФИГУРАЦИЯ ========== */
+const TELEGRAM_BOT_TOKEN = "8375108387:AAEVrbh4T-vrSzaK5M2OSNeHaNppsCdpfW0";
+// Chat ID теперь не нужен - пользователи сами подписываются
+
 let isRegisterMode = false;
 let database = null;
 let currentUser = null;
@@ -24,6 +28,124 @@ let onlineTimeout = null;
 let isAdmin = false;
 let messageSendLock = false;
 let lastMessageTime = 0;
+
+/* ========== ТЕЛЕГРАМ ФУНКЦИЯ ========== */
+function showTelegramInfo() {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.95);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        animation: fadeIn 0.3s ease;
+    `;
+    
+    modal.innerHTML = `
+        <div style="
+            background: rgba(15,15,35,0.98);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            border: 2px solid #00ccff;
+            box-shadow: 0 0 50px rgba(0,200,255,0.5);
+            color: white;
+            animation: slideUp 0.3s ease;
+            text-align: center;
+        ">
+            <div style="margin-bottom: 25px;">
+                <div style="
+                    background: #0088cc;
+                    width: 70px;
+                    height: 70px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 2.2em;
+                    color: white;
+                    margin: 0 auto 20px;
+                    box-shadow: 0 8px 25px rgba(0,136,204,0.5);
+                ">
+                    <i class="fab fa-telegram"></i>
+                </div>
+                <h2 style="color: #00ccff; margin: 0 0 10px 0; font-size: 1.8em; font-weight: 800;">
+                    📱 Telegram-бот
+                </h2>
+                <p style="color: rgba(255,255,255,0.9); margin: 0;">
+                    Получай уведомления о новых сообщениях
+                </p>
+            </div>
+            
+            <div style="
+                background: rgba(0,0,0,0.3);
+                border-radius: 15px;
+                padding: 20px;
+                margin: 20px 0;
+                border: 1px solid rgba(255,255,255,0.1);
+                text-align: left;
+            ">
+                <p style="color: #00ffaa; font-weight: 600; margin-bottom: 15px;">
+                    <i class="fas fa-graduation-cap"></i> Как подключиться:
+                </p>
+                
+                <ol style="color: rgba(255,255,255,0.9); line-height: 1.6; margin: 0; padding-left: 20px;">
+                    <li>Открой Telegram</li>
+                    <li>Найди бота <strong style="color: #00ccff;">@NeonChatBot</strong></li>
+                    <li>Нажми кнопку <strong style="color: #00ffaa;">"Start"</strong></li>
+                    <li>Готово! Будешь получать уведомления</li>
+                </ol>
+            </div>
+            
+            <div style="
+                background: rgba(0,136,204,0.1);
+                border-radius: 12px;
+                padding: 15px;
+                margin: 15px 0;
+                border: 1px solid rgba(0,136,204,0.3);
+                color: #88aaff;
+                font-size: 0.9em;
+            ">
+                <i class="fas fa-info-circle"></i> 
+                Бот отправляет только важные уведомления. 
+                Ты сам решаешь, подписываться или нет.
+            </div>
+            
+            <button onclick="this.parentElement.parentElement.remove()" style="
+                background: linear-gradient(135deg, #0066ff 0%, #00ccff 100%);
+                color: white;
+                border: none;
+                padding: 14px 40px;
+                border-radius: 12px;
+                cursor: pointer;
+                font-weight: 700;
+                font-size: 1.1em;
+                transition: all 0.3s ease;
+                margin-top: 10px;
+            ">
+                Понятно
+            </button>
+            
+            <style>
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+            </style>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Закрытие по клику вне окна
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    };
+}
 
 /* ========== ПРОСТАЯ ФУНКЦИЯ ЗВОНКА ========== */
 function startCall() {
@@ -229,18 +351,6 @@ function setupEventListeners() {
             }
         }
     });
-    
-    // Кнопка звонка в левой панели
-    const callButton = document.getElementById('callButton');
-    if (callButton) {
-        callButton.addEventListener('click', startCall);
-    }
-    
-    // Кнопка звонка в мобильном меню
-    const mobileCallBtn = document.getElementById('mobileCallBtn');
-    if (mobileCallBtn) {
-        mobileCallBtn.addEventListener('click', startCall);
-    }
 }
 
 function setupLocalStorageFallback() {
@@ -1233,7 +1343,12 @@ function handleCommand(command) {
             break;
             
         case '/users':
-            sendSystemMessage(`👤 Всего пользователей: ${localStorage.length}`);
+            sendSystemMessage(`👤 Всего пользователей: ${Object.keys(localStorage).filter(k => k.startsWith('neonchat_user_')).length}`);
+            break;
+            
+        case '/telegram':
+        case '/tg':
+            showTelegramInfo();
             break;
             
         default:
@@ -1257,6 +1372,7 @@ function showHelp() {
     helpText += '/time - Показать точное время<br>';
     helpText += '/ping - Проверить связь с сервером<br>';
     helpText += '/users - Показать статистику<br>';
+    helpText += '/telegram - Информация о Telegram-боте<br>';
     
     if (isAdmin) {
         helpText += '<br><strong style="color:gold;">👑 Админ команды:</strong><br>';
@@ -1494,7 +1610,7 @@ function switchChannel(channel) {
     const channelNames = {
         'main': 'Основной чат',
         'games': 'Игры',
-        'music': 'Музыка',
+        'lessons': 'Уроки',
         'ai': '🤖 Нейросеть'
     };
     
@@ -1657,5 +1773,6 @@ window.toggleSidebar = toggleSidebar;
 window.toggleMembers = toggleMembers;
 window.forceSync = forceSync;
 window.logout = logout;
+window.showTelegramInfo = showTelegramInfo;
 
-console.log('✅ Все функции загружены!');
+console.log('✅ Все функции загружены! Telegram бот: просто /start');
