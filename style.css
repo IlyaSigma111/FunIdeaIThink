@@ -1,240 +1,958 @@
-/* ========== SMS МОДАЛЬНОЕ ОКНО ========== */
-.sms-modal {
+/* ========== ОСНОВНЫЕ СТИЛИ ========== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background: #0a0a1a;
+    color: white;
+}
+
+/* ========== ЭКРАН ЛОГИНА ========== */
+#loginScreen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1000;
+}
+
+.login-box {
+    background: rgba(15, 15, 35, 0.95);
+    padding: 40px 35px;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+    border: 1px solid rgba(0, 200, 255, 0.3);
+    box-shadow: 
+        0 10px 40px rgba(0, 200, 255, 0.2),
+        inset 0 0 20px rgba(0, 200, 255, 0.05);
+    backdrop-filter: blur(10px);
+}
+
+.neon-text {
+    color: #00ccff;
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-shadow: 0 0 10px rgba(0, 200, 255, 0.7);
+}
+
+.subtitle {
+    color: #88aaff;
+    margin-bottom: 30px;
+    font-size: 1em;
+    opacity: 0.9;
+}
+
+/* Поля ввода */
+.input-group {
+    background: rgba(10, 10, 25, 0.7);
+    border: 1px solid rgba(0, 200, 255, 0.4);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 15px 0;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.input-group:focus-within {
+    border-color: #00ccff;
+    box-shadow: 0 0 20px rgba(0, 200, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.input-group i {
+    color: #00ccff;
+    margin-right: 12px;
+    font-size: 1.2em;
+    opacity: 0.8;
+}
+
+.input-group input {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.1em;
+    width: 100%;
+    outline: none;
+    font-weight: 500;
+}
+
+.input-group input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Кнопки */
+.neon-btn {
+    background: linear-gradient(135deg, #0066ff 0%, #00ccff 100%);
+    color: white;
+    border: none;
+    padding: 17px;
+    border-radius: 12px;
+    font-size: 1.1em;
+    cursor: pointer;
+    width: 100%;
+    margin: 8px 0;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    letter-spacing: 0.5px;
+}
+
+.neon-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 150, 255, 0.4);
+}
+
+.neon-btn:active {
+    transform: translateY(0);
+}
+
+.register-btn {
+    background: linear-gradient(135deg, #ff3366 0%, #ff9966 100%);
+    margin-top: 5px;
+}
+
+.mode-switch {
+    margin-top: 15px;
+    color: #88aaff;
+    font-size: 0.9em;
+    text-align: center;
+}
+
+.mode-switch a {
+    color: #00ccff;
+    text-decoration: none;
+    font-weight: 600;
+    margin-left: 5px;
+    cursor: pointer;
+}
+
+.mode-switch a:hover {
+    text-decoration: underline;
+}
+
+/* ========== ОСНОВНОЙ ИНТЕРФЕЙС ========== */
+#chatScreen {
+    display: none;
+    height: 100vh;
+    width: 100vw;
+    flex-direction: column;
+}
+
+/* МОБИЛЬНОЕ МЕНЮ */
+.mobile-menu {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(20, 20, 40, 0.95);
+    padding: 10px 12px;
+    z-index: 1000;
+    border-top: 1px solid rgba(0, 200, 255, 0.3);
+    backdrop-filter: blur(15px);
+    justify-content: space-around;
+}
+
+.mobile-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.85em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    transition: all 0.2s ease;
+}
+
+.mobile-btn:active {
+    background: rgba(0, 200, 255, 0.1);
+    color: #00ccff;
+}
+
+.mobile-btn i {
+    font-size: 1.3em;
+}
+
+/* ОСНОВНОЙ КОНТЕНТ */
+.chat-content {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    height: 100%;
+}
+
+/* ЛЕВАЯ ПАНЕЛЬ */
+.sidebar {
+    width: 220px;
+    background: rgba(15, 15, 30, 0.95);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(0, 200, 255, 0.1);
+    padding: 20px;
+    height: 100%;
+}
+
+.user-info {
+    text-align: center;
+    padding: 20px 0 25px 0;
+    border-bottom: 1px solid rgba(0, 200, 255, 0.1);
+}
+
+.avatar {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #ff3366 0%, #ff9966 100%);
+    border-radius: 50%;
+    margin: 0 auto 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8em;
+    border: 2px solid rgba(0, 200, 255, 0.5);
+    box-shadow: 0 0 20px rgba(255, 51, 102, 0.3);
+}
+
+.admin-avatar {
+    background: linear-gradient(135deg, #ffd700 0%, #ff9900 100%);
+    border-color: gold;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.user-name {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #00ccff;
+    margin-bottom: 5px;
+    word-break: break-word;
+}
+
+.admin-name {
+    color: gold;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.status {
+    color: #00ffaa;
+    font-size: 0.85em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+/* КАНАЛЫ */
+.channels {
+    margin: 20px 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.channel {
+    padding: 14px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.95em;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid transparent;
+}
+
+.channel:hover {
+    background: rgba(0, 200, 255, 0.05);
+    color: rgba(255, 255, 255, 0.9);
+    transform: translateX(3px);
+}
+
+.channel.active {
+    background: rgba(0, 150, 255, 0.15);
+    color: #00ccff;
+    border-color: rgba(0, 200, 255, 0.3);
+    font-weight: 600;
+}
+
+.channel i {
+    font-size: 1.1em;
+    width: 20px;
+}
+
+/* КНОПКИ В ЛЕВОЙ ПАНЕЛИ */
+.sidebar-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.sidebar-btn {
+    background: rgba(0, 150, 255, 0.1);
+    border: 1px solid rgba(0, 200, 255, 0.3);
+    color: white;
+    padding: 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.sidebar-btn:hover {
+    background: rgba(0, 150, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.sidebar-btn.logout {
+    background: rgba(255, 60, 60, 0.1);
+    border-color: rgba(255, 100, 100, 0.3);
+}
+
+.sidebar-btn.logout:hover {
+    background: rgba(255, 60, 60, 0.2);
+}
+
+/* ЦЕНТРАЛЬНАЯ ЧАСТЬ */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    height: 100%;
+}
+
+/* ЗАГОЛОВОК ЧАТА */
+.chat-header {
+    padding: 18px 25px;
+    background: rgba(20, 20, 40, 0.95);
+    border-bottom: 1px solid rgba(0, 200, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(10px);
+}
+
+.chat-header h2 {
+    color: #00ccff;
+    font-size: 1.3em;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.online-count {
+    color: #00ffaa;
+    font-weight: 600;
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.refresh-btn {
+    background: rgba(0, 200, 255, 0.1);
+    border: 1px solid rgba(0, 200, 255, 0.3);
+    color: #00ccff;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    font-size: 1.1em;
+}
+
+.refresh-btn:hover {
+    transform: rotate(180deg);
+    background: rgba(0, 200, 255, 0.2);
+}
+
+/* СООБЩЕНИЯ */
+.messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: rgba(10, 10, 25, 0.3);
+}
+
+.message {
+    background: rgba(30, 30, 50, 0.6);
+    padding: 14px 16px;
+    border-radius: 12px;
+    max-width: 75%;
+    animation: fadeIn 0.2s ease;
+    border: 1px solid rgba(0, 200, 255, 0.1);
+    backdrop-filter: blur(5px);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message.own {
+    background: rgba(0, 100, 255, 0.25);
+    align-self: flex-end;
+    border-color: rgba(0, 150, 255, 0.3);
+}
+
+.message.system {
+    background: rgba(255, 100, 0, 0.2);
+    border-color: rgba(255, 150, 0, 0.3);
+    text-align: center;
+    max-width: 90%;
+    margin: 10px auto;
+}
+
+.message.admin {
+    background: rgba(255, 215, 0, 0.15);
+    border-color: rgba(255, 215, 0, 0.4);
+    border-left: 4px solid gold;
+}
+
+.message.ai {
+    background: rgba(106, 13, 173, 0.2);
+    border-color: rgba(157, 78, 221, 0.3);
+    border-left: 4px solid #9d4edd;
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.message-user {
+    color: #00ccff;
+    font-weight: 600;
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.message-user.admin {
+    color: gold;
+}
+
+.message-user.ai {
+    color: #9d4edd;
+}
+
+.message-time {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.message-content {
+    line-height: 1.5;
+    font-size: 1em;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Анимация набора AI */
+.ai-typing {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #9d4edd;
+    font-style: italic;
+    padding: 10px;
+    background: rgba(106, 13, 173, 0.1);
+    border-radius: 10px;
+    margin: 5px;
+    border-left: 3px solid #9d4edd;
+}
+
+.ai-typing i {
+    animation: typing 1.5s infinite;
+}
+
+@keyframes typing {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+}
+
+/* ПОЛЕ ВВОДА */
+.input-area {
+    padding: 20px;
+    background: rgba(20, 20, 40, 0.95);
+    border-top: 1px solid rgba(0, 200, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.input-box {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.input-box input {
+    flex: 1;
+    background: rgba(10, 10, 25, 0.7);
+    border: 1px solid rgba(0, 200, 255, 0.3);
+    border-radius: 12px;
+    padding: 16px 20px;
+    color: white;
+    font-size: 1em;
+    outline: none;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.input-box input:focus {
+    border-color: #00ccff;
+    box-shadow: 0 0 20px rgba(0, 200, 255, 0.2);
+}
+
+.send-btn {
+    background: linear-gradient(135deg, #0066ff 0%, #00ccff 100%);
+    border: none;
+    min-width: 55px;
+    border-radius: 12px;
+    color: white;
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: all 0.3s ease;
+}
+
+.send-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 150, 255, 0.4);
+}
+
+.send-btn:active {
+    transform: scale(0.98);
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    background: rgba(0, 200, 255, 0.1);
+    border: 1px solid rgba(0, 200, 255, 0.3);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1.1em;
+    transition: all 0.2s ease;
+    min-width: 45px;
+}
+
+.action-btn:hover {
+    background: rgba(0, 200, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+/* ПРАВАЯ ПАНЕЛЬ */
+.right-sidebar {
+    width: 260px;
+    background: rgba(15, 15, 30, 0.95);
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid rgba(0, 200, 255, 0.1);
+    padding: 20px;
+    height: 100%;
+}
+
+.right-sidebar h3 {
+    color: #00ccff;
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* СПИСОК ОНЛАЙН */
+.members-list {
+    background: rgba(10, 10, 25, 0.5);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid rgba(0, 200, 255, 0.1);
+}
+
+.member {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    margin: 6px 0;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    gap: 10px;
+}
+
+.member:hover {
+    background: rgba(0, 200, 255, 0.08);
+}
+
+.member-avatar {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #ff3366 0%, #ff9966 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1em;
+    border: 1px solid rgba(0, 200, 255, 0.3);
+}
+
+.member-name {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.admin-badge {
+    color: gold;
+    font-size: 0.8em;
+}
+
+.online-dot {
+    width: 8px;
+    height: 8px;
+    background: #00ffaa;
+    border-radius: 50%;
+    margin-left: 4px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* СТАТИСТИКА */
+.stats {
+    background: rgba(10, 10, 25, 0.5);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid rgba(0, 200, 255, 0.1);
+    margin-top: auto;
+}
+
+.stats p {
+    margin: 8px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.stats i {
+    color: #00ccff;
+    margin-right: 8px;
+    width: 16px;
+}
+
+.stats span {
+    font-weight: 600;
+    color: #00ffaa;
+}
+
+/* АДМИН КНОПКИ */
+.admin-btn {
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    color: gold;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    width: 100%;
+    margin: 5px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.admin-btn:hover {
+    background: rgba(255, 215, 0, 0.2);
+    transform: translateY(-2px);
+}
+
+/* АДАПТИВНОСТЬ */
+@media (max-width: 768px) {
+    .sidebar, .right-sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        width: 280px;
+        z-index: 900;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        background: rgba(15, 15, 30, 0.98);
+        backdrop-filter: blur(20px);
+        padding: 20px;
+    }
+    
+    .right-sidebar {
+        right: 0;
+        left: auto;
+        transform: translateX(100%);
+    }
+    
+    .sidebar.active, .right-sidebar.active {
+        transform: translateX(0);
+    }
+    
+    .mobile-menu {
+        display: flex;
+    }
+    
+    .messages {
+        padding: 15px;
+        padding-bottom: 70px;
+    }
+    
+    .input-area {
+        padding: 15px;
+        padding-bottom: 60px;
+    }
+    
+    .message {
+        max-width: 90%;
+        padding: 12px 14px;
+    }
+    
+    .login-box {
+        padding: 30px 25px;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-box {
+        padding: 25px 20px;
+    }
+    
+    .neon-text {
+        font-size: 2em;
+    }
+    
+    .chat-header {
+        padding: 15px;
+    }
+    
+    .message {
+        max-width: 95%;
+    }
+    
+    .mobile-btn {
+        font-size: 0.8em;
+        padding: 8px;
+    }
+    
+    .mobile-btn i {
+        font-size: 1.2em;
+    }
+}
+
+/* СКРОЛЛБАР */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 200, 255, 0.4);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 200, 255, 0.6);
+}
+
+/* ========== TELEGRAM МОДАЛЬНОЕ ОКНО ========== */
+.telegram-modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.95);
-    display: none;
+    display: flex;
     justify-content: center;
     align-items: center;
     z-index: 10000;
-    backdrop-filter: blur(10px);
+    padding: 20px;
     animation: fadeIn 0.3s ease;
 }
 
-.sms-box {
+.telegram-box {
     background: rgba(15, 15, 35, 0.98);
     padding: 35px;
     border-radius: 20px;
-    width: 100%;
     max-width: 500px;
+    width: 100%;
     border: 2px solid #00ccff;
-    box-shadow: 
-        0 20px 60px rgba(0, 200, 255, 0.3),
-        inset 0 0 30px rgba(0, 200, 255, 0.1);
+    box-shadow: 0 0 50px rgba(0, 200, 255, 0.5);
+    color: white;
+    text-align: center;
     animation: slideUp 0.3s ease;
 }
 
-.sms-box h2 {
-    color: #00ccff;
-    text-align: center;
-    margin-bottom: 10px;
-    font-size: 1.8em;
-    font-weight: 700;
+.telegram-icon {
+    background: #0088cc;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    font-size: 2.2em;
+    color: white;
+    margin: 0 auto 20px;
+    box-shadow: 0 8px 25px rgba(0, 136, 204, 0.5);
 }
 
-.sms-subtitle {
-    color: #88aaff;
-    text-align: center;
-    margin-bottom: 25px;
-    font-size: 0.95em;
-    opacity: 0.9;
+.telegram-title {
+    color: #00ccff;
+    font-size: 1.8em;
+    font-weight: 800;
+    margin: 0 0 10px 0;
 }
 
-.sms-input-group {
+.telegram-subtitle {
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0 0 25px 0;
+}
+
+.telegram-instruction {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 15px;
+    padding: 20px;
     margin: 20px 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: left;
 }
 
-.sms-input-group label {
-    display: block;
-    color: #00ccff;
-    margin-bottom: 8px;
-    font-weight: 600;
-    font-size: 1em;
-}
-
-.phone-input {
-    display: flex;
-    align-items: center;
-    background: rgba(10, 10, 25, 0.7);
-    border: 1px solid rgba(0, 200, 255, 0.4);
-    border-radius: 12px;
-    overflow: hidden;
-    transition: all 0.3s ease;
-}
-
-.phone-input:focus-within {
-    border-color: #00ccff;
-    box-shadow: 0 0 20px rgba(0, 200, 255, 0.2);
-}
-
-.phone-prefix {
-    background: rgba(0, 100, 255, 0.2);
-    color: #00ccff;
-    padding: 16px 18px;
-    font-weight: 600;
-    border-right: 1px solid rgba(0, 200, 255, 0.3);
-    min-width: 60px;
-    text-align: center;
-}
-
-.phone-input input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: white;
-    padding: 16px 18px;
-    font-size: 1.1em;
-    outline: none;
-    font-weight: 500;
-    letter-spacing: 1px;
-}
-
-.phone-input input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
-}
-
-.phone-hint {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.85em;
-    margin-top: 6px;
-    margin-left: 5px;
-}
-
-.sms-input-group textarea {
-    width: 100%;
-    background: rgba(10, 10, 25, 0.7);
-    border: 1px solid rgba(0, 200, 255, 0.4);
-    border-radius: 12px;
-    color: white;
-    padding: 16px 18px;
-    font-size: 1em;
-    font-family: inherit;
-    outline: none;
-    resize: vertical;
-    min-height: 100px;
-    transition: all 0.3s ease;
-    font-weight: 500;
-    line-height: 1.5;
-}
-
-.sms-input-group textarea:focus {
-    border-color: #00ccff;
-    box-shadow: 0 0 20px rgba(0, 200, 255, 0.2);
-}
-
-.sms-input-group textarea::placeholder {
-    color: rgba(255, 255, 255, 0.4);
-}
-
-.sms-counter {
-    text-align: right;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.85em;
-    margin-top: 6px;
-    font-weight: 500;
-}
-
-.sms-counter span {
+.telegram-instruction-title {
     color: #00ffaa;
     font-weight: 600;
-}
-
-.sms-buttons {
-    display: flex;
-    gap: 15px;
-    margin-top: 25px;
-}
-
-.sms-btn-send {
-    flex: 2;
-    background: linear-gradient(135deg, #0066ff 0%, #00ccff 100%);
-    color: white;
-    border: none;
-    padding: 18px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 1.1em;
-    font-weight: 600;
-    transition: all 0.3s ease;
+    margin-bottom: 15px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
+    gap: 10px;
 }
 
-.sms-btn-send:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 25px rgba(0, 150, 255, 0.4);
+.telegram-instruction ol {
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.6;
+    margin: 0;
+    padding-left: 20px;
 }
 
-.sms-btn-cancel {
-    flex: 1;
-    background: rgba(255, 60, 60, 0.1);
-    border: 1px solid rgba(255, 100, 100, 0.3);
-    color: #ff6666;
-    padding: 18px;
+.telegram-instruction li {
+    margin-bottom: 8px;
+}
+
+.telegram-instruction strong {
+    color: #00ccff;
+}
+
+.telegram-info {
+    background: rgba(0, 136, 204, 0.1);
     border-radius: 12px;
-    cursor: pointer;
-    font-size: 1.1em;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.sms-btn-cancel:hover {
-    background: rgba(255, 60, 60, 0.2);
-    transform: translateY(-3px);
-}
-
-.sms-status {
-    margin-top: 15px;
-    padding: 12px;
-    border-radius: 10px;
-    text-align: center;
-    font-size: 0.95em;
-    font-weight: 500;
-    display: none;
-    animation: fadeIn 0.3s ease;
-}
-
-.sms-info {
-    margin-top: 20px;
     padding: 15px;
-    background: rgba(0, 200, 255, 0.1);
-    border-radius: 10px;
-    border: 1px solid rgba(0, 200, 255, 0.3);
+    margin: 15px 0;
+    border: 1px solid rgba(0, 136, 204, 0.3);
     color: #88aaff;
     font-size: 0.9em;
-    line-height: 1.5;
     display: flex;
     align-items: flex-start;
     gap: 10px;
 }
 
-.sms-info i {
+.telegram-info i {
     color: #00ccff;
     margin-top: 2px;
     font-size: 1.1em;
 }
 
-/* Стили для SMS сообщений в чате */
-.message.sms {
-    background: rgba(0, 200, 255, 0.15);
-    border: 1px solid rgba(0, 200, 255, 0.3);
-    border-left: 4px solid #00ccff;
+.telegram-btn {
+    background: linear-gradient(135deg, #0066ff 0%, #00ccff 100%);
+    color: white;
+    border: none;
+    padding: 14px 40px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 1.1em;
+    transition: all 0.3s ease;
+    margin-top: 10px;
 }
 
-.message-user.sms {
-    color: #00ccff !important;
+.telegram-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 150, 255, 0.4);
 }
 
-/* Анимации */
+/* Анимации для модалки */
 @keyframes slideUp {
     from {
         transform: translateY(30px);
@@ -249,41 +967,4 @@
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
-}
-
-/* Адаптивность для SMS окна */
-@media (max-width: 768px) {
-    .sms-box {
-        width: 90%;
-        padding: 25px;
-        margin: 20px;
-    }
-    
-    .sms-box h2 {
-        font-size: 1.5em;
-    }
-    
-    .phone-input input,
-    .phone-input textarea {
-        padding: 14px 16px;
-    }
-    
-    .sms-buttons {
-        flex-direction: column;
-    }
-    
-    .sms-btn-send,
-    .sms-btn-cancel {
-        width: 100%;
-    }
-}
-
-@media (max-width: 480px) {
-    .sms-box {
-        padding: 20px;
-    }
-    
-    .sms-box h2 {
-        font-size: 1.3em;
-    }
 }
