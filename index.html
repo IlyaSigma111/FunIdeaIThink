@@ -2,829 +2,281 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🚀 NeonChat Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🚀 NeonChat</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Firebase SDKs -->
-    <script type="module">
-        // Импортируем Firebase 9
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-        import { getDatabase, ref, set, push, onValue, remove, onDisconnect } 
-            from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-        
-        // КОНФИГУРАЦИЯ ВАШЕГО ПРОЕКТА
-        const firebaseConfig = {
-            apiKey: "AIzaSyBzeaUMGZtEsiYkpPms1P5-eGaKJOOIIPs",
-            authDomain: "funideaithink-8ebad.firebaseapp.com",
-            databaseURL: "https://funideaithink-8ebad-default-rtdb.firebaseio.com",
-            projectId: "funideaithink-8ebad",
-            storageBucket: "funideaithink-8ebad.firebasestorage.app",
-            messagingSenderId: "729173254710",
-            appId: "1:729173254710:web:0384797f259ce84da86e97",
-            measurementId: "G-JLB6NM31NE"
-        };
-        
-        // Инициализация
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-        
-        // Экспортируем для использования
-        window.firebaseDatabase = database;
-        window.firebaseRef = ref;
-        window.firebaseSet = set;
-        window.firebasePush = push;
-        window.firebaseOnValue = onValue;
-        window.firebaseRemove = remove;
-        window.firebaseOnDisconnect = onDisconnect;
-        
-        console.log('✅ Firebase подключен! База:', firebaseConfig.databaseURL);
-        
-        // Показываем статус
-        document.getElementById('firebaseStatus').innerHTML = 
-            `<i class="fas fa-check-circle" style="color: #00ff00;"></i> 
-             Firebase подключен: ${firebaseConfig.projectId}`;
-    </script>
-    
-    <style>
-        /* БАЗОВЫЕ СТИЛИ */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            background: linear-gradient(135deg, #0a0a1a, #1a1a3a);
-            color: white; 
-            font-family: 'Segoe UI', sans-serif;
-            height: 100vh;
-            overflow: hidden;
-        }
-        
-        /* ЭКРАН ЛОГИНА */
-        #loginScreen {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            background: rgba(0,0,0,0.9);
-            z-index: 1000;
-        }
-        
-        .login-box {
-            background: rgba(20, 20, 40, 0.95);
-            padding: 40px;
-            border-radius: 20px;
-            width: 100%;
-            max-width: 450px;
-            text-align: center;
-            border: 2px solid #00ccff;
-            box-shadow: 0 0 30px rgba(0, 200, 255, 0.3);
-            backdrop-filter: blur(10px);
-        }
-        
-        .neon-text {
-            color: #00ccff;
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            font-weight: 800;
-            text-shadow: 0 0 15px #00ccff;
-        }
-        
-        .subtitle {
-            color: #88aaff;
-            margin-bottom: 30px;
-        }
-        
-        .input-group {
-            background: rgba(10, 10, 30, 0.7);
-            border: 1px solid rgba(0, 200, 255, 0.4);
-            border-radius: 12px;
-            padding: 15px 20px;
-            margin: 15px 0;
-            display: flex;
-            align-items: center;
-        }
-        
-        .input-group i {
-            color: #00ccff;
-            margin-right: 12px;
-            font-size: 1.2em;
-        }
-        
-        .input-group input {
-            background: transparent;
-            border: none;
-            color: white;
-            font-size: 1.1em;
-            width: 100%;
-            outline: none;
-        }
-        
-        .neon-btn {
-            background: linear-gradient(135deg, #0066ff, #00ccff);
-            color: white;
-            border: none;
-            padding: 16px;
-            border-radius: 12px;
-            font-size: 1.1em;
-            cursor: pointer;
-            width: 100%;
-            margin: 10px 0;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .neon-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(0, 150, 255, 0.4);
-        }
-        
-        .status-box {
-            margin-top: 20px;
-            padding: 15px;
-            background: rgba(0, 100, 255, 0.1);
-            border-radius: 10px;
-            border: 1px solid rgba(0, 200, 255, 0.3);
-            font-size: 0.9em;
-            color: #88aaff;
-        }
-        
-        /* ОСНОВНОЙ ИНТЕРФЕЙС */
-        #chatScreen {
-            display: none;
-            height: 100vh;
-            flex-direction: column;
-        }
-        
-        .chat-header {
-            padding: 18px 25px;
-            background: rgba(20, 20, 40, 0.95);
-            border-bottom: 1px solid rgba(0, 200, 255, 0.2);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            backdrop-filter: blur(10px);
-        }
-        
-        .chat-header h2 {
-            color: #00ccff;
-            font-size: 1.3em;
-        }
-        
-        .online-count {
-            color: #00ffaa;
-            font-weight: 600;
-        }
-        
-        .messages-container {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            background: rgba(10, 10, 25, 0.3);
-        }
-        
-        .message {
-            background: rgba(30, 30, 50, 0.6);
-            padding: 14px 16px;
-            border-radius: 12px;
-            margin: 10px 0;
-            max-width: 70%;
-            border: 1px solid rgba(0, 200, 255, 0.1);
-            animation: fadeIn 0.3s;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .message.own {
-            background: rgba(0, 100, 255, 0.25);
-            margin-left: auto;
-        }
-        
-        .message-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-        
-        .message-user {
-            color: #00ccff;
-            font-weight: 600;
-        }
-        
-        .message-time {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.85em;
-        }
-        
-        .message-content {
-            line-height: 1.5;
-        }
-        
-        .input-area {
-            padding: 20px;
-            background: rgba(20, 20, 40, 0.95);
-            border-top: 1px solid rgba(0, 200, 255, 0.2);
-            backdrop-filter: blur(10px);
-        }
-        
-        .input-row {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 15px;
-        }
-        
-        .input-row input {
-            flex: 1;
-            padding: 16px 20px;
-            background: rgba(10, 10, 30, 0.7);
-            border: 1px solid rgba(0, 200, 255, 0.3);
-            border-radius: 12px;
-            color: white;
-            font-size: 1em;
-            outline: none;
-        }
-        
-        .input-row input:focus {
-            border-color: #00ccff;
-            box-shadow: 0 0 20px rgba(0, 200, 255, 0.2);
-        }
-        
-        .send-btn {
-            background: linear-gradient(135deg, #0066ff, #00ccff);
-            border: none;
-            width: 60px;
-            border-radius: 12px;
-            color: white;
-            cursor: pointer;
-            font-size: 1.2em;
-        }
-        
-        /* САЙДБАР */
-        .sidebar {
-            width: 250px;
-            background: rgba(15, 15, 30, 0.95);
-            padding: 25px;
-            border-right: 1px solid rgba(0, 200, 255, 0.1);
-        }
-        
-        .user-card {
-            text-align: center;
-            padding-bottom: 25px;
-            border-bottom: 1px solid rgba(0, 200, 255, 0.1);
-            margin-bottom: 20px;
-        }
-        
-        .user-avatar {
-            width: 70px;
-            height: 70px;
-            background: linear-gradient(135deg, #ff3366, #ff9966);
-            border-radius: 50%;
-            margin: 0 auto 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2em;
-            border: 2px solid #00ccff;
-        }
-        
-        .user-name {
-            color: #00ccff;
-            font-size: 1.2em;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-        
-        .user-status {
-            color: #00ffaa;
-            font-size: 0.9em;
-        }
-        
-        .channels {
-            margin-top: 20px;
-        }
-        
-        .channel {
-            padding: 14px;
-            margin: 8px 0;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-            cursor: pointer;
-            color: rgba(255, 255, 255, 0.7);
-            border: 1px solid transparent;
-            transition: all 0.2s;
-        }
-        
-        .channel:hover {
-            background: rgba(0, 200, 255, 0.05);
-            color: white;
-        }
-        
-        .channel.active {
-            background: rgba(0, 150, 255, 0.15);
-            color: #00ccff;
-            border-color: rgba(0, 200, 255, 0.3);
-            font-weight: 600;
-        }
-        
-        /* ПРАВАЯ ПАНЕЛЬ */
-        .right-sidebar {
-            width: 250px;
-            background: rgba(15, 15, 30, 0.95);
-            padding: 25px;
-            border-left: 1px solid rgba(0, 200, 255, 0.1);
-        }
-        
-        .members-title {
-            color: #00ccff;
-            margin-bottom: 15px;
-            font-size: 1.1em;
-        }
-        
-        .members-list {
-            background: rgba(10, 10, 25, 0.5);
-            border-radius: 12px;
-            padding: 15px;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid rgba(0, 200, 255, 0.1);
-        }
-        
-        .member {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 8px;
-        }
-        
-        .member-avatar {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #00cc66, #00aa44);
-            border-radius: 50%;
-            margin-right: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9em;
-        }
-        
-        .member-name {
-            color: rgba(255, 255, 255, 0.9);
-        }
-        
-        /* ОСНОВНОЙ КОНТЕНТ */
-        .chat-content {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-        }
-        
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        /* АДАПТИВНОСТЬ */
-        @media (max-width: 768px) {
-            .sidebar, .right-sidebar {
-                position: fixed;
-                top: 0;
-                bottom: 0;
-                width: 280px;
-                z-index: 900;
-                transform: translateX(-100%);
-            }
-            
-            .right-sidebar {
-                right: 0;
-                left: auto;
-                transform: translateX(100%);
-            }
-        }
-    </style>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <!-- ЭКРАН ЛОГИНА -->
     <div id="loginScreen">
         <div class="login-box">
-            <h1 class="neon-text">🔥 NeonChat Pro</h1>
-            <p class="subtitle">Реальный чат с Firebase 9</p>
+            <h1 class="neon-text">NeonChat</h1>
+            <p class="subtitle">Чат с ИИ-помощником и видеозвонками</p>
             
             <div class="input-group">
                 <i class="fas fa-user"></i>
-                <input type="text" id="username" placeholder="Введите ваш никнейм..." maxlength="20">
+                <input type="text" id="username" placeholder="Никнейм..." maxlength="20" autocomplete="username">
             </div>
             
-            <button onclick="login()" class="neon-btn" id="loginBtn">
-                <i class="fas fa-sign-in-alt"></i> Войти в чат
+            <div class="input-group" id="passwordGroup">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="password" placeholder="Пароль..." maxlength="30" autocomplete="current-password">
+            </div>
+            
+            <div class="input-group" id="confirmPasswordGroup" style="display: none;">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="confirmPassword" placeholder="Повтори пароль..." maxlength="30" autocomplete="new-password">
+            </div>
+            
+            <button onclick="handleAuth()" class="neon-btn" id="authButton">
+                <i class="fas fa-sign-in-alt"></i> Войти
             </button>
             
-            <div class="status-box" id="firebaseStatus">
-                <i class="fas fa-sync fa-spin"></i> Подключение к Firebase...
+            <button onclick="toggleRegister()" class="neon-btn register-btn" id="registerToggleBtn">
+                <i class="fas fa-user-plus"></i> Создать аккаунт
+            </button>
+            
+            <div class="mode-switch" id="loginHint" style="display: none;">
+                Уже есть аккаунт? 
+                <a onclick="toggleLogin()">Войти</a>
+            </div>
+            
+            <!-- Кнопка уведомлений (новая) -->
+            <div id="notificationSetup" style="margin-top: 20px; display: none;">
+                <button onclick="setupNotifications()" class="neon-btn" style="background: linear-gradient(135deg, #00cc66, #00aa44);">
+                    <i class="fas fa-bell"></i> Включить уведомления
+                </button>
+                <p style="font-size: 0.8em; color: #88aaff; margin-top: 10px;">
+                    Получай уведомления о новых сообщениях
+                </p>
             </div>
         </div>
     </div>
-
+    
     <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
-    <div id="chatScreen">
+    <div id="chatScreen" style="display: none;">
+        <!-- МОБИЛЬНОЕ МЕНЮ -->
+        <div class="mobile-menu">
+            <button class="mobile-btn" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+                <span>Меню</span>
+            </button>
+            <button class="mobile-btn" onclick="toggleMembers()">
+                <i class="fas fa-users"></i>
+                <span>Люди</span>
+            </button>
+            <button class="mobile-btn" onclick="switchChannel('main')">
+                <i class="fas fa-comments"></i>
+                <span>Чат</span>
+            </button>
+            <button class="mobile-btn" onclick="startCall()">
+                <i class="fas fa-video"></i>
+                <span>Звонок</span>
+            </button>
+        </div>
+        
         <div class="chat-content">
             <!-- ЛЕВАЯ ПАНЕЛЬ -->
             <div class="sidebar">
-                <div class="user-card">
-                    <div class="user-avatar" id="userAvatar">👤</div>
+                <div class="user-info">
+                    <div class="avatar" id="userAvatar">👤</div>
                     <div class="user-name" id="currentUserName">Гость</div>
-                    <div class="user-status"><i class="fas fa-circle"></i> онлайн</div>
+                    <div class="status"><i class="fas fa-circle"></i> онлайн</div>
                 </div>
                 
                 <div class="channels">
                     <div class="channel active" onclick="switchChannel('main')">
                         <i class="fas fa-comment-alt"></i> Основной чат
+                        <span class="unread-badge" id="mainBadge" style="display: none;">0</span>
                     </div>
                     <div class="channel" onclick="switchChannel('games')">
                         <i class="fas fa-gamepad"></i> Игры
+                        <span class="unread-badge" id="gamesBadge" style="display: none;">0</span>
+                    </div>
+                    <div class="channel" onclick="switchChannel('lessons')">
+                        <i class="fas fa-graduation-cap"></i> Уроки
+                        <span class="unread-badge" id="lessonsBadge" style="display: none;">0</span>
                     </div>
                     <div class="channel" onclick="switchChannel('ai')">
-                        <i class="fas fa-robot"></i> ИИ помощник
+                        <i class="fas fa-robot"></i> 🤖 Нейросеть
+                        <span class="unread-badge" id="aiBadge" style="display: none;">0</span>
                     </div>
+                </div>
+                
+                <div class="sidebar-buttons">
+                    <button onclick="startCall()" class="sidebar-btn">
+                        <i class="fas fa-video"></i> Видеозвонок
+                    </button>
+                    <button onclick="showTelegramInfo()" class="sidebar-btn">
+                        <i class="fab fa-telegram"></i> Telegram-бот
+                    </button>
+                    <button onclick="showNotificationSettings()" class="sidebar-btn">
+                        <i class="fas fa-bell"></i> Уведомления
+                    </button>
+                    <button onclick="logout()" class="sidebar-btn logout">
+                        <i class="fas fa-sign-out-alt"></i> Выйти
+                    </button>
                 </div>
             </div>
             
             <!-- ЦЕНТРАЛЬНАЯ ЧАСТЬ -->
-            <div class="main-content">
-                <!-- ШАПКА -->
+            <div class="main">
+                <!-- ЗАГОЛОВОК ЧАТА -->
                 <div class="chat-header">
                     <h2><i class="fas fa-hashtag"></i> <span id="channelName">Основной чат</span></h2>
-                    <div class="online-count">
-                        <i class="fas fa-user"></i> <span id="onlineCount">1</span> онлайн
+                    <div class="header-controls">
+                        <div class="online-count">
+                            <i class="fas fa-user"></i> <span id="onlineCount">1</span>
+                        </div>
+                        <button onclick="forceSync()" class="refresh-btn" title="Обновить">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button onclick="testNotification()" class="refresh-btn" title="Тест уведомления">
+                            <i class="fas fa-bell"></i>
+                        </button>
+                        <div class="notification-indicator" id="notificationIndicator" style="display: none;">
+                            <i class="fas fa-circle" style="color: #ff3366; font-size: 0.8em;"></i>
+                        </div>
                     </div>
                 </div>
                 
                 <!-- СООБЩЕНИЯ -->
-                <div class="messages-container" id="messagesContainer">
+                <div class="messages" id="messagesContainer">
                     <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.4);">
                         <i class="fas fa-comment-alt" style="font-size: 3em; margin-bottom: 15px; display: block;"></i>
-                        Загрузка сообщений...
+                        Начни общение первым
                     </div>
                 </div>
                 
                 <!-- ПОЛЕ ВВОДА -->
                 <div class="input-area">
-                    <div class="input-row">
-                        <input type="text" id="messageInput" placeholder="Введите сообщение..." autocomplete="off">
-                        <button onclick="sendMessage()" class="send-btn">
+                    <div class="input-box">
+                        <input type="text" id="messageInput" placeholder="Сообщение или команда (/help)..." autocomplete="off">
+                        <button onclick="sendMessage()" class="send-btn" title="Отправить">
                             <i class="fas fa-paper-plane"></i>
                         </button>
                     </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button onclick="addEmoji('😊')" style="padding: 10px 15px; background: rgba(0,200,255,0.1); border: 1px solid rgba(0,200,255,0.3); border-radius: 8px; color: white; cursor: pointer;">😊</button>
-                        <button onclick="addEmoji('😂')" style="padding: 10px 15px; background: rgba(0,200,255,0.1); border: 1px solid rgba(0,200,255,0.3); border-radius: 8px; color: white; cursor: pointer;">😂</button>
-                        <button onclick="addEmoji('❤️')" style="padding: 10px 15px; background: rgba(0,200,255,0.1); border: 1px solid rgba(0,200,255,0.3); border-radius: 8px; color: white; cursor: pointer;">❤️</button>
+                    <div class="actions">
+                        <button onclick="addEmoji('😊')" class="action-btn">😊</button>
+                        <button onclick="addEmoji('😂')" class="action-btn">😂</button>
+                        <button onclick="addEmoji('❤️')" class="action-btn">❤️</button>
+                        <button onclick="addEmoji('🔥')" class="action-btn">🔥</button>
+                        <button onclick="addEmoji('👍')" class="action-btn">👍</button>
+                        <button onclick="mentionUser()" class="action-btn" title="Упомянуть">
+                            @
+                        </button>
                     </div>
                 </div>
             </div>
             
             <!-- ПРАВАЯ ПАНЕЛЬ -->
             <div class="right-sidebar">
-                <h3 class="members-title"><i class="fas fa-users"></i> Онлайн</h3>
+                <h3><i class="fas fa-users"></i> Сейчас онлайн</h3>
                 <div class="members-list" id="membersList">
-                    <div class="member">
-                        <div class="member-avatar">👤</div>
-                        <div class="member-name">Вы</div>
+                    <!-- Онлайн пользователи -->
+                </div>
+                
+                <!-- СТАТИСТИКА -->
+                <div class="stats">
+                    <p><i class="fas fa-comment"></i> Сообщения: <span id="messageCount">0</span></p>
+                    <p><i class="fas fa-user"></i> Онлайн: <span id="onlineCount2">1</span></p>
+                    <p><i class="fas fa-wifi"></i> Статус: <span id="connectionStatus">✓</span></p>
+                    <p><i class="fas fa-clock"></i> Время: <span id="currentTime">00:00</span></p>
+                    <p><i class="fas fa-bell"></i> Уведомления: <span id="notifStatusText">❌</span></p>
+                </div>
+                
+                <!-- АДМИН ПАНЕЛЬ (ТОЛЬКО ДЛЯ АДМИНА) -->
+                <div id="adminPanel" style="display: none; margin-top: 20px;">
+                    <h3 style="color: gold;"><i class="fas fa-crown"></i> Админ-панель</h3>
+                    <div style="background: rgba(255, 215, 0, 0.1); border: 1px solid gold; border-radius: 10px; padding: 15px; margin-top: 10px;">
+                        <button onclick="adminClearChat()" class="admin-btn">
+                            <i class="fas fa-trash"></i> Очистить чат
+                        </button>
+                        <button onclick="adminAnnouncement()" class="admin-btn">
+                            <i class="fas fa-bullhorn"></i> Объявление
+                        </button>
+                        <button onclick="adminKickAll()" class="admin-btn">
+                            <i class="fas fa-user-slash"></i> Кикнуть всех
+                        </button>
+                        <button onclick="sendNotificationToAll()" class="admin-btn">
+                            <i class="fas fa-broadcast-tower"></i> Тест всем
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ОСНОВНОЙ СКРИПТ -->
-    <script>
-        // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
-        let currentUser = null;
-        let currentChannel = 'main';
-        let myUserId = null;
-        let onlineUsers = new Map();
-        
-        // ПОКЛЮЧЕНИЕ К FIREBASE
-        window.addEventListener('DOMContentLoaded', function() {
-            console.log('Документ загружен, Firebase:', window.firebaseDatabase ? '✅' : '❌');
+    <!-- ОКНО НАСТРОЕК УВЕДОМЛЕНИЙ (новое) -->
+    <div id="notificationsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2><i class="fas fa-bell"></i> Настройки уведомлений</h2>
             
-            if (!window.firebaseDatabase) {
-                document.getElementById('firebaseStatus').innerHTML = 
-                    '<i class="fas fa-times-circle" style="color: #ff4444;"></i> Firebase не подключен!';
-            }
-        });
-        
-        // ВХОД В ЧАТ
-        async function login() {
-            const usernameInput = document.getElementById('username');
-            const username = usernameInput.value.trim();
-            
-            if (!username) {
-                alert('Введите никнейм!');
-                usernameInput.focus();
-                return;
-            }
-            
-            const loginBtn = document.getElementById('loginBtn');
-            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Вход...';
-            loginBtn.disabled = true;
-            
-            try {
-                // Генерируем ID пользователя
-                myUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                
-                currentUser = {
-                    id: myUserId,
-                    name: username,
-                    avatar: '👤',
-                    online: true
-                };
-                
-                // Сохраняем в localStorage
-                localStorage.setItem('neonchat_user', JSON.stringify(currentUser));
-                
-                // Обновляем UI
-                document.getElementById('currentUserName').textContent = username;
-                document.getElementById('userAvatar').textContent = '👤';
-                
-                // Показываем чат
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('chatScreen').style.display = 'flex';
-                
-                // Инициализируем Firebase
-                await initFirebase();
-                
-                // Фокус на поле ввода
-                setTimeout(() => {
-                    document.getElementById('messageInput').focus();
-                }, 500);
-                
-            } catch (error) {
-                console.error('Ошибка входа:', error);
-                alert('Ошибка входа: ' + error.message);
-                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти в чат';
-                loginBtn.disabled = false;
-            }
-        }
-        
-        // ИНИЦИАЛИЗАЦИЯ FIREBASE
-        async function initFirebase() {
-            if (!window.firebaseDatabase) {
-                throw new Error('Firebase не инициализирован');
-            }
-            
-            const db = window.firebaseDatabase;
-            
-            // 1. ОБНОВЛЯЕМ СТАТУС ОНЛАЙН
-            const userOnlineRef = window.firebaseRef(db, `online/${myUserId}`);
-            await window.firebaseSet(userOnlineRef, {
-                id: myUserId,
-                name: currentUser.name,
-                avatar: currentUser.avatar,
-                lastSeen: Date.now(),
-                channel: currentChannel
-            });
-            
-            // Удаляем при отключении
-            window.firebaseOnDisconnect(userOnlineRef).remove();
-            
-            // 2. СЛУШАЕМ ОНЛАЙН ПОЛЬЗОВАТЕЛЕЙ
-            const onlineRef = window.firebaseRef(db, 'online');
-            window.firebaseOnValue(onlineRef, (snapshot) => {
-                const data = snapshot.val();
-                onlineUsers.clear();
-                
-                if (data) {
-                    const now = Date.now();
-                    Object.entries(data).forEach(([userId, user]) => {
-                        // Проверяем, что пользователь был онлайн последние 30 секунд
-                        if (user.lastSeen > now - 30000) {
-                            onlineUsers.set(userId, user);
-                        }
-                    });
-                }
-                
-                updateOnlineUsers();
-            });
-            
-            // 3. СЛУШАЕМ СООБЩЕНИЯ
-            const messagesRef = window.firebaseRef(db, 'messages');
-            window.firebaseOnValue(messagesRef, (snapshot) => {
-                const data = snapshot.val();
-                const messages = data ? Object.values(data) : [];
-                
-                // Фильтруем по текущему каналу и сортируем по времени
-                const channelMessages = messages
-                    .filter(msg => msg.channel === currentChannel)
-                    .sort((a, b) => a.timestamp - b.timestamp);
-                
-                displayMessages(channelMessages);
-            });
-            
-            console.log('✅ Firebase инициализирован');
-        }
-        
-        // ОТПРАВКА СООБЩЕНИЯ
-        async function sendMessage() {
-            if (!currentUser || !window.firebaseDatabase) return;
-            
-            const input = document.getElementById('messageInput');
-            const text = input.value.trim();
-            
-            if (!text) return;
-            
-            try {
-                const db = window.firebaseDatabase;
-                const messagesRef = window.firebaseRef(db, 'messages');
-                const newMessageRef = window.firebasePush(messagesRef);
-                
-                const message = {
-                    id: newMessageRef.key,
-                    userId: myUserId,
-                    userName: currentUser.name,
-                    userAvatar: currentUser.avatar,
-                    text: text,
-                    channel: currentChannel,
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    timestamp: Date.now()
-                };
-                
-                await window.firebaseSet(newMessageRef, message);
-                
-                // Очищаем поле ввода
-                input.value = '';
-                input.focus();
-                
-                // Обновляем онлайн статус
-                await updateOnlineStatus();
-                
-            } catch (error) {
-                console.error('Ошибка отправки:', error);
-                alert('Не удалось отправить сообщение');
-            }
-        }
-        
-        // ОБНОВИТЬ СТАТУС ОНЛАЙН
-        async function updateOnlineStatus() {
-            if (!window.firebaseDatabase) return;
-            
-            const db = window.firebaseDatabase;
-            const userRef = window.firebaseRef(db, `online/${myUserId}`);
-            
-            await window.firebaseSet(userRef, {
-                id: myUserId,
-                name: currentUser.name,
-                avatar: currentUser.avatar,
-                lastSeen: Date.now(),
-                channel: currentChannel
-            });
-        }
-        
-        // ОБНОВИТЬ СПИСОК ОНЛАЙН ПОЛЬЗОВАТЕЛЕЙ
-        function updateOnlineUsers() {
-            const container = document.getElementById('membersList');
-            const onlineCount = document.getElementById('onlineCount');
-            
-            if (!container) return;
-            
-            // Начинаем с себя
-            let html = `
-                <div class="member">
-                    <div class="member-avatar">${currentUser.avatar}</div>
-                    <div class="member-name">${currentUser.name} (Вы)</div>
+            <div class="settings-section">
+                <h3><i class="fas fa-volume-up"></i> Звуки</h3>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="soundEnabled" checked>
+                        Включить звуки уведомлений
+                    </label>
                 </div>
-            `;
-            
-            // Добавляем остальных
-            let otherCount = 0;
-            onlineUsers.forEach((user, userId) => {
-                if (userId === myUserId) return;
-                otherCount++;
                 
-                html += `
-                    <div class="member">
-                        <div class="member-avatar">${user.avatar}</div>
-                        <div class="member-name">${user.name}</div>
-                    </div>
-                `;
-            });
+                <div class="setting-item">
+                    <label>Громкость:</label>
+                    <input type="range" id="notificationVolume" min="0" max="100" value="50">
+                    <span id="volumeValue">50%</span>
+                </div>
+            </div>
             
-            container.innerHTML = html;
-            
-            if (onlineCount) {
-                onlineCount.textContent = onlineUsers.size;
-            }
-        }
-        
-        // ОТОБРАЗИТЬ СООБЩЕНИЯ
-        function displayMessages(messages) {
-            const container = document.getElementById('messagesContainer');
-            if (!container) return;
-            
-            if (messages.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.4);">
-                        <i class="fas fa-comment-alt" style="font-size: 3em; margin-bottom: 15px; display: block;"></i>
-                        Нет сообщений. Будьте первым!
-                    </div>
-                `;
-                return;
-            }
-            
-            let html = '';
-            
-            messages.forEach(msg => {
-                const isOwn = msg.userId === myUserId;
+            <div class="settings-section">
+                <h3><i class="fas fa-cog"></i> Настройки</h3>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="notifyMentions" checked>
+                        Уведомлять при упоминаниях (@вас)
+                    </label>
+                </div>
                 
-                html += `
-                    <div class="message ${isOwn ? 'own' : ''}">
-                        <div class="message-header">
-                            <span class="message-user">${msg.userAvatar} ${msg.userName}</span>
-                            <span class="message-time">${msg.time}</span>
-                        </div>
-                        <div class="message-content">${msg.text}</div>
-                    </div>
-                `;
-            });
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="notifyMessages" checked>
+                        Уведомлять о новых сообщениях
+                    </label>
+                </div>
+                
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="notifyWhenAway" checked>
+                        Уведомлять когда не в чате
+                    </label>
+                </div>
+            </div>
             
-            container.innerHTML = html;
-            
-            // Прокручиваем вниз
-            setTimeout(() => {
-                container.scrollTop = container.scrollHeight;
-            }, 100);
-        }
-        
-        // СМЕНИТЬ КАНАЛ
-        function switchChannel(channel) {
-            currentChannel = channel;
-            
-            // Обновляем активный канал
-            document.querySelectorAll('.channel').forEach(el => {
-                el.classList.remove('active');
-            });
-            document.querySelector(`[onclick="switchChannel('${channel}')"]`).classList.add('active');
-            
-            // Обновляем название канала
-            const channelNames = {
-                'main': 'Основной чат',
-                'games': 'Игры',
-                'ai': 'ИИ помощник'
-            };
-            document.getElementById('channelName').textContent = channelNames[channel] || channel;
-            
-            // Обновляем онлайн статус
-            updateOnlineStatus();
-        }
-        
-        // ДОБАВИТЬ ЭМОДЗИ
-        function addEmoji(emoji) {
-            const input = document.getElementById('messageInput');
-            input.value += emoji;
-            input.focus();
-        }
-        
-        // ВЫХОД
-        function logout() {
-            if (confirm('Выйти из чата?')) {
-                localStorage.removeItem('neonchat_user');
-                location.reload();
-            }
-        }
-        
-        // ОБРАБОТКА КЛАВИШИ ENTER
-        document.addEventListener('DOMContentLoaded', function() {
-            document.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    const loginScreen = document.getElementById('loginScreen');
-                    if (loginScreen && loginScreen.style.display !== 'none') {
-                        login();
-                    } else {
-                        const input = document.getElementById('messageInput');
-                        if (document.activeElement === input) {
-                            sendMessage();
-                        }
-                    }
-                }
-            });
-            
-            // Автофокус на поле логина
-            setTimeout(() => {
-                const usernameInput = document.getElementById('username');
-                if (usernameInput) usernameInput.focus();
-            }, 500);
-        });
-        
-        // ГЛОБАЛЬНЫЕ ФУНКЦИИ
-        window.login = login;
-        window.sendMessage = sendMessage;
-        window.switchChannel = switchChannel;
-        window.addEmoji = addEmoji;
-        window.logout = logout;
-    </script>
+            <div class="modal-buttons">
+                <button onclick="saveNotificationSettings()" class="modal-btn primary">Сохранить</button>
+                <button onclick="closeNotifications()" class="modal-btn">Закрыть</button>
+                <button onclick="testNotificationSound()" class="modal-btn secondary">Тест звука</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ОКНО ВЫБОРА ПОЛЬЗОВАТЕЛЯ ДЛЯ УПОМИНАНИЯ (новое) -->
+    <div id="mentionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2><i class="fas fa-at"></i> Упомянуть пользователя</h2>
+            <input type="text" id="mentionSearch" placeholder="Поиск пользователя..." autocomplete="off">
+            <div class="mention-list" id="mentionList" style="max-height: 300px; overflow-y: auto; margin: 20px 0;">
+                <!-- Список пользователей -->
+            </div>
+            <div class="modal-buttons">
+                <button onclick="closeMentionModal()" class="modal-btn">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
