@@ -7,7 +7,41 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js"></script>
     <link rel="stylesheet" href="style.css">
+    
+    <!-- Firebase Cloud Messaging конфигурация -->
+    <script>
+        // Инициализация Firebase
+        document.addEventListener('DOMContentLoaded', function() {
+            const firebaseConfig = {
+                apiKey: "AIzaSyBBpRh7B5qZdyd66Q4KxsUBhH2qcwshI7g",
+                authDomain: "funideaithink-3206d.firebaseapp.com",
+                databaseURL: "https://funideaithink-3206d-default-rtdb.firebaseio.com",
+                projectId: "funideaithink-3206d",
+                storageBucket: "funideaithink-3206d.firebasestorage.app",
+                messagingSenderId: "475113847634",
+                appId: "1:475113847634:web:ec38afbcb33b5bde57588b",
+                measurementId: "G-9PC37HF1MJ"
+            };
+            
+            // Инициализируем Firebase
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            
+            // Регистрируем Service Worker для уведомлений
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/firebase-messaging-sw.js')
+                    .then(function(registration) {
+                        console.log('✅ Service Worker зарегистрирован:', registration);
+                    })
+                    .catch(function(err) {
+                        console.log('❌ Ошибка регистрации Service Worker:', err);
+                    });
+            }
+        });
+    </script>
 </head>
 <body>
     <!-- ЭКРАН ЛОГИНА -->
@@ -42,6 +76,16 @@
             <div class="mode-switch" id="loginHint" style="display: none;">
                 Уже есть аккаунт? 
                 <a onclick="toggleLogin()">Войти</a>
+            </div>
+            
+            <!-- Кнопка настройки уведомлений -->
+            <div id="notificationSetup" style="margin-top: 20px; display: none;">
+                <button onclick="setupPushNotifications()" class="neon-btn" style="background: linear-gradient(135deg, #00cc66, #00aa44);">
+                    <i class="fas fa-bell"></i> Включить Push-уведомления
+                </button>
+                <p style="font-size: 0.8em; color: #88aaff; margin-top: 10px;">
+                    Получайте уведомления, даже когда сайт закрыт
+                </p>
             </div>
         </div>
     </div>
@@ -79,6 +123,9 @@
                     <div class="avatar" id="userAvatar">👤</div>
                     <div class="user-name" id="currentUserName">Гость</div>
                     <div class="status"><i class="fas fa-circle"></i> онлайн</div>
+                    <div class="push-status" id="pushStatus" style="font-size: 0.8em; color: #00ffaa; margin-top: 5px; display: none;">
+                        <i class="fas fa-bell"></i> Push включены
+                    </div>
                 </div>
                 
                 <div class="channels">
@@ -106,8 +153,11 @@
                     <button onclick="startNewDM()" class="sidebar-btn">
                         <i class="fas fa-plus"></i> Новое ЛС
                     </button>
+                    <button onclick="togglePushNotifications()" class="sidebar-btn" id="pushToggleBtn">
+                        <i class="fas fa-bell"></i> Push уведомления
+                    </button>
                     <button onclick="showNotificationsSettings()" class="sidebar-btn">
-                        <i class="fas fa-bell"></i> Уведомления
+                        <i class="fas fa-cog"></i> Настройки
                     </button>
                     <button onclick="logout()" class="sidebar-btn logout">
                         <i class="fas fa-sign-out-alt"></i> Выйти
@@ -127,9 +177,12 @@
                         <button onclick="forceSync()" class="refresh-btn" title="Обновить">
                             <i class="fas fa-sync-alt"></i>
                         </button>
-                        <button onclick="toggleNotifications()" class="refresh-btn" title="Уведомления" id="notificationsBtn">
+                        <button onclick="testPushNotification()" class="refresh-btn" title="Тест уведомления">
                             <i class="fas fa-bell"></i>
                         </button>
+                        <div class="notification-indicator" id="notificationIndicator" style="display: none;">
+                            <i class="fas fa-circle" style="color: #ff3366; font-size: 0.8em;"></i>
+                        </div>
                     </div>
                 </div>
                 
@@ -155,6 +208,9 @@
                         <button onclick="addEmoji('❤️')" class="action-btn">❤️</button>
                         <button onclick="addEmoji('🔥')" class="action-btn">🔥</button>
                         <button onclick="addEmoji('👍')" class="action-btn">👍</button>
+                        <button onclick="mentionUser()" class="action-btn" title="Упомянуть">
+                            @
+                        </button>
                     </div>
                 </div>
             </div>
@@ -180,6 +236,7 @@
                     <p><i class="fas fa-user"></i> Онлайн: <span id="onlineCount2">1</span></p>
                     <p><i class="fas fa-wifi"></i> Статус: <span id="connectionStatus">✓</span></p>
                     <p><i class="fas fa-clock"></i> Время: <span id="currentTime">00:00</span></p>
+                    <p><i class="fas fa-bell"></i> Push: <span id="pushStatusText">❌</span></p>
                 </div>
                 
                 <!-- АДМИН ПАНЕЛЬ -->
@@ -195,8 +252,8 @@
                         <button onclick="adminKickAll()" class="admin-btn">
                             <i class="fas fa-user-slash"></i> Кикнуть всех
                         </button>
-                        <button onclick="testNotification()" class="admin-btn">
-                            <i class="fas fa-bell"></i> Тест увед.
+                        <button onclick="sendPushToAll()" class="admin-btn">
+                            <i class="fas fa-broadcast-tower"></i> Тест Push всем
                         </button>
                     </div>
                 </div>
@@ -217,24 +274,76 @@
         </div>
     </div>
 
-    <!-- ОКНО УВЕДОМЛЕНИЙ -->
+    <!-- ОКНО НАСТРОЕК УВЕДОМЛЕНИЙ -->
     <div id="notificationsModal" class="modal" style="display: none;">
         <div class="modal-content">
-            <h2><i class="fas fa-bell"></i> Уведомления</h2>
-            <div class="notifications-list" id="notificationsList">
-                <!-- Список уведомлений -->
+            <h2><i class="fas fa-cog"></i> Настройки уведомлений</h2>
+            
+            <div class="settings-section">
+                <h3><i class="fas fa-bell"></i> Push-уведомления</h3>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="pushEnabled" checked>
+                        Включить Push-уведомления
+                    </label>
+                    <p class="setting-description">Получать уведомления даже когда сайт закрыт</p>
+                </div>
+                
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="pushMentions" checked>
+                        Только при упоминаниях
+                    </label>
+                    <p class="setting-description">Уведомлять только когда вас упоминают</p>
+                </div>
+                
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="pushDM" checked>
+                        Личные сообщения
+                    </label>
+                    <p class="setting-description">Уведомлять о новых личных сообщениях</p>
+                </div>
+                
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="pushSounds" checked>
+                        Звуковые уведомления
+                    </label>
+                    <p class="setting-description">Воспроизводить звук при уведомлении</p>
+                </div>
             </div>
+            
+            <div class="settings-section">
+                <h3><i class="fas fa-volume-up"></i> Звуки</h3>
+                <div class="setting-item">
+                    <label>Громкость уведомлений:</label>
+                    <input type="range" id="notificationVolume" min="0" max="100" value="50">
+                    <span id="volumeValue">50%</span>
+                </div>
+            </div>
+            
             <div class="modal-buttons">
-                <button onclick="clearAllNotifications()" class="modal-btn secondary">Очистить все</button>
+                <button onclick="saveNotificationSettings()" class="modal-btn primary">Сохранить</button>
                 <button onclick="closeNotifications()" class="modal-btn">Закрыть</button>
+                <button onclick="testNotificationSound()" class="modal-btn secondary">Тест звука</button>
             </div>
         </div>
     </div>
 
-    <!-- КНОПКА ТЕСТА УВЕДОМЛЕНИЙ (для админа) -->
-    <button onclick="testNotification()" class="test-notification-btn" title="Тест уведомления" style="display: none;">
-        🔔
-    </button>
+    <!-- ОКНО ВЫБОРА ПОЛЬЗОВАТЕЛЯ ДЛЯ УПОМИНАНИЯ -->
+    <div id="mentionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2><i class="fas fa-at"></i> Упомянуть пользователя</h2>
+            <input type="text" id="mentionSearch" placeholder="Поиск пользователя..." autocomplete="off">
+            <div class="mention-list" id="mentionList">
+                <!-- Список пользователей -->
+            </div>
+            <div class="modal-buttons">
+                <button onclick="closeMentionModal()" class="modal-btn">Отмена</button>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
