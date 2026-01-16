@@ -14,6 +14,49 @@ html, body {
     color: white;
 }
 
+/* ========== АНИМАЦИИ ========== */
+@keyframes neonPulse {
+    0% { box-shadow: 0 0 5px #00ccff, 0 0 10px #00ccff; }
+    50% { box-shadow: 0 0 20px #00ccff, 0 0 30px #00ccff; }
+    100% { box-shadow: 0 0 5px #00ccff, 0 0 10px #00ccff; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); max-height: 0; }
+    to { opacity: 1; transform: translateY(0); max-height: 200px; }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes onlinePulse {
+    0% { opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { opacity: 0.3; }
+}
+
+@keyframes badgePulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+/* Классы анимаций */
+.animate-fadeIn { animation: fadeIn 0.3s ease; }
+.animate-slideDown { animation: slideDown 0.3s ease; }
+.animate-pulse { animation: pulse 2s infinite; }
+.neon-pulse { animation: neonPulse 2s infinite; }
+.online-pulse { animation: onlinePulse 2s infinite; }
+.badge-pulse { animation: badgePulse 1s infinite; }
+
 /* ========== ЭКРАН ЛОГИНА ========== */
 #loginScreen {
     position: fixed;
@@ -38,6 +81,7 @@ html, body {
         0 10px 40px rgba(0, 200, 255, 0.2),
         inset 0 0 20px rgba(0, 200, 255, 0.05);
     backdrop-filter: blur(10px);
+    animation: fadeIn 0.5s ease;
 }
 
 .neon-text {
@@ -47,6 +91,7 @@ html, body {
     font-weight: 800;
     letter-spacing: 1px;
     text-shadow: 0 0 10px rgba(0, 200, 255, 0.7);
+    animation: neonPulse 3s infinite;
 }
 
 .subtitle {
@@ -123,6 +168,12 @@ html, body {
     margin-top: 5px;
 }
 
+.teacher-btn {
+    background: linear-gradient(135deg, #ff9900 0%, #ffcc00 100%);
+    margin-top: 5px;
+    animation: pulse 3s infinite;
+}
+
 .mode-switch {
     margin-top: 15px;
     color: #88aaff;
@@ -150,50 +201,70 @@ html, body {
     flex-direction: column;
 }
 
+/* ИСПРАВЛЕННОЕ МОБИЛЬНОЕ МЕНЮ */
 .mobile-menu {
     display: none;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    background: rgba(20, 20, 40, 0.95);
-    padding: 10px 12px;
+    background: rgba(20, 20, 40, 0.98);
+    padding: 12px 15px;
     z-index: 1000;
-    border-top: 1px solid rgba(0, 200, 255, 0.3);
-    backdrop-filter: blur(15px);
+    border-top: 2px solid rgba(0, 200, 255, 0.4);
+    backdrop-filter: blur(20px);
     justify-content: space-around;
+    box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.5);
 }
 
 .mobile-btn {
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.8);
-    padding: 10px;
-    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.9);
+    padding: 10px 5px;
+    border-radius: 12px;
     cursor: pointer;
-    font-size: 0.85em;
+    font-size: 0.75em;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     flex: 1;
     transition: all 0.2s ease;
+    position: relative;
+    min-height: 60px;
 }
 
 .mobile-btn:active {
-    background: rgba(0, 200, 255, 0.1);
+    background: rgba(0, 200, 255, 0.15);
     color: #00ccff;
 }
 
 .mobile-btn i {
-    font-size: 1.3em;
+    font-size: 1.4em;
+    margin-bottom: 2px;
+}
+
+.mobile-badge {
+    position: absolute;
+    top: 5px;
+    right: 15px;
+    background: #ff3366;
+    color: white;
+    font-size: 0.7em;
+    padding: 2px 5px;
+    border-radius: 10px;
+    min-width: 16px;
+    text-align: center;
+    font-weight: 800;
+    animation: badgePulse 1s infinite;
 }
 
 .chat-content {
     flex: 1;
     display: flex;
     overflow: hidden;
-    height: 100%;
+    height: calc(100vh - 70px); /* Учитываем мобильное меню */
 }
 
 .sidebar {
@@ -224,12 +295,19 @@ html, body {
     font-size: 1.8em;
     border: 2px solid rgba(0, 200, 255, 0.5);
     box-shadow: 0 0 20px rgba(255, 51, 102, 0.3);
+    animation: pulse 4s infinite;
 }
 
 .admin-avatar {
     background: linear-gradient(135deg, #ffd700 0%, #ff9900 100%);
     border-color: gold;
     box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.teacher-avatar {
+    background: linear-gradient(135deg, #ff9900 0%, #ffcc00 100%);
+    border-color: #ff9900;
+    box-shadow: 0 0 20px rgba(255, 153, 0, 0.5);
 }
 
 .user-name {
@@ -245,6 +323,11 @@ html, body {
     text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
+.teacher-name {
+    color: #ff9900;
+    text-shadow: 0 0 10px rgba(255, 153, 0, 0.5);
+}
+
 .status {
     color: #00ffaa;
     font-size: 0.85em;
@@ -252,6 +335,164 @@ html, body {
     align-items: center;
     justify-content: center;
     gap: 6px;
+}
+
+.user-role {
+    margin-top: 5px;
+    padding: 4px 8px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.role-admin {
+    background: rgba(255, 215, 0, 0.2);
+    color: gold;
+    border: 1px solid gold;
+}
+
+.role-teacher {
+    background: rgba(255, 153, 0, 0.2);
+    color: #ff9900;
+    border: 1px solid #ff9900;
+}
+
+/* ПАНЕЛЬ ЛС КАК ПАПКА */
+.dm-folder {
+    margin: 20px 0;
+    background: rgba(10, 10, 25, 0.5);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 200, 255, 0.2);
+}
+
+.folder-header {
+    padding: 15px;
+    background: rgba(0, 100, 255, 0.1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    color: #88aaff;
+    transition: all 0.3s ease;
+}
+
+.folder-header:hover {
+    background: rgba(0, 100, 255, 0.2);
+}
+
+.folder-badge {
+    background: #ff3366;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    font-weight: 800;
+    animation: badgePulse 1s infinite;
+}
+
+.folder-arrow {
+    transition: transform 0.3s ease;
+}
+
+.folder-arrow.open {
+    transform: rotate(180deg);
+}
+
+.folder-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.folder-content.open {
+    max-height: 300px;
+}
+
+.dm-list {
+    padding: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.dm-item {
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 8px;
+    background: rgba(30, 30, 50, 0.3);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dm-item:hover {
+    background: rgba(0, 150, 255, 0.15);
+    transform: translateX(5px);
+}
+
+.dm-item.active {
+    background: rgba(0, 150, 255, 0.25);
+    border-left: 3px solid #00ccff;
+}
+
+.dm-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff3366 0%, #ff9966 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9em;
+}
+
+.dm-info {
+    flex: 1;
+}
+
+.dm-user {
+    font-weight: 600;
+    color: #00ccff;
+    font-size: 0.9em;
+}
+
+.dm-preview {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dm-badge {
+    background: #ff3366;
+    color: white;
+    padding: 1px 4px;
+    border-radius: 8px;
+    font-size: 0.7em;
+    font-weight: 800;
+}
+
+.new-dm-btn {
+    width: 100%;
+    padding: 10px;
+    background: rgba(0, 200, 255, 0.1);
+    border: 1px solid rgba(0, 200, 255, 0.3);
+    color: #00ccff;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.2s ease;
+    font-weight: 600;
+}
+
+.new-dm-btn:hover {
+    background: rgba(0, 200, 255, 0.2);
+    transform: translateY(-2px);
 }
 
 .channels {
@@ -307,12 +548,6 @@ html, body {
     animation: pulse 2s infinite;
 }
 
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
 .sidebar-buttons {
     display: flex;
     flex-direction: column;
@@ -356,6 +591,7 @@ html, body {
     flex-direction: column;
     min-width: 0;
     height: 100%;
+    padding-bottom: 70px; /* Для мобильного меню */
 }
 
 .chat-header {
@@ -412,10 +648,6 @@ html, body {
     background: rgba(0, 200, 255, 0.2);
 }
 
-.notification-indicator {
-    animation: pulse 1.5s infinite;
-}
-
 .messages {
     flex: 1;
     padding: 20px;
@@ -424,6 +656,7 @@ html, body {
     flex-direction: column;
     gap: 12px;
     background: rgba(10, 10, 25, 0.3);
+    animation: fadeIn 0.3s ease;
 }
 
 .message {
@@ -436,11 +669,6 @@ html, body {
     backdrop-filter: blur(5px);
     word-wrap: break-word;
     overflow-wrap: break-word;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 .message.own {
@@ -461,6 +689,12 @@ html, body {
     background: rgba(255, 215, 0, 0.15);
     border-color: rgba(255, 215, 0, 0.4);
     border-left: 4px solid gold;
+}
+
+.message.teacher {
+    background: rgba(255, 153, 0, 0.15);
+    border-color: rgba(255, 153, 0, 0.4);
+    border-left: 4px solid #ff9900;
 }
 
 .message.ai {
@@ -497,6 +731,10 @@ html, body {
     color: gold;
 }
 
+.message-user.teacher {
+    color: #ff9900;
+}
+
 .message-user.ai {
     color: #9d4edd;
 }
@@ -513,19 +751,13 @@ html, body {
     color: rgba(255, 255, 255, 0.9);
 }
 
-.mention-tag {
-    background: rgba(255, 170, 0, 0.2);
-    color: #ffaa00;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: 600;
-}
-
+/* ИСПРАВЛЕННОЕ ПОЛЕ ВВОДА ДЛЯ МОБИЛОК */
 .input-area {
     padding: 20px;
     background: rgba(20, 20, 40, 0.95);
-    border-top: 1px solid rgba(0, 200, 255, 0.1);
     backdrop-filter: blur(10px);
+    position: relative;
+    border-top: 1px solid rgba(0, 200, 255, 0.1);
 }
 
 .input-box {
@@ -593,6 +825,47 @@ html, body {
 .action-btn:hover {
     background: rgba(0, 200, 255, 0.2);
     transform: translateY(-2px);
+}
+
+/* АНИМИРОВАННАЯ ПАНЕЛЬ ЭМОДЗИ */
+.emoji-panel {
+    margin-top: 10px;
+    padding: 15px;
+    background: rgba(30, 30, 50, 0.8);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 200, 255, 0.2);
+    backdrop-filter: blur(10px);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.emoji-category {
+    color: #88aaff;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+}
+
+.emoji-btn {
+    background: rgba(0, 200, 255, 0.1);
+    border: 1px solid rgba(0, 200, 255, 0.2);
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: all 0.2s ease;
+}
+
+.emoji-btn:hover {
+    background: rgba(0, 200, 255, 0.2);
+    transform: scale(1.1);
 }
 
 .right-sidebar {
@@ -665,12 +938,42 @@ html, body {
     font-size: 0.8em;
 }
 
+.teacher-badge {
+    color: #ff9900;
+    font-size: 0.8em;
+}
+
 .online-dot {
     width: 8px;
     height: 8px;
     background: #00ffaa;
     border-radius: 50%;
     margin-left: 4px;
+    animation: onlinePulse 2s infinite;
+}
+
+/* ПАНЕЛЬ УЧИТЕЛЯ */
+.teacher-btn {
+    background: rgba(255, 153, 0, 0.1);
+    border: 1px solid rgba(255, 153, 0, 0.3);
+    color: #ff9900;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    width: 100%;
+    margin: 5px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.teacher-btn:hover {
+    background: rgba(255, 153, 0, 0.2);
+    transform: translateY(-2px);
 }
 
 .stats {
@@ -735,6 +1038,7 @@ html, body {
     z-index: 10000;
     padding: 20px;
     backdrop-filter: blur(10px);
+    animation: fadeIn 0.3s ease;
 }
 
 .modal-content {
@@ -746,12 +1050,7 @@ html, body {
     border: 2px solid rgba(0, 200, 255, 0.5);
     box-shadow: 0 0 50px rgba(0, 200, 255, 0.3);
     color: white;
-    animation: modalSlideUp 0.3s ease;
-}
-
-@keyframes modalSlideUp {
-    from { transform: translateY(50px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    animation: slideDown 0.3s ease;
 }
 
 .modal-content h2 {
@@ -815,78 +1114,31 @@ html, body {
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }
 
-/* НАСТРОЙКИ УВЕДОМЛЕНИЙ */
-.settings-section {
-    background: rgba(30, 30, 50, 0.4);
+/* УВЕДОМЛЕНИЯ БРАУЗЕРА */
+.notification-prompt {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #0066ff, #00ccff);
+    color: white;
+    padding: 15px 20px;
     border-radius: 12px;
-    padding: 20px;
-    margin: 15px 0;
-    border: 1px solid rgba(0, 200, 255, 0.1);
-}
-
-.setting-item {
-    margin: 15px 0;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-}
-
-.setting-item label {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    z-index: 9999;
+    animation: slideDown 0.3s ease;
+    box-shadow: 0 5px 20px rgba(0, 100, 255, 0.3);
+}
+
+.notif-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 6px;
     cursor: pointer;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.setting-item input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-}
-
-.setting-item input[type="range"] {
-    width: 100%;
-    margin: 10px 0;
-}
-
-/* СПИСОК ПОЛЬЗОВАТЕЛЕЙ ДЛЯ УПОМИНАНИЙ */
-.mention-list {
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.mention-item {
-    padding: 12px;
-    margin: 5px 0;
-    background: rgba(30, 30, 50, 0.6);
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.2s;
-}
-
-.mention-item:hover {
-    background: rgba(0, 150, 255, 0.2);
-    transform: translateX(5px);
-}
-
-.mention-avatar {
-    width: 30px;
-    height: 30px;
-    background: linear-gradient(135deg, #ff3366, #ff9966);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.mention-name {
     font-weight: 600;
-    color: #00ccff;
 }
 
 /* АДАПТИВНОСТЬ */
@@ -894,7 +1146,7 @@ html, body {
     .sidebar, .right-sidebar {
         position: fixed;
         top: 0;
-        bottom: 0;
+        bottom: 70px; /* Выше мобильного меню */
         width: 280px;
         z-index: 900;
         transform: translateX(-100%);
@@ -902,6 +1154,7 @@ html, body {
         background: rgba(15, 15, 30, 0.98);
         backdrop-filter: blur(20px);
         padding: 20px;
+        box-shadow: 5px 0 30px rgba(0, 0, 0, 0.5);
     }
     
     .right-sidebar {
@@ -918,14 +1171,29 @@ html, body {
         display: flex;
     }
     
+    .main {
+        padding-bottom: 70px; /* Место для мобильного меню */
+    }
+    
     .messages {
         padding: 15px;
-        padding-bottom: 70px;
+        padding-bottom: 10px;
     }
     
     .input-area {
         padding: 15px;
-        padding-bottom: 60px;
+        position: sticky;
+        bottom: 70px;
+        background: rgba(20, 20, 40, 0.98);
+        z-index: 800;
+    }
+    
+    .emoji-panel {
+        position: absolute;
+        bottom: 80px;
+        left: 15px;
+        right: 15px;
+        z-index: 1000;
     }
     
     .message {
@@ -939,6 +1207,7 @@ html, body {
     
     .modal-content {
         padding: 20px;
+        margin: 20px;
     }
 }
 
@@ -960,12 +1229,16 @@ html, body {
     }
     
     .mobile-btn {
-        font-size: 0.8em;
-        padding: 8px;
+        font-size: 0.7em;
+        padding: 8px 4px;
     }
     
     .mobile-btn i {
         font-size: 1.2em;
+    }
+    
+    .emoji-grid {
+        grid-template-columns: repeat(6, 1fr);
     }
 }
 
