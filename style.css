@@ -114,6 +114,10 @@ html, body {
     box-shadow: 0 10px 25px rgba(0, 150, 255, 0.4);
 }
 
+.neon-btn:active {
+    transform: translateY(0);
+}
+
 .register-btn {
     background: linear-gradient(135deg, #ff3366 0%, #ff9966 100%);
     margin-top: 5px;
@@ -132,6 +136,10 @@ html, body {
     font-weight: 600;
     margin-left: 5px;
     cursor: pointer;
+}
+
+.mode-switch a:hover {
+    text-decoration: underline;
 }
 
 /* ========== ОСНОВНОЙ ИНТЕРФЕЙС ========== */
@@ -177,6 +185,10 @@ html, body {
     color: #00ccff;
 }
 
+.mobile-btn i {
+    font-size: 1.3em;
+}
+
 .chat-content {
     flex: 1;
     display: flex;
@@ -184,7 +196,6 @@ html, body {
     height: 100%;
 }
 
-/* ЛЕВАЯ ПАНЕЛЬ */
 .sidebar {
     width: 220px;
     background: rgba(15, 15, 30, 0.95);
@@ -229,6 +240,11 @@ html, body {
     word-break: break-word;
 }
 
+.admin-name {
+    color: gold;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
 .status {
     color: #00ffaa;
     font-size: 0.85em;
@@ -258,7 +274,7 @@ html, body {
     align-items: center;
     gap: 10px;
     border: 1px solid transparent;
-    position: relative;
+    justify-content: space-between;
 }
 
 .channel:hover {
@@ -279,28 +295,15 @@ html, body {
     width: 20px;
 }
 
-/* БЕЙДЖИ ДЛЯ УВЕДОМЛЕНИЙ */
 .unread-badge {
     background: #ff3366;
     color: white;
     font-size: 0.7em;
     padding: 2px 6px;
     border-radius: 10px;
-    margin-left: auto;
     font-weight: 800;
-    min-width: 20px;
+    min-width: 18px;
     text-align: center;
-    animation: pulse 2s infinite;
-}
-
-.dm-badge {
-    background: #00ccff;
-    color: white;
-    font-size: 0.7em;
-    padding: 2px 8px;
-    border-radius: 10px;
-    margin-left: 8px;
-    font-weight: 800;
 }
 
 .sidebar-buttons {
@@ -331,7 +334,15 @@ html, body {
     transform: translateY(-2px);
 }
 
-/* ЦЕНТРАЛЬНАЯ ЧАСТЬ */
+.sidebar-btn.logout {
+    background: rgba(255, 60, 60, 0.1);
+    border-color: rgba(255, 100, 100, 0.3);
+}
+
+.sidebar-btn.logout:hover {
+    background: rgba(255, 60, 60, 0.2);
+}
+
 .main {
     flex: 1;
     display: flex;
@@ -394,7 +405,16 @@ html, body {
     background: rgba(0, 200, 255, 0.2);
 }
 
-/* СООБЩЕНИЯ */
+.notification-indicator {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
 .messages {
     flex: 1;
     padding: 20px;
@@ -436,27 +456,22 @@ html, body {
     margin: 10px auto;
 }
 
-.message.dm {
-    background: rgba(155, 89, 182, 0.25);
-    border-color: rgba(155, 89, 182, 0.4);
-    border-left: 4px solid #9b59b6;
-}
-
 .message.admin {
     background: rgba(255, 215, 0, 0.15);
     border-color: rgba(255, 215, 0, 0.4);
     border-left: 4px solid gold;
 }
 
-.message.unread {
-    border: 2px solid #00ccff;
-    animation: pulse-border 1.5s infinite;
+.message.ai {
+    background: rgba(106, 13, 173, 0.2);
+    border-color: rgba(157, 78, 221, 0.3);
+    border-left: 4px solid #9d4edd;
 }
 
-@keyframes pulse-border {
-    0% { border-color: #00ccff; }
-    50% { border-color: rgba(0, 200, 255, 0.3); }
-    100% { border-color: #00ccff; }
+.message.mention {
+    border: 2px solid #ffaa00;
+    background: rgba(255, 170, 0, 0.1);
+    animation: pulse 2s infinite;
 }
 
 .message-header {
@@ -477,12 +492,12 @@ html, body {
     gap: 8px;
 }
 
-.message-user.dm {
-    color: #9b59b6;
-}
-
 .message-user.admin {
     color: gold;
+}
+
+.message-user.ai {
+    color: #9d4edd;
 }
 
 .message-time {
@@ -497,7 +512,14 @@ html, body {
     color: rgba(255, 255, 255, 0.9);
 }
 
-/* ПОЛЕ ВВОДА */
+.mention-tag {
+    background: rgba(255, 170, 0, 0.2);
+    color: #ffaa00;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
 .input-area {
     padding: 20px;
     background: rgba(20, 20, 40, 0.95);
@@ -540,6 +562,15 @@ html, body {
     transition: all 0.3s ease;
 }
 
+.send-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 150, 255, 0.4);
+}
+
+.send-btn:active {
+    transform: scale(0.98);
+}
+
 .actions {
     display: flex;
     gap: 10px;
@@ -558,7 +589,11 @@ html, body {
     min-width: 45px;
 }
 
-/* ПРАВАЯ ПАНЕЛЬ */
+.action-btn:hover {
+    background: rgba(0, 200, 255, 0.2);
+    transform: translateY(-2px);
+}
+
 .right-sidebar {
     width: 260px;
     background: rgba(15, 15, 30, 0.95);
@@ -579,12 +614,11 @@ html, body {
     gap: 8px;
 }
 
-/* СПИСОК ОНЛАЙН */
 .members-list {
     background: rgba(10, 10, 25, 0.5);
     border-radius: 12px;
     padding: 15px;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     max-height: 200px;
     overflow-y: auto;
     border: 1px solid rgba(0, 200, 255, 0.1);
@@ -598,7 +632,6 @@ html, body {
     border-radius: 8px;
     transition: all 0.2s ease;
     gap: 10px;
-    cursor: pointer;
 }
 
 .member:hover {
@@ -626,113 +659,19 @@ html, body {
     gap: 6px;
 }
 
+.admin-badge {
+    color: gold;
+    font-size: 0.8em;
+}
+
 .online-dot {
     width: 8px;
     height: 8px;
     background: #00ffaa;
     border-radius: 50%;
     margin-left: 4px;
-    animation: pulse 2s infinite;
 }
 
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
-/* ЛИЧНЫЕ СООБЩЕНИЯ */
-.dm-section {
-    margin: 20px 0;
-    flex: 1;
-    min-height: 150px;
-    max-height: 250px;
-    overflow-y: auto;
-}
-
-.dm-list {
-    background: rgba(10, 10, 25, 0.5);
-    border-radius: 12px;
-    padding: 15px;
-    border: 1px solid rgba(155, 89, 182, 0.3);
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.dm-item {
-    display: flex;
-    align-items: center;
-    padding: 10px 12px;
-    margin: 6px 0;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    gap: 10px;
-    border: 1px solid transparent;
-}
-
-.dm-item:hover {
-    background: rgba(155, 89, 182, 0.1);
-    border-color: rgba(155, 89, 182, 0.2);
-}
-
-.dm-item.active {
-    background: rgba(155, 89, 182, 0.2);
-    border-color: #9b59b6;
-}
-
-.dm-item.unread {
-    background: rgba(0, 200, 255, 0.1);
-    border: 2px solid #00ccff;
-    animation: pulse-border 2s infinite;
-}
-
-.dm-avatar {
-    width: 30px;
-    height: 30px;
-    background: linear-gradient(135deg, #9b59b6, #8e44ad);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.9em;
-}
-
-.dm-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.dm-user {
-    font-weight: 600;
-    color: #9b59b6;
-    font-size: 0.9em;
-    margin-bottom: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.dm-preview {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.8em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.dm-badge-small {
-    background: #ff3366;
-    color: white;
-    font-size: 0.7em;
-    padding: 2px 6px;
-    border-radius: 10px;
-    min-width: 18px;
-    text-align: center;
-    font-weight: 800;
-}
-
-/* СТАТИСТИКА */
 .stats {
     background: rgba(10, 10, 25, 0.5);
     border-radius: 12px;
@@ -761,13 +700,33 @@ html, body {
     color: #00ffaa;
 }
 
-/* МОДАЛЬНЫЕ ОКНА */
+.admin-btn {
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    color: gold;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    width: 100%;
+    margin: 5px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.admin-btn:hover {
+    background: rgba(255, 215, 0, 0.2);
+    transform: translateY(-2px);
+}
+
+/* МОДАЛЬНЫЕ ОКНА (новые) */
 .modal {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0, 0, 0, 0.95);
     display: flex;
     justify-content: center;
@@ -790,14 +749,8 @@ html, body {
 }
 
 @keyframes modalSlideUp {
-    from {
-        transform: translateY(50px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
 .modal-content h2 {
@@ -828,12 +781,6 @@ html, body {
     box-shadow: 0 0 20px rgba(0, 200, 255, 0.2);
 }
 
-.modal-content textarea {
-    resize: vertical;
-    min-height: 100px;
-    font-family: inherit;
-}
-
 .modal-buttons {
     display: flex;
     gap: 15px;
@@ -852,7 +799,7 @@ html, body {
 }
 
 .modal-btn.primary {
-    background: linear-gradient(135deg, #0066ff 0%, #00ccff 100%);
+    background: linear-gradient(135deg, #0066ff, #00ccff);
     color: white;
 }
 
@@ -867,72 +814,78 @@ html, body {
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }
 
-/* УВЕДОМЛЕНИЯ */
-.notifications-list {
+/* НАСТРОЙКИ УВЕДОМЛЕНИЙ */
+.settings-section {
+    background: rgba(30, 30, 50, 0.4);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 15px 0;
+    border: 1px solid rgba(0, 200, 255, 0.1);
+}
+
+.setting-item {
+    margin: 15px 0;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.setting-item label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.setting-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.setting-item input[type="range"] {
+    width: 100%;
+    margin: 10px 0;
+}
+
+/* СПИСОК ПОЛЬЗОВАТЕЛЕЙ ДЛЯ УПОМИНАНИЙ */
+.mention-list {
     max-height: 300px;
     overflow-y: auto;
-    margin-bottom: 20px;
 }
 
-.notification-item {
+.mention-item {
+    padding: 12px;
+    margin: 5px 0;
     background: rgba(30, 30, 50, 0.6);
-    padding: 15px;
-    margin-bottom: 10px;
-    border-radius: 12px;
-    border-left: 4px solid #00ccff;
-    transition: all 0.2s ease;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
 }
 
-.notification-item.unread {
-    background: rgba(0, 150, 255, 0.15);
-    border-left-color: #ff3366;
+.mention-item:hover {
+    background: rgba(0, 150, 255, 0.2);
+    transform: translateX(5px);
 }
 
-.notification-item:hover {
-    background: rgba(30, 30, 50, 0.8);
+.mention-avatar {
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, #ff3366, #ff9966);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.notification-title {
+.mention-name {
     font-weight: 600;
     color: #00ccff;
-    margin-bottom: 5px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.notification-time {
-    font-size: 0.8em;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.notification-body {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.9em;
-}
-
-/* КНОПКА ТЕСТА УВЕДОМЛЕНИЙ */
-.test-notification-btn {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: linear-gradient(135deg, #00ffaa, #00cc66);
-    color: #00331a;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    border: none;
-    font-size: 1.8em;
-    cursor: pointer;
-    z-index: 9997;
-    box-shadow: 0 8px 25px rgba(0, 255, 170, 0.4);
-    transition: all 0.3s ease;
-    display: none;
-}
-
-.test-notification-btn:hover {
-    transform: scale(1.1) rotate(15deg);
-    box-shadow: 0 12px 30px rgba(0, 255, 170, 0.6);
 }
 
 /* АДАПТИВНОСТЬ */
