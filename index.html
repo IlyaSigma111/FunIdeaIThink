@@ -44,7 +44,7 @@
                 <a onclick="toggleLogin()">Войти</a>
             </div>
             
-            <!-- Кнопка уведомлений (новая) -->
+            <!-- Кнопка уведомлений -->
             <div id="notificationSetup" style="margin-top: 20px; display: none;">
                 <button onclick="setupNotifications()" class="neon-btn" style="background: linear-gradient(135deg, #00cc66, #00aa44);">
                     <i class="fas fa-bell"></i> Включить уведомления
@@ -76,6 +76,10 @@
                 <i class="fas fa-video"></i>
                 <span>Звонок</span>
             </button>
+            <button class="mobile-btn" onclick="showNotificationSettings()">
+                <i class="fas fa-bell"></i>
+                <span>Увед.</span>
+            </button>
         </div>
         
         <div class="chat-content">
@@ -85,22 +89,25 @@
                     <div class="avatar" id="userAvatar">👤</div>
                     <div class="user-name" id="currentUserName">Гость</div>
                     <div class="status"><i class="fas fa-circle"></i> онлайн</div>
+                    <div class="notification-status" id="notificationStatus" style="font-size: 0.8em; color: #88aaff; margin-top: 5px; display: none;">
+                        <i class="fas fa-bell"></i> Уведомления включены
+                    </div>
                 </div>
                 
                 <div class="channels">
-                    <div class="channel active" onclick="switchChannel('main')">
+                    <div class="channel active" onclick="switchChannel('main')" data-channel="main">
                         <i class="fas fa-comment-alt"></i> Основной чат
                         <span class="unread-badge" id="mainBadge" style="display: none;">0</span>
                     </div>
-                    <div class="channel" onclick="switchChannel('games')">
+                    <div class="channel" onclick="switchChannel('games')" data-channel="games">
                         <i class="fas fa-gamepad"></i> Игры
                         <span class="unread-badge" id="gamesBadge" style="display: none;">0</span>
                     </div>
-                    <div class="channel" onclick="switchChannel('lessons')">
+                    <div class="channel" onclick="switchChannel('lessons')" data-channel="lessons">
                         <i class="fas fa-graduation-cap"></i> Уроки
                         <span class="unread-badge" id="lessonsBadge" style="display: none;">0</span>
                     </div>
-                    <div class="channel" onclick="switchChannel('ai')">
+                    <div class="channel" onclick="switchChannel('ai')" data-channel="ai">
                         <i class="fas fa-robot"></i> 🤖 Нейросеть
                         <span class="unread-badge" id="aiBadge" style="display: none;">0</span>
                     </div>
@@ -110,11 +117,11 @@
                     <button onclick="startCall()" class="sidebar-btn">
                         <i class="fas fa-video"></i> Видеозвонок
                     </button>
-                    <button onclick="showTelegramInfo()" class="sidebar-btn">
-                        <i class="fab fa-telegram"></i> Telegram-бот
+                    <button onclick="testNotification()" class="sidebar-btn" id="testNotifBtn">
+                        <i class="fas fa-bell"></i> Тест уведомления
                     </button>
                     <button onclick="showNotificationSettings()" class="sidebar-btn">
-                        <i class="fas fa-bell"></i> Уведомления
+                        <i class="fas fa-cog"></i> Настройки увед.
                     </button>
                     <button onclick="logout()" class="sidebar-btn logout">
                         <i class="fas fa-sign-out-alt"></i> Выйти
@@ -165,7 +172,7 @@
                         <button onclick="addEmoji('❤️')" class="action-btn">❤️</button>
                         <button onclick="addEmoji('🔥')" class="action-btn">🔥</button>
                         <button onclick="addEmoji('👍')" class="action-btn">👍</button>
-                        <button onclick="mentionUser()" class="action-btn" title="Упомянуть">
+                        <button onclick="mentionUser()" class="action-btn" title="Упомянуть пользователя">
                             @
                         </button>
                     </div>
@@ -202,7 +209,7 @@
                             <i class="fas fa-user-slash"></i> Кикнуть всех
                         </button>
                         <button onclick="sendNotificationToAll()" class="admin-btn">
-                            <i class="fas fa-broadcast-tower"></i> Тест всем
+                            <i class="fas fa-broadcast-tower"></i> Уведомление всем
                         </button>
                     </div>
                 </div>
@@ -210,7 +217,7 @@
         </div>
     </div>
 
-    <!-- ОКНО НАСТРОЕК УВЕДОМЛЕНИЙ (новое) -->
+    <!-- ОКНО НАСТРОЕК УВЕДОМЛЕНИЙ -->
     <div id="notificationsModal" class="modal" style="display: none;">
         <div class="modal-content">
             <h2><i class="fas fa-bell"></i> Настройки уведомлений</h2>
@@ -263,7 +270,7 @@
         </div>
     </div>
 
-    <!-- ОКНО ВЫБОРА ПОЛЬЗОВАТЕЛЯ ДЛЯ УПОМИНАНИЯ (новое) -->
+    <!-- ОКНО ВЫБОРА ПОЛЬЗОВАТЕЛЯ ДЛЯ УПОМИНАНИЯ -->
     <div id="mentionModal" class="modal" style="display: none;">
         <div class="modal-content">
             <h2><i class="fas fa-at"></i> Упомянуть пользователя</h2>
