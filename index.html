@@ -43,23 +43,13 @@
                 Уже есть аккаунт? 
                 <a onclick="toggleLogin()">Войти</a>
             </div>
-            
-            <!-- Кнопка уведомлений -->
-            <div id="notificationSetup" style="margin-top: 20px; display: none;">
-                <button onclick="setupNotifications()" class="neon-btn" style="background: linear-gradient(135deg, #00cc66, #00aa44);">
-                    <i class="fas fa-bell"></i> Включить уведомления
-                </button>
-                <p style="font-size: 0.8em; color: #88aaff; margin-top: 10px;">
-                    Получай уведомления о новых сообщениях
-                </p>
-            </div>
         </div>
     </div>
     
     <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
     <div id="chatScreen" style="display: none;">
-        <!-- МОБИЛЬНОЕ МЕНЮ -->
-        <div class="mobile-menu">
+        <!-- МОБИЛЬНОЕ МЕНЮ (исправлено для мобилок) -->
+        <div class="mobile-menu" id="mobileMenu">
             <button class="mobile-btn" onclick="toggleSidebar()">
                 <i class="fas fa-bars"></i>
                 <span>Меню</span>
@@ -72,13 +62,13 @@
                 <i class="fas fa-comments"></i>
                 <span>Чат</span>
             </button>
+            <button class="mobile-btn" onclick="switchChannel('dm')">
+                <i class="fas fa-envelope"></i>
+                <span>ЛС</span>
+            </button>
             <button class="mobile-btn" onclick="startCall()">
                 <i class="fas fa-video"></i>
                 <span>Звонок</span>
-            </button>
-            <button class="mobile-btn" onclick="showNotificationSettings()">
-                <i class="fas fa-bell"></i>
-                <span>Увед.</span>
             </button>
         </div>
         
@@ -90,7 +80,7 @@
                     <div class="user-name" id="currentUserName">Гость</div>
                     <div class="status"><i class="fas fa-circle"></i> онлайн</div>
                     <div class="notification-status" id="notificationStatus" style="font-size: 0.8em; color: #88aaff; margin-top: 5px; display: none;">
-                        <i class="fas fa-bell"></i> Уведомления включены
+                        <i class="fas fa-bell"></i> Уведомления
                     </div>
                 </div>
                 
@@ -111,17 +101,21 @@
                         <i class="fas fa-robot"></i> 🤖 Нейросеть
                         <span class="unread-badge" id="aiBadge" style="display: none;">0</span>
                     </div>
+                    <div class="channel" onclick="switchChannel('dm')" id="dmChannel" data-channel="dm">
+                        <i class="fas fa-envelope"></i> 💌 Личные сообщения
+                        <span class="unread-badge" id="dmBadge" style="display: none;">0</span>
+                    </div>
                 </div>
                 
                 <div class="sidebar-buttons">
                     <button onclick="startCall()" class="sidebar-btn">
                         <i class="fas fa-video"></i> Видеозвонок
                     </button>
-                    <button onclick="testNotification()" class="sidebar-btn" id="testNotifBtn">
-                        <i class="fas fa-bell"></i> Тест уведомления
+                    <button onclick="startNewDM()" class="sidebar-btn" id="newDMBtn">
+                        <i class="fas fa-plus"></i> Новое ЛС
                     </button>
                     <button onclick="showNotificationSettings()" class="sidebar-btn">
-                        <i class="fas fa-cog"></i> Настройки увед.
+                        <i class="fas fa-bell"></i> Уведомления
                     </button>
                     <button onclick="logout()" class="sidebar-btn logout">
                         <i class="fas fa-sign-out-alt"></i> Выйти
@@ -141,12 +135,9 @@
                         <button onclick="forceSync()" class="refresh-btn" title="Обновить">
                             <i class="fas fa-sync-alt"></i>
                         </button>
-                        <button onclick="testNotification()" class="refresh-btn" title="Тест уведомления">
+                        <button onclick="testNotification()" class="refresh-btn" title="Тест уведомления" id="testNotifBtn">
                             <i class="fas fa-bell"></i>
                         </button>
-                        <div class="notification-indicator" id="notificationIndicator" style="display: none;">
-                            <i class="fas fa-circle" style="color: #ff3366; font-size: 0.8em;"></i>
-                        </div>
                     </div>
                 </div>
                 
@@ -158,23 +149,35 @@
                     </div>
                 </div>
                 
-                <!-- ПОЛЕ ВВОДА -->
-                <div class="input-area">
+                <!-- ПОЛЕ ВВОДА (исправлено для мобилок) -->
+                <div class="input-area" id="inputArea">
                     <div class="input-box">
                         <input type="text" id="messageInput" placeholder="Сообщение или команда (/help)..." autocomplete="off">
                         <button onclick="sendMessage()" class="send-btn" title="Отправить">
                             <i class="fas fa-paper-plane"></i>
                         </button>
                     </div>
-                    <div class="actions">
+                    <div class="actions" id="emojiActions">
                         <button onclick="addEmoji('😊')" class="action-btn">😊</button>
                         <button onclick="addEmoji('😂')" class="action-btn">😂</button>
                         <button onclick="addEmoji('❤️')" class="action-btn">❤️</button>
                         <button onclick="addEmoji('🔥')" class="action-btn">🔥</button>
                         <button onclick="addEmoji('👍')" class="action-btn">👍</button>
-                        <button onclick="mentionUser()" class="action-btn" title="Упомянуть пользователя">
-                            @
+                        <button onclick="toggleEmojiPanel()" class="action-btn" title="Ещё эмодзи">
+                            <i class="fas fa-smile"></i>
                         </button>
+                    </div>
+                    
+                    <!-- ДОПОЛНИТЕЛЬНЫЕ ЭМОДЗИ (скрыты по умолчанию) -->
+                    <div class="emoji-panel" id="emojiPanel" style="display: none; margin-top: 10px; flex-wrap: wrap; gap: 8px; justify-content: center;">
+                        <button onclick="addEmoji('😎')" class="action-btn">😎</button>
+                        <button onclick="addEmoji('🥳')" class="action-btn">🥳</button>
+                        <button onclick="addEmoji('😍')" class="action-btn">😍</button>
+                        <button onclick="addEmoji('🤔')" class="action-btn">🤔</button>
+                        <button onclick="addEmoji('🎉')" class="action-btn">🎉</button>
+                        <button onclick="addEmoji('✨')" class="action-btn">✨</button>
+                        <button onclick="addEmoji('🌟')" class="action-btn">🌟</button>
+                        <button onclick="addEmoji('💯')" class="action-btn">💯</button>
                     </div>
                 </div>
             </div>
@@ -186,16 +189,24 @@
                     <!-- Онлайн пользователи -->
                 </div>
                 
+                <!-- ДИАЛОГИ ЛС -->
+                <div class="dm-section">
+                    <h3><i class="fas fa-envelope"></i> Диалоги</h3>
+                    <div class="dm-list" id="dmList">
+                        <!-- Диалоги -->
+                    </div>
+                </div>
+                
                 <!-- СТАТИСТИКА -->
                 <div class="stats">
                     <p><i class="fas fa-comment"></i> Сообщения: <span id="messageCount">0</span></p>
                     <p><i class="fas fa-user"></i> Онлайн: <span id="onlineCount2">1</span></p>
                     <p><i class="fas fa-wifi"></i> Статус: <span id="connectionStatus">✓</span></p>
                     <p><i class="fas fa-clock"></i> Время: <span id="currentTime">00:00</span></p>
-                    <p><i class="fas fa-bell"></i> Уведомления: <span id="notifStatusText">❌</span></p>
+                    <p><i class="fas fa-bell"></i> Увед.: <span id="notifStatusText">🔕</span></p>
                 </div>
                 
-                <!-- АДМИН ПАНЕЛЬ (ТОЛЬКО ДЛЯ АДМИНА) -->
+                <!-- АДМИН ПАНЕЛЬ -->
                 <div id="adminPanel" style="display: none; margin-top: 20px;">
                     <h3 style="color: gold;"><i class="fas fa-crown"></i> Админ-панель</h3>
                     <div style="background: rgba(255, 215, 0, 0.1); border: 1px solid gold; border-radius: 10px; padding: 15px; margin-top: 10px;">
@@ -208,26 +219,49 @@
                         <button onclick="adminKickAll()" class="admin-btn">
                             <i class="fas fa-user-slash"></i> Кикнуть всех
                         </button>
-                        <button onclick="sendNotificationToAll()" class="admin-btn">
-                            <i class="fas fa-broadcast-tower"></i> Уведомление всем
-                        </button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ОКНО НАСТРОЕК УВЕДОМЛЕНИЙ -->
+    <!-- МОДАЛЬНОЕ ОКНО НОВОГО ЛС -->
+    <div id="newDMModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2><i class="fas fa-envelope"></i> Новое личное сообщение</h2>
+            <input type="text" id="dmRecipient" placeholder="Введите имя пользователя..." autocomplete="off">
+            <textarea id="dmMessageText" placeholder="Введите сообщение..." rows="4"></textarea>
+            <div class="modal-buttons">
+                <button onclick="sendDirectMessage()" class="modal-btn primary">Отправить</button>
+                <button onclick="closeNewDM()" class="modal-btn secondary">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО НАСТРОЕК УВЕДОМЛЕНИЙ -->
     <div id="notificationsModal" class="modal" style="display: none;">
         <div class="modal-content">
             <h2><i class="fas fa-bell"></i> Настройки уведомлений</h2>
             
             <div class="settings-section">
-                <h3><i class="fas fa-volume-up"></i> Звуки</h3>
                 <div class="setting-item">
                     <label>
                         <input type="checkbox" id="soundEnabled" checked>
-                        Включить звуки уведомлений
+                        Звуковые уведомления
+                    </label>
+                </div>
+                
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="notifyMentions" checked>
+                        Уведомлять при упоминаниях
+                    </label>
+                </div>
+                
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="notifyDM" checked>
+                        Уведомлять о ЛС
                     </label>
                 </div>
                 
@@ -238,48 +272,10 @@
                 </div>
             </div>
             
-            <div class="settings-section">
-                <h3><i class="fas fa-cog"></i> Настройки</h3>
-                <div class="setting-item">
-                    <label>
-                        <input type="checkbox" id="notifyMentions" checked>
-                        Уведомлять при упоминаниях (@вас)
-                    </label>
-                </div>
-                
-                <div class="setting-item">
-                    <label>
-                        <input type="checkbox" id="notifyMessages" checked>
-                        Уведомлять о новых сообщениях
-                    </label>
-                </div>
-                
-                <div class="setting-item">
-                    <label>
-                        <input type="checkbox" id="notifyWhenAway" checked>
-                        Уведомлять когда не в чате
-                    </label>
-                </div>
-            </div>
-            
             <div class="modal-buttons">
                 <button onclick="saveNotificationSettings()" class="modal-btn primary">Сохранить</button>
                 <button onclick="closeNotifications()" class="modal-btn">Закрыть</button>
                 <button onclick="testNotificationSound()" class="modal-btn secondary">Тест звука</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ОКНО ВЫБОРА ПОЛЬЗОВАТЕЛЯ ДЛЯ УПОМИНАНИЯ -->
-    <div id="mentionModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <h2><i class="fas fa-at"></i> Упомянуть пользователя</h2>
-            <input type="text" id="mentionSearch" placeholder="Поиск пользователя..." autocomplete="off">
-            <div class="mention-list" id="mentionList" style="max-height: 300px; overflow-y: auto; margin: 20px 0;">
-                <!-- Список пользователей -->
-            </div>
-            <div class="modal-buttons">
-                <button onclick="closeMentionModal()" class="modal-btn">Отмена</button>
             </div>
         </div>
     </div>
