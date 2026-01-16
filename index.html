@@ -84,8 +84,8 @@
                     <div class="channel" onclick="switchChannel('games')">
                         <i class="fas fa-gamepad"></i> Игры
                     </div>
-                    <div class="channel" onclick="switchChannel('music')">
-                        <i class="fas fa-music"></i> Музыка
+                    <div class="channel" onclick="switchChannel('lessons')">
+                        <i class="fas fa-graduation-cap"></i> Уроки
                     </div>
                     <div class="channel" onclick="switchChannel('ai')">
                         <i class="fas fa-robot"></i> 🤖 Нейросеть
@@ -95,6 +95,9 @@
                 <div class="sidebar-buttons">
                     <button onclick="startCall()" class="sidebar-btn">
                         <i class="fas fa-video"></i> Видеозвонок
+                    </button>
+                    <button onclick="showSMSPanel()" class="sidebar-btn">
+                        <i class="fas fa-sms"></i> 📱 SMS в Telegram
                     </button>
                     <button onclick="logout()" class="sidebar-btn logout">
                         <i class="fas fa-sign-out-alt"></i> Выйти
@@ -158,6 +161,16 @@
                     <p><i class="fas fa-clock"></i> Время: <span id="currentTime">00:00</span></p>
                 </div>
                 
+                <!-- TELEGRAM СТАТУС -->
+                <div id="telegramStatus" style="margin-top: 20px; background: rgba(0, 200, 255, 0.1); border-radius: 10px; padding: 12px; border: 1px solid rgba(0, 200, 255, 0.3);">
+                    <p style="color: #00ccff; margin: 0; font-size: 0.9em; font-weight: 600;">
+                        <i class="fab fa-telegram"></i> Telegram-бот
+                    </p>
+                    <p style="color: #00ffaa; margin: 5px 0 0 0; font-size: 0.8em; font-weight: 500;">
+                        Все сообщения дублируются в Telegram
+                    </p>
+                </div>
+                
                 <!-- АДМИН ПАНЕЛЬ (ТОЛЬКО ДЛЯ АДМИНА) -->
                 <div id="adminPanel" style="display: none; margin-top: 20px;">
                     <h3 style="color: gold;"><i class="fas fa-crown"></i> Админ-панель</h3>
@@ -173,6 +186,47 @@
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО SMS -->
+    <div id="smsModal" class="sms-modal" style="display: none;">
+        <div class="sms-box">
+            <h2><i class="fas fa-sms"></i> Отправка SMS через Telegram</h2>
+            <p class="sms-subtitle">Сообщение придет в Telegram-бот @NeonChatBot</p>
+            
+            <div class="sms-input-group">
+                <label for="smsNumber">Номер телефона:</label>
+                <div class="phone-input">
+                    <span class="phone-prefix">+7</span>
+                    <input type="tel" id="smsNumber" placeholder="999 123 45 67" 
+                           maxlength="10" pattern="[0-9]{10}">
+                </div>
+                <div class="phone-hint">Введите 10 цифр без +7</div>
+            </div>
+            
+            <div class="sms-input-group">
+                <label for="smsText">Текст SMS:</label>
+                <textarea id="smsText" placeholder="Введите ваше сообщение..." 
+                          maxlength="500" rows="4"></textarea>
+                <div class="sms-counter"><span id="smsCharCount">0</span>/500 символов</div>
+            </div>
+            
+            <div class="sms-buttons">
+                <button onclick="sendSMS()" class="sms-btn-send">
+                    <i class="fas fa-paper-plane"></i> Отправить SMS
+                </button>
+                <button onclick="hideSMSPanel()" class="sms-btn-cancel">
+                    Отмена
+                </button>
+            </div>
+            
+            <div class="sms-status" id="smsStatus"></div>
+            
+            <div class="sms-info">
+                <i class="fas fa-info-circle"></i> SMS отправляются через Telegram-бота. 
+                Все сообщения из чата также дублируются в Telegram.
             </div>
         </div>
     </div>
