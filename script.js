@@ -30,7 +30,7 @@ let lastMessageTime = 0;
 let notificationsEnabled = false;
 let soundEnabled = true;
 let dmFolderOpen = false;
-let currentDMUser = null;
+let currentDMUserName = null; // Текущий собеседник в ЛС (по имени)
 let allUsers = {}; // Все зарегистрированные пользователи для ЛС
 
 /* ========== ИНИЦИАЛИЗАЦИЯ ========== */
@@ -133,7 +133,6 @@ function loadAllUsers() {
         if (key.startsWith('neonchat_user_')) {
             try {
                 const user = JSON.parse(localStorage.getItem(key));
-                allUsers[user.id] = user;
                 allUsers[user.name.toLowerCase()] = user; // Для поиска по имени
             } catch (e) {
                 console.error('Ошибка загрузки пользователя:', e);
@@ -208,28 +207,6 @@ function setupLocalStorageFallback() {
                             online[userId] = data;
                             localStorage.setItem(onlineKey, JSON.stringify(online));
                             updateOnlineDisplay();
-                        } else if (path.startsWith('dms/')) {
-                            // Сохраняем ЛС
-                            const parts = path.split('/');
-                            if (parts.length >= 3) {
-                                const chatKey = `dm_${parts[1]}_${parts[2]}`;
-                                let chat = JSON.parse(localStorage.getItem(chatKey) || '{"messages":[]}');
-                                chat.messages.push(data);
-                                localStorage.setItem(chatKey, JSON.stringify(chat));
-                                
-                                // Создаем уведомление для получателя
-                                if (parts[1] !== myUserId) { // Если сообщение не от меня
-                                    const notificationsKey = 'neonchat_dm_notifications';
-                                    let notifications = JSON.parse(localStorage.getItem(notificationsKey) || '[]');
-                                    notifications.push({
-                                        ...data,
-                                        isNew: true,
-                                        senderId: parts[1],
-                                        receiverId: parts[2]
-                                    });
-                                    localStorage.setItem(notificationsKey, JSON.stringify(notifications));
-                                }
-                            }
                         }
                         setTimeout(resolve, 50);
                     });
@@ -248,38 +225,6 @@ function setupLocalStorageFallback() {
                             const onlineKey = 'firebase_online';
                             const online = JSON.parse(localStorage.getItem(onlineKey) || '{}');
                             setTimeout(() => callback({ val: () => online }), 100);
-                        } else if (path.startsWith('dms/')) {
-                            const parts = path.split('/');
-                            if (parts.length >= 3) {
-                                const chatKey = `dm_${parts[1]}_${parts[2]}`;
-                                const chat = JSON.parse(localStorage.getItem(chatKey) || '{"messages":[]}');
-                                const obj = {};
-                                chat.messages.forEach(msg => {
-                                    obj[msg.id] = msg;
-                                });
-                                setTimeout(() => callback({ val: () => obj }), 100);
-                            }
-                        }
-                    } else if (event === 'child_added') {
-                        if (path.startsWith('dms/')) {
-                            const parts = path.split('/');
-                            if (parts.length >= 3 && parts[2] === myUserId) {
-                                // Симуляция получения новых сообщений
-                                const interval = setInterval(() => {
-                                    const notificationsKey = 'neonchat_dm_notifications';
-                                    const notifications = JSON.parse(localStorage.getItem(notificationsKey) || '[]');
-                                    const newMessages = notifications.filter(n => n.receiverId === myUserId && n.senderId === parts[1]);
-                                    
-                                    newMessages.forEach(msg => {
-                                        callback({ val: () => msg });
-                                        // Удаляем из уведомлений после обработки
-                                        const updated = notifications.filter(n => n.id !== msg.id);
-                                        localStorage.setItem(notificationsKey, JSON.stringify(updated));
-                                    });
-                                }, 2000);
-                                
-                                return () => clearInterval(interval);
-                            }
                         }
                     }
                     return () => {};
@@ -310,94 +255,6 @@ function setupLocalStorageFallback() {
             };
         }
     };
-}
-
-/* ========== УВЕДОМЛЕНИЯ БРАУЗЕРА ========== */
-function requestNotificationPermission() {
-    if (!("Notification" in window)) {
-        console.log("Браузер не поддерживает уведомления");
-        return;
-    }
-    
-    if (Notification.permission === "granted") {
-        notificationsEnabled = true;
-        updateNotificationUI(true);
-        console.log("Уведомления уже разрешены");
-    } else if (Notification.permission !== "denied") {
-        Notification.requestPermission().then(function(permission) {
-            if (permission === "granted") {
-                notificationsEnabled = true;
-                updateNotificationUI(true);
-                console.log("Уведомления разрешены");
-                showBrowserNotification("NeonChat", "Уведомления включены!");
-            } else {
-                updateNotificationUI(false);
-                console.log("Уведомления запрещены");
-            }
-        });
-    }
-}
-
-function showBrowserNotification(title, body) {
-    if (!notificationsEnabled) return;
-    
-    const options = {
-        body: body,
-        icon: 'https://cdn-icons-png.flaticon.com/512/1256/1256650.png',
-        badge: 'https://cdn-icons-png.flaticon.com/512/1256/1256650.png',
-        tag: 'neonchat-notification',
-        vibrate: [200, 100, 200],
-        renotify: true,
-        actions: [
-            {
-                action: 'open',
-                title: 'Открыть чат'
-            }
-        ]
-    };
-    
-    if (soundEnabled) {
-        playNotificationSound();
-    }
-    
-    if (document.hidden) {
-        if ("Notification" in window && Notification.permission === "granted") {
-            new Notification(title, options);
-        }
-    }
-}
-
-function playNotificationSound() {
-    try {
-        const audio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
-        audio.volume = 0.3;
-        audio.play();
-    } catch (e) {
-        console.log("Не удалось воспроизвести звук уведомления");
-    }
-}
-
-function updateNotificationUI(enabled) {
-    const notifStatus = document.getElementById('notifStatusText');
-    const notifBtn = document.getElementById('notifStatus');
-    
-    if (notifStatus) {
-        notifStatus.textContent = enabled ? '🔔' : '🔕';
-        notifStatus.style.color = enabled ? '#00ffaa' : '#ff6666';
-    }
-    
-    if (notifBtn) {
-        notifBtn.innerHTML = enabled ? 
-            '<i class="fas fa-bell"></i> Уведомления' :
-            '<i class="fas fa-bell-slash"></i> Уведомления';
-    }
-}
-
-function checkNotificationSettings() {
-    const savedSound = localStorage.getItem('neonchat_sound_enabled');
-    if (savedSound !== null) {
-        soundEnabled = savedSound === 'true';
-    }
 }
 
 /* ========== УЧИТЕЛЬСКИЙ ЛОГИН ========== */
@@ -538,6 +395,9 @@ function handleTeacherAuth() {
         };
         
         localStorage.setItem('neonchat_current_user', JSON.stringify(currentUser));
+        
+        // Добавляем учителя в список всех пользователей
+        allUsers[TEACHER_USERNAME.toLowerCase()] = currentUser;
         
         // Закрываем модальное окно
         const modal = document.querySelector('div[style*="position: fixed; top: 0; left: 0"]');
@@ -719,7 +579,6 @@ function registerUser(username, password, button) {
     localStorage.setItem('neonchat_current_user', JSON.stringify(currentUser));
     
     // Добавляем в список всех пользователей
-    allUsers[myUserId] = currentUser;
     allUsers[username.toLowerCase()] = currentUser;
     
     console.log('✅ Новый пользователь:', username);
@@ -814,7 +673,6 @@ function createAdminUser(button) {
     localStorage.setItem('neonchat_current_user', JSON.stringify(currentUser));
     
     // Добавляем в список всех пользователей
-    allUsers[myUserId] = currentUser;
     allUsers[ADMIN_USERNAME.toLowerCase()] = currentUser;
     
     console.log('✅ Вход как администратор');
@@ -958,9 +816,6 @@ function initFirebase() {
         console.log('Загрузка сообщений недоступна');
         loadLocalMessages();
     }
-    
-    // Запускаем мониторинг ЛС
-    monitorDMs();
 }
 
 function updateTime() {
@@ -1115,7 +970,7 @@ function updateMessagesDisplay() {
     if (!container) return;
     
     // Если это ЛС, показываем сообщения ЛС
-    if (currentChannel === 'dm' && currentDMUser) {
+    if (currentChannel === 'dm' && currentDMUserName) {
         showDMMessages(container);
         return;
     }
@@ -1206,7 +1061,7 @@ async function sendMessage() {
     }
     
     // Если это ЛС
-    if (currentChannel === 'dm' && currentDMUser) {
+    if (currentChannel === 'dm' && currentDMUserName) {
         sendDMMessage(text, input);
         return;
     }
@@ -1270,72 +1125,16 @@ async function sendMessage() {
     }
 }
 
-/* ========== ЛИЧНЫЕ СООБЩЕНИЯ (РАБОЧИЕ) ========== */
-function monitorDMs() {
-    if (!database || !myUserId) return;
-    
-    try {
-        // Слушаем входящие ЛС
-        database.ref('dms').orderByChild('receiverId').equalTo(myUserId).on('child_added', (snapshot) => {
-            const dm = snapshot.val();
-            console.log('📨 Получено новое ЛС:', dm);
-            
-            // Добавляем в список диалогов
-            addDMToDialogs(dm.senderId, dm);
-            
-            // Показываем уведомление
-            if (notificationsEnabled && document.hidden) {
-                showBrowserNotification(`ЛС от ${dm.senderName}`, dm.text);
-            }
-            
-            // Обновляем список диалогов
-            loadDMDialogs();
-        });
-    } catch (error) {
-        console.error('Ошибка мониторинга ЛС:', error);
-    }
-}
-
-function addDMToDialogs(userId, message) {
-    // Находим пользователя по ID
-    const user = Object.values(allUsers).find(u => u.id === userId);
-    if (!user) return;
-    
-    const dialogKey = `dm_${userId}`;
-    const dialogs = JSON.parse(localStorage.getItem('neonchat_dialogs') || '{}');
-    
-    if (!dialogs[dialogKey]) {
-        dialogs[dialogKey] = {
-            id: userId,
-            name: user.name,
-            avatar: user.avatar,
-            messages: [],
-            unread: 0,
-            lastMessage: Date.now()
-        };
-    }
-    
-    dialogs[dialogKey].messages.push({
-        id: message.id || Date.now().toString(),
-        userId: userId,
-        userName: user.name,
-        text: message.text,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timestamp: Date.now(),
-        read: currentChannel === 'dm' && currentDMUser === userId
-    });
-    
-    if (!(currentChannel === 'dm' && currentDMUser === userId)) {
-        dialogs[dialogKey].unread = (dialogs[dialogKey].unread || 0) + 1;
-    }
-    
-    dialogs[dialogKey].lastMessage = Date.now();
-    
-    localStorage.setItem('neonchat_dialogs', JSON.stringify(dialogs));
-}
-
+/* ========== ЛИЧНЫЕ СООБЩЕНИЯ (ПРОСТЫЕ И РАБОЧИЕ) ========== */
 async function sendDMMessage(text, input) {
-    if (!currentDMUser) return;
+    if (!currentDMUserName) return;
+    
+    // Проверяем, существует ли пользователь
+    const recipient = allUsers[currentDMUserName.toLowerCase()];
+    if (!recipient) {
+        showAlert('❌ Пользователь не найден!', 'error');
+        return;
+    }
     
     messageSendLock = true;
     
@@ -1354,48 +1153,16 @@ async function sendDMMessage(text, input) {
         senderId: myUserId,
         senderName: currentUser.name,
         senderAvatar: currentUser.avatar,
-        receiverId: currentDMUser,
+        receiverName: currentDMUserName,
         text: text,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        read: false
     };
     
     try {
-        if (database) {
-            // Сохраняем у отправителя
-            await database.ref('dms/' + dmId).set(message);
-            
-            // Также сохраняем для получателя (имитируем получение)
-            const receiverMessage = { ...message };
-            receiverMessage.id = 'dm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 10);
-            await database.ref('dms/' + receiverMessage.id).set(receiverMessage);
-            
-        } else {
-            // Локальное хранение - сохраняем для обоих пользователей
-            const chatKey = `dm_${myUserId}_${currentDMUser}`;
-            let chat = JSON.parse(localStorage.getItem(chatKey) || '{"messages":[]}');
-            chat.messages.push(message);
-            localStorage.setItem(chatKey, JSON.stringify(chat));
-            
-            // Для получателя
-            const chatKey2 = `dm_${currentDMUser}_${myUserId}`;
-            let chat2 = JSON.parse(localStorage.getItem(chatKey2) || '{"messages":[]}');
-            chat2.messages.push({...message, isFromOther: true});
-            localStorage.setItem(chatKey2, JSON.stringify(chat2));
-            
-            // Добавляем в уведомления для получателя
-            const notificationsKey = 'neonchat_dm_notifications';
-            let notifications = JSON.parse(localStorage.getItem(notificationsKey) || '[]');
-            notifications.push({
-                ...message,
-                isNew: true,
-                receiverId: currentDMUser
-            });
-            localStorage.setItem(notificationsKey, JSON.stringify(notifications));
-        }
-        
-        // Добавляем сообщение в наш список диалогов
-        addDMToDialogs(currentDMUser, message);
+        // Сохраняем в localStorage для обоих пользователей
+        saveDMMessageForBoth(currentUser.name, currentDMUserName, message);
         
         // Обновляем отображение
         showDMMessages(document.getElementById('messagesContainer'));
@@ -1421,21 +1188,73 @@ async function sendDMMessage(text, input) {
     }
 }
 
+function saveDMMessageForBoth(senderName, receiverName, message) {
+    // Сохраняем у отправителя
+    const senderDialogKey = `dm_dialog_${senderName}_${receiverName}`.toLowerCase();
+    let senderDialog = JSON.parse(localStorage.getItem(senderDialogKey) || '{"messages":[], "partner": "' + receiverName + '"}');
+    senderDialog.messages.push({
+        ...message,
+        isOwn: true
+    });
+    senderDialog.lastMessage = Date.now();
+    localStorage.setItem(senderDialogKey, JSON.stringify(senderDialog));
+    
+    // Сохраняем у получателя (симулируем)
+    const receiverDialogKey = `dm_dialog_${receiverName}_${senderName}`.toLowerCase();
+    let receiverDialog = JSON.parse(localStorage.getItem(receiverDialogKey) || '{"messages":[], "partner": "' + senderName + '"}');
+    receiverDialog.messages.push({
+        ...message,
+        isOwn: false
+    });
+    receiverDialog.lastMessage = Date.now();
+    receiverDialog.unread = (receiverDialog.unread || 0) + 1;
+    localStorage.setItem(receiverDialogKey, JSON.stringify(receiverDialog));
+    
+    // Обновляем список диалогов
+    updateDMDialogsList(senderName, receiverName, message);
+    updateDMDialogsList(receiverName, senderName, message);
+}
+
+function updateDMDialogsList(userName, partnerName, message) {
+    const dialogsKey = `neonchat_dialogs_${userName.toLowerCase()}`;
+    let dialogs = JSON.parse(localStorage.getItem(dialogsKey) || '{}');
+    
+    if (!dialogs[partnerName.toLowerCase()]) {
+        const partner = allUsers[partnerName.toLowerCase()];
+        dialogs[partnerName.toLowerCase()] = {
+            name: partnerName,
+            avatar: partner?.avatar || '👤',
+            lastMessage: message.text.substring(0, 30),
+            lastTime: message.time,
+            unread: userName.toLowerCase() !== currentUser.name.toLowerCase() ? 1 : 0,
+            timestamp: Date.now()
+        };
+    } else {
+        dialogs[partnerName.toLowerCase()].lastMessage = message.text.substring(0, 30);
+        dialogs[partnerName.toLowerCase()].lastTime = message.time;
+        dialogs[partnerName.toLowerCase()].timestamp = Date.now();
+        if (userName.toLowerCase() !== currentUser.name.toLowerCase()) {
+            dialogs[partnerName.toLowerCase()].unread = (dialogs[partnerName.toLowerCase()].unread || 0) + 1;
+        }
+    }
+    
+    localStorage.setItem(dialogsKey, JSON.stringify(dialogs));
+}
+
 function showDMMessages(container) {
-    if (!container || !currentDMUser) return;
+    if (!container || !currentDMUserName) return;
     
     container.innerHTML = '';
     
-    // Находим диалог
-    const dialogKey = `dm_${currentDMUser}`;
-    const dialogs = JSON.parse(localStorage.getItem('neonchat_dialogs') || '{}');
-    const dialog = dialogs[dialogKey];
+    // Загружаем диалог
+    const dialogKey = `dm_dialog_${currentUser.name}_${currentDMUserName}`.toLowerCase();
+    const dialog = JSON.parse(localStorage.getItem(dialogKey) || '{"messages":[]}');
     
-    if (!dialog || !dialog.messages || dialog.messages.length === 0) {
+    if (!dialog.messages || dialog.messages.length === 0) {
         container.innerHTML = `
             <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.4);">
                 <i class="fas fa-envelope" style="font-size: 3em; margin-bottom: 15px; display: block;"></i>
-                Начните диалог с ${currentDMUser}
+                Начните диалог с ${currentDMUserName}
             </div>
         `;
         return;
@@ -1443,7 +1262,7 @@ function showDMMessages(container) {
     
     // Показываем сообщения
     dialog.messages.forEach(msg => {
-        const isOwn = msg.userId === myUserId;
+        const isOwn = msg.isOwn === true || msg.senderName === currentUser.name;
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isOwn ? 'own' : ''}`;
         
@@ -1453,7 +1272,7 @@ function showDMMessages(container) {
         messageDiv.innerHTML = `
             <div class="message-header">
                 <span class="message-user">
-                    ${msg.userName || 'Неизвестный'}
+                    ${isOwn ? 'Вы' : msg.senderName || currentDMUserName}
                 </span>
                 <span class="message-time">${msg.time || '00:00'}</span>
             </div>
@@ -1463,13 +1282,8 @@ function showDMMessages(container) {
         container.appendChild(messageDiv);
     });
     
-    // Помечаем как прочитанные
-    if (dialog.unread > 0) {
-        dialog.unread = 0;
-        dialogs[dialogKey] = dialog;
-        localStorage.setItem('neonchat_dialogs', JSON.stringify(dialogs));
-        loadDMDialogs();
-    }
+    // Обновляем список диалогов (сбрасываем непрочитанные)
+    updateDMDialogsList(currentUser.name, currentDMUserName, {text: '', time: ''});
     
     setTimeout(() => {
         container.scrollTop = container.scrollHeight;
@@ -1498,9 +1312,10 @@ function toggleDMFolder() {
 
 function loadDMDialogs() {
     const dmList = document.getElementById('dmList');
-    if (!dmList) return;
+    if (!dmList || !currentUser) return;
     
-    const dialogs = JSON.parse(localStorage.getItem('neonchat_dialogs') || '{}');
+    const dialogsKey = `neonchat_dialogs_${currentUser.name.toLowerCase()}`;
+    const dialogs = JSON.parse(localStorage.getItem(dialogsKey) || '{}');
     dmList.innerHTML = '';
     
     let hasDialogs = false;
@@ -1508,12 +1323,10 @@ function loadDMDialogs() {
     
     // Сортируем диалоги по времени последнего сообщения
     const sortedDialogs = Object.entries(dialogs)
-        .filter(([_, dialog]) => dialog.messages && dialog.messages.length > 0)
-        .sort((a, b) => (b[1].lastMessage || 0) - (a[1].lastMessage || 0));
+        .sort((a, b) => (b[1].timestamp || 0) - (a[1].timestamp || 0));
     
-    sortedDialogs.forEach(([userId, dialog]) => {
+    sortedDialogs.forEach(([partnerName, dialog]) => {
         hasDialogs = true;
-        const lastMessage = dialog.messages[dialog.messages.length - 1];
         const isUnread = dialog.unread > 0;
         
         if (isUnread) unreadCount += dialog.unread;
@@ -1521,7 +1334,7 @@ function loadDMDialogs() {
         const dmItem = document.createElement('div');
         dmItem.className = `dm-item ${isUnread ? 'unread' : ''}`;
         dmItem.onclick = () => {
-            currentDMUser = userId;
+            currentDMUserName = partnerName;
             switchChannel('dm');
             showDMMessages(document.getElementById('messagesContainer'));
             
@@ -1531,6 +1344,12 @@ function loadDMDialogs() {
                 channelNameElement.textContent = `ЛС: ${dialog.name}`;
             }
             
+            // Сбрасываем счетчик непрочитанных
+            dialog.unread = 0;
+            dialogs[partnerName] = dialog;
+            localStorage.setItem(dialogsKey, JSON.stringify(dialogs));
+            loadDMDialogs();
+            
             hideMobilePanels();
         };
         
@@ -1538,7 +1357,7 @@ function loadDMDialogs() {
             <div class="dm-avatar">${dialog.avatar || '👤'}</div>
             <div class="dm-info">
                 <div class="dm-user">${dialog.name}</div>
-                <div class="dm-preview">${lastMessage?.text?.substring(0, 30) || 'Нет сообщений'}...</div>
+                <div class="dm-preview">${dialog.lastMessage || 'Нет сообщений'}...</div>
             </div>
             ${isUnread ? `<span class="dm-badge">${dialog.unread > 9 ? '9+' : dialog.unread}</span>` : ''}
         `;
@@ -1590,7 +1409,7 @@ function startNewDM() {
         const recipientInput = document.getElementById('dmRecipient');
         if (recipientInput) {
             recipientInput.value = '';
-            recipientInput.placeholder = 'Введите имя пользователя или выберите из списка...';
+            recipientInput.placeholder = 'Введите имя пользователя...';
             recipientInput.focus();
             
             // Создаем datalist для автодополнения
@@ -1602,18 +1421,10 @@ function startNewDM() {
             }
             datalist.innerHTML = '';
             
-            // Добавляем онлайн пользователей
-            onlineUsers.forEach(user => {
-                if (user.id !== myUserId) {
-                    const option = document.createElement('option');
-                    option.value = user.name;
-                    datalist.appendChild(option);
-                }
-            });
-            
-            // Добавляем всех пользователей
-            Object.values(allUsers).forEach(user => {
-                if (user.id !== myUserId && !onlineUsers.has(user.id)) {
+            // Добавляем всех пользователей кроме себя
+            Object.keys(allUsers).forEach(userName => {
+                if (userName !== currentUser.name.toLowerCase()) {
+                    const user = allUsers[userName];
                     const option = document.createElement('option');
                     option.value = user.name;
                     datalist.appendChild(option);
@@ -1651,17 +1462,14 @@ function sendDirectMessage() {
         return;
     }
     
-    // Находим пользователя
-    const recipient = Object.values(allUsers).find(user => 
-        user.name.toLowerCase() === recipientName.toLowerCase()
-    );
-    
+    // Проверяем, существует ли пользователь
+    const recipient = allUsers[recipientName.toLowerCase()];
     if (!recipient) {
         showAlert('Пользователь не найден!', 'error');
         return;
     }
     
-    if (recipient.id === myUserId) {
+    if (recipient.name === currentUser.name) {
         showAlert('Нельзя отправить сообщение самому себе!', 'error');
         return;
     }
@@ -1670,33 +1478,31 @@ function sendDirectMessage() {
     closeNewDM();
     
     // Начинаем диалог
-    currentDMUser = recipient.id;
+    currentDMUserName = recipient.name;
     switchChannel('dm');
     
-    // Отправляем сообщение
-    const messageInput = document.getElementById('messageInput');
-    if (messageInput) {
-        messageInput.value = text;
-        setTimeout(() => {
+    // Сразу отправляем сообщение
+    setTimeout(() => {
+        const messageInput = document.getElementById('messageInput');
+        if (messageInput) {
+            messageInput.value = text;
             sendMessage();
-        }, 100);
-    }
+        }
+    }, 100);
     
     showAlert(`Начат диалог с ${recipient.name}`, 'success');
 }
 
 function startDMWithUser(username) {
-    // Находим пользователя
-    const user = Object.values(allUsers).find(u => 
-        u.name.toLowerCase() === username.toLowerCase()
-    );
+    // Проверяем, существует ли пользователь
+    const user = allUsers[username.toLowerCase()];
     
     if (!user) {
         showAlert('Пользователь не найден!', 'error');
         return;
     }
     
-    if (user.id === myUserId) {
+    if (user.name === currentUser.name) {
         showAlert('Нельзя начать диалог с самим собой!', 'error');
         return;
     }
@@ -1788,7 +1594,7 @@ function handleCommand(command) {
             break;
             
         case '/users':
-            const userCount = Object.keys(localStorage).filter(k => k.startsWith('neonchat_user_')).length;
+            const userCount = Object.keys(allUsers).length;
             sendSystemMessage(`👤 Всего пользователей: ${userCount}`);
             break;
             
@@ -1900,9 +1706,6 @@ function sendActionMessage(action) {
 }
 
 /* ========== ОСТАЛЬНЫЕ ФУНКЦИИ ========== */
-// (Функции startCall, createDiscordCall и т.д. оставляем как были)
-// (Функции учителя adminClearChat и т.д. оставляем как были)
-
 function addEmoji(emoji) {
     const input = document.getElementById('messageInput');
     if (input) {
@@ -1924,7 +1727,11 @@ function toggleEmojiPanel() {
 
 function switchChannel(channel) {
     currentChannel = channel;
-    currentDMUser = null; // Сбрасываем ЛС при переключении каналов
+    
+    // Если переключаемся не в ЛС, сбрасываем собеседника
+    if (channel !== 'dm') {
+        currentDMUserName = null;
+    }
     
     document.querySelectorAll('.channel').forEach(el => el.classList.remove('active'));
     
@@ -1943,10 +1750,8 @@ function switchChannel(channel) {
     
     const channelNameElement = document.getElementById('channelName');
     if (channelNameElement) {
-        if (channel === 'dm' && currentDMUser) {
-            const dialogs = JSON.parse(localStorage.getItem('neonchat_dialogs') || '{}');
-            const dialog = dialogs[currentDMUser];
-            channelNameElement.textContent = `ЛС: ${dialog?.name || 'Диалог'}`;
+        if (channel === 'dm' && currentDMUserName) {
+            channelNameElement.textContent = `ЛС: ${currentDMUserName}`;
         } else {
             channelNameElement.textContent = channelNames[channel] || channel;
         }
@@ -2128,5 +1933,6 @@ window.adminAnnouncement = adminAnnouncement;
 window.adminKickAll = adminKickAll;
 window.showDMView = showDMView;
 window.handleTeacherAuth = handleTeacherAuth;
+window.startDMWithUser = startDMWithUser;
 
-console.log('✅ Все функции загружены! ЛС теперь работают в обе стороны!');
+console.log('✅ Все функции загружены! ЛС теперь работают по имени пользователя!');
